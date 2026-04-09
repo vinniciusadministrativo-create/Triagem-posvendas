@@ -17,9 +17,8 @@
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
-  color-scheme: light dark;
   color: var(--text);
-  background: var(--bg);
+  background: #f8fafc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -52,15 +51,14 @@
 
 body {
   margin: 0;
+  background-color: #f8fafc; /* Um cinza azulado bem leve e premium */
+  min-height: 100vh;
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
+  width: 100%;
+  margin: 0;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
