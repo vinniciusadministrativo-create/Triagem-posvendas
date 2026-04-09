@@ -40,6 +40,42 @@ const STATUS_COLOR={
   aguardando_financeiro:"#16a34a",encerrado:"#6b7280",
 };
 
+function DANFE({nf, chamado}) {
+  const d=nf||{};const prods=d.produtos?.length?d.produtos:[{}];const now=new Date();
+  const bL={fontSize:7,textTransform:"uppercase",color:"#666",fontWeight:600,letterSpacing:0.4,marginBottom:1};
+  const bV={fontSize:10,fontFamily:"'IBM Plex Mono',monospace",fontWeight:500,minHeight:13};
+  const sc={border:"1.5px solid #333",marginBottom:-1.5};
+  const sT={fontSize:7,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,background:M.pri,padding:"2px 6px",borderBottom:"1px solid #333",color:"#fff"};
+  const Bx=({label,value,style={}})=>(<div style={{padding:"3px 6px",borderRight:"1px solid #333",...style}}><div style={bL}>{label}</div><div style={bV}>{value||"—"}</div></div>);
+  const cH={fontSize:7,fontWeight:700,color:"#333",textTransform:"uppercase",padding:"3px 4px",background:"#f0ebe5",borderBottom:"1px solid #333",whiteSpace:"nowrap"};
+  const cD={fontSize:8,padding:"4px",borderBottom:"1px solid #aaa",fontFamily:"'IBM Plex Mono',monospace"};
+  return(
+    <div id="danfe-print" style={{background:"#fff",padding:20,fontFamily:"'Plus Jakarta Sans',sans-serif",color:"#000",position:"relative"}}>
+      <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%) rotate(-35deg)",fontSize:30,fontWeight:800,color:"rgba(155,27,48,0.13)",whiteSpace:"nowrap",pointerEvents:"none",letterSpacing:2}}>NÃO TEM VALOR FISCAL</div>
+      <div style={{position:"relative",zIndex:1}}>
+        <div style={{...sc,display:"grid",gridTemplateColumns:"1fr auto"}}>
+          <div style={{padding:"8px 10px",borderRight:"1px solid #333"}}>
+            <div style={{display:"inline-flex",alignItems:"center",gap:6,background:M.pri,borderRadius:4,padding:"3px 10px",marginBottom:4}}><svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M3 16L10 3L17 16H13L10 9L7 16H3Z" fill="white"/></svg><span style={{color:"#fff",fontSize:10,fontWeight:800,letterSpacing:1.5}}>MARIN</span></div>
+            <div style={{fontSize:10,fontWeight:700}}>MARIN LOGÍSTICA E COMÉRCIO LTDA</div>
+            <div style={{fontSize:7,color:"#444",lineHeight:1.4}}>R VALDO GERLACH, 07 — DISTRITO INDUSTRIAL — CEP: 88104-743 — SÃO JOSÉ/SC</div>
+          </div>
+          <div style={{padding:"6px 12px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minWidth:130}}>
+            <div style={{fontSize:6,fontWeight:700,color:M.pri,textTransform:"uppercase",letterSpacing:1}}>Espelho Rascunho</div>
+            <div style={{fontSize:22,fontWeight:800,letterSpacing:2,color:M.pri}}>DANFE</div>
+          </div>
+        </div>
+        <div style={sc}><div style={{borderBottom:"1px solid #333"}}><Bx label="Natureza da Operação" value={d.natureza_operacao||"1202 - DEVOLUÇÃO DE VENDA"} style={{borderRight:"none"}}/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr"}}><Bx label="IE" value="261935348"/><Bx label="IE ST" value=""/><Bx label="CNPJ" value="04.002.562/0004-78" style={{borderRight:"none"}}/></div></div>
+        <div style={sc}><div style={sT}>Destinatário / Remetente</div><div style={{display:"grid",gridTemplateColumns:"2fr 1fr",borderBottom:"1px solid #333"}}><Bx label="Razão Social" value={d.razao_social_dest||chamado.razao_social}/><Bx label="CNPJ" value={d.cnpj_dest||chamado.cnpj} style={{borderRight:"none"}}/></div><div style={{display:"grid",gridTemplateColumns:"2fr 1fr 0.6fr 0.4fr",borderBottom:"1px solid #333"}}><Bx label="Endereço" value={d.endereco_dest}/><Bx label="Bairro" value={d.bairro_dest}/><Bx label="CEP" value={d.cep_dest}/><Bx label="UF" value={d.uf_dest} style={{borderRight:"none"}}/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr"}}><Bx label="Município" value={d.municipio_dest}/><Bx label="Telefone" value={d.telefone_dest||chamado.telefone}/><Bx label="IE" value={d.ie_dest} style={{borderRight:"none"}}/></div></div>
+        <div style={sc}><div style={sT}>Cálculo do Imposto</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",borderBottom:"1px solid #333"}}><Bx label="Base ICMS" value={d.base_icms}/><Bx label="Vlr ICMS" value={d.valor_icms}/><Bx label="Base ST" value={d.base_icms_st||"0,00"}/><Bx label="Vlr ST" value={d.valor_icms_st||"0,00"} style={{borderRight:"none"}}/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr 1fr 1fr"}}><Bx label="Produtos" value={d.valor_total_produtos}/><Bx label="IPI" value={d.valor_ipi||"0,00"}/><Bx label="Outras" value={d.outras_despesas||"0,00"}/><Bx label="Desc." value={d.desconto||"0,00"}/><Bx label="Frete" value={d.valor_frete||"0,00"}/><Bx label="TOTAL" value={d.valor_total_nota} style={{borderRight:"none"}}/></div></div>
+        <div style={sc}><div style={sT}>Transportador</div><div style={{display:"grid",gridTemplateColumns:"2fr 1fr 0.4fr 1fr"}}><Bx label="Nome" value={d.transportador_nome}/><Bx label="CNPJ" value={d.transportador_cnpj}/><Bx label="UF" value={d.transportador_uf}/><Bx label="Frete" value={d.frete_por_conta||"1-CIF"} style={{borderRight:"none"}}/></div></div>
+        <div style={sc}><div style={sT}>Produtos</div><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{["Cód","Descrição","NCM","CST","CFOP","Un","Qtd","Vlr.Un","Vlr.Líq","ICMS","%ICMS"].map(h=><th key={h} style={cH}>{h}</th>)}</tr></thead><tbody>{prods.map((p,i)=>(<tr key={i}><td style={cD}>{p.codigo}</td><td style={{...cD,minWidth:90,fontSize:7}}>{p.descricao}</td><td style={cD}>{p.ncm}</td><td style={cD}>{p.cst}</td><td style={cD}>{p.cfop}</td><td style={cD}>{p.unidade}</td><td style={cD}>{p.quantidade}</td><td style={cD}>{p.valor_unitario}</td><td style={cD}>{p.valor_liquido}</td><td style={cD}>{p.valor_icms}</td><td style={cD}>{p.aliq_icms}</td></tr>))}</tbody></table></div></div>
+        <div style={{...sc,display:"grid",gridTemplateColumns:"1fr 1fr"}}><div style={{borderRight:"1px solid #333",padding:"4px 8px"}}><div style={bL}>Info. Complementares</div><div style={{fontSize:8,lineHeight:1.5,minHeight:28,fontFamily:"'IBM Plex Mono',monospace"}}>{d.info_complementares||`Vendedor: ${chamado.vendedor_nome}`}{(d.nf_referencia||chamado.nf_original)&&<><br/>DEVOLUÇÃO REF. NF {d.nf_referencia||chamado.nf_original}</>}</div></div><div style={{padding:"4px 8px"}}><div style={bL}>Dados Adicionais</div><div style={{fontSize:7,color:"#888",marginTop:4}}>{now.toLocaleDateString("pt-BR")} {now.toLocaleTimeString("pt-BR")}</div><div style={{fontSize:6,color:"#aaa",marginTop:2}}>Triagem Automática Marin</div></div></div>
+      </div>
+    </div>
+  );
+}
+
+
 function Badge({label,color}){
   return(
     <span style={{display:"inline-block",padding:"3px 10px",borderRadius:20,background:`${color}18`,border:`1px solid ${color}40`,color,fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,whiteSpace:"nowrap"}}>
@@ -50,7 +86,11 @@ function Badge({label,color}){
 
 function ChamadoDetail({chamado,onClose,onStatusChange}){
   const[newStatus,setNewStatus]=useState(chamado.status||"novo");
+  const[showDANFE,setShowDANFE]=useState(false);
   const[saving,setSaving]=useState(false);
+  
+  const handlePrint=()=>window.print();
+
   const d=chamado;
   const tr=d.triage_result||{};
   const ev=d.evidence_result||{};
@@ -146,6 +186,25 @@ function ChamadoDetail({chamado,onClose,onStatusChange}){
               </button>
             </div>
           </div>
+
+          {/* DANFE Mirror Button (Admin/PosVendas Only) */}
+          {nf.numero_nf && (
+            <div style={{marginTop:20, borderTop:`1px solid ${M.brdN}`, paddingTop:16}}>
+              <button onClick={()=>setShowDANFE(!showDANFE)} style={{width:"100%",padding:"12px",background:showDANFE?M.alt:M.pri,color:showDANFE?M.tx:"#fff",border:showDANFE?`1px solid ${M.brdN}`:"none",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:showDANFE?"none":`0 4px 16px ${M.glow}`}}>
+                {showDANFE?"Ocultar Espelho":"🧾 Gerar Espelho NFD (Rascunho)"}
+              </button>
+              {showDANFE && (
+                 <div style={{marginTop:12}}>
+                    <div className="no-print" style={{textAlign:"right",marginBottom:8}}>
+                      <button onClick={handlePrint} style={{padding:"8px 16px",background:M.ok,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>🖨️ Imprimir PDF</button>
+                    </div>
+                    <div style={{borderRadius:10,overflow:"hidden",border:`1px solid ${M.brdN}`,boxShadow:"0 4px 20px rgba(0,0,0,0.06)"}}>
+                      <DANFE nf={nf} chamado={chamado}/>
+                    </div>
+                 </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -420,7 +479,15 @@ export default function PosVendasPage(){
       </>
       )}
 
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');`}</style>
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #danfe-print, #danfe-print * { visibility: visible; }
+          #danfe-print { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; z-index: 10000; }
+          .no-print { display: none !important; }
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+      `}</style>
     </div>
   );
 }
