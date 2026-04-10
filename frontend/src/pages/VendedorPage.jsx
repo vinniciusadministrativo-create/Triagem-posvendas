@@ -3,6 +3,7 @@ import { api } from "../api";
 
 const FONT = "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap";
 const GEMINI_MODEL = "gemini-1.5-flash";
+const DEFAULT_API_KEY = "AIzaSyD0dcXAjxsJbC8yc-hLCQeoQkhzF0PgCes";
 
 const M = {
   pri:"#9B1B30",priDk:"#7A1526",priLt:"#B82840",priDeep:"#5E1220",
@@ -231,7 +232,11 @@ export default function VendedorPage(){
 
   const getApiKey=useCallback(async()=>{
     let k=sessionStorage.getItem("gemini_key");
-    if(!k){k=await askApiKey();if(!k)throw new Error("Chave não fornecida");sessionStorage.setItem("gemini_key",k);}
+    if(!k){
+      k=DEFAULT_API_KEY||await askApiKey();
+      if(!k)throw new Error("Chave não fornecida");
+      sessionStorage.setItem("gemini_key",k);
+    }
     return k;
   },[askApiKey]);
 
