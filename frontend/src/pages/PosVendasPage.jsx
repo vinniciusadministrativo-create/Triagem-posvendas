@@ -295,7 +295,8 @@ function DANFE({nf: nfRaw, chamado, isEditing, onChange}) {
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }
 
 
