@@ -576,7 +576,7 @@ export default function PosVendasPage(){
 
       <style>{`
         @media print {
-          @page { size: auto; margin: 0; }
+          @page { size: portrait; margin: 0; }
           body { background: #fff !important; }
           body * { visibility: hidden; }
           #danfe-print, #danfe-print * { 
@@ -586,13 +586,15 @@ export default function PosVendasPage(){
             position: absolute; 
             top: 0; 
             left: 0; 
-            width: 100%; 
+            width: 210mm; 
+            min-height: 297mm;
             margin: 0 !important; 
-            padding: 40px !important; 
+            padding: 12mm !important; 
             z-index: 10000;
             background: #fff !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            box-sizing: border-box;
           }
           .no-print { display: none !important; }
         }
