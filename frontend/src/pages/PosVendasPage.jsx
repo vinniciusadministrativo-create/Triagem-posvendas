@@ -101,33 +101,49 @@ function DANFE({nf: nfRaw, chamado, isEditing, onChange}) {
   const sectionTitle = { fontSize: "7px", fontWeight: "800", textTransform: "uppercase", padding: "4px 0 2px 2px" };
 
   return (
-    <div id="danfe-print" style={{ 
-      background: "#fff", 
-      padding: "5mm", 
-      color: "#000", 
-      fontFamily: "'Plus Jakarta Sans', sans-serif", 
-      position: "relative", 
-      width: "200mm", // Reduzido de 210mm para segurança em todas as impressoras
-      minHeight: "287mm", 
-      boxSizing: "border-box", 
-      margin: "0 auto",
-      border: "1px solid #000",
-      display: "flex",
-      flexDirection: "column"
-    }}>
+    <div id="danfe-print-wrapper" className="danfe-print-container" style={{ width: "100%", display: "flex", justifyContent: "center", background: "#f5f5f5", padding: "20px 0" }}>
       <style>{`
         @media print {
           @page { margin: 0; size: A4; }
-          body { margin: 0; -webkit-print-color-adjust: exact; }
-          #danfe-print { 
-            border: 1px solid #000 !important; 
-            margin: 0 auto !important;
-            width: 200mm !important;
+          body * { visibility: hidden; }
+          #danfe-print-wrapper, #danfe-print-wrapper * { visibility: visible; }
+          #danfe-print-wrapper { 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 210mm !important; 
+            height: 297mm !important; 
+            padding: 0 !important; 
+            margin: 0 !important;
+            background: #fff !important;
+            display: block !important;
           }
-          /* Oculta elementos que não sejam o espelho na hora de imprimir */
-          button, nav, .no-print { display: none !important; }
+          #danfe-print { 
+            width: 210mm !important; 
+            height: 297mm !important; 
+            border: 1px solid #000 !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            padding: 5mm !important;
+          }
+          .no-print { display: none !important; }
         }
       `}</style>
+
+      <div id="danfe-print" style={{ 
+        background: "#fff", 
+        padding: "5mm", 
+        color: "#000", 
+        fontFamily: "'Plus Jakarta Sans', sans-serif", 
+        position: "relative", 
+        width: "210mm", 
+        minHeight: "297mm", 
+        boxSizing: "border-box", 
+        border: "1px solid #000",
+        display: "flex",
+        flexDirection: "column",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.1)"
+      }}>
       
       {/* Watermark */}
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%) rotate(-35deg)", fontSize: "72px", fontWeight: "900", color: "rgba(0,0,0,0.04)", pointerEvents: "none", zIndex: 0, textAlign: "center", width: "100%" }}>
