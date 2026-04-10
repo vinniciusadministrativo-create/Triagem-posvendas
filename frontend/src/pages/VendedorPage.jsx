@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../api";
 
 const FONT = "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap";
-const GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_MODEL = "gemini-3-flash";
 const DEFAULT_API_KEY = "AIzaSyD0dcXAjxsJbC8yc-hLCQeoQkhzF0PgCes";
 
 const M = {
@@ -97,15 +97,26 @@ function triageDeterministic(formData){
 }
 
 // ── GEMINI API HELPERS ──
-async function geminiRequest(apiKey, parts, maxTokens=800){
-  const r=await fetch(`https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({contents:[{parts}],generationConfig:{maxOutputTokens:maxTokens,temperature:0.1}})
-  });
-  if(!r.ok){const e=await r.text().catch(()=>"");throw new Error(`Gemini ${r.status}: ${e.substring(0,100)}`);}
-  const d=await r.json();
-  return d.candidates?.[0]?.content?.parts?.map(p=>p.text).join("")||"";
+async function geminiRequest(apiKey, parts, maxTokens=800, retries=3){
+  for(let i=0; i<retries; i++){
+    try {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({contents:[{parts}],generationConfig:{maxOutputTokens:maxTokens,temperature:0.1}})
+      });
+      if(r.status === 429 && i < retries - 1) {
+        await new Promise(res => setTimeout(res, 2000 * (i + 1))); // Exponential backoff
+        continue;
+      }
+      if(!r.ok){const e=await r.text().catch(()=>"");throw new Error(`Gemini ${r.status}: ${e.substring(0,100)}`);}
+      const d=await r.json();
+      return d.candidates?.[0]?.content?.parts?.map(p=>p.text).join("")||"";
+    } catch (e) {
+      if(i === retries - 1) throw e;
+      await new Promise(res => setTimeout(res, 2000));
+    }
+  }
 }
 
 async function agentTriage(formData,apiKey){
