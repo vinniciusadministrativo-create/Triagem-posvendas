@@ -61,7 +61,14 @@ const Bx=({label,value,field,onChange,isEditing,style={}})=>(
 );
 
 function DANFE({nf, chamado, isEditing, onChange}) {
-  const d=nf||{};const prods=d.produtos?.length?d.produtos:[{}];const now=new Date();
+  // Fallback: se os dados da NF (IA) estiverem vazios, tenta usar o que o vendedor preencheu
+  const d = {
+    razao_social_dest: nf?.razao_social_dest || chamado?.razao_social || "",
+    cnpj_dest: nf?.cnpj_dest || chamado?.cnpj || "",
+    telefone_dest: nf?.telefone_dest || chamado?.telefone || "",
+    ...nf
+  };
+  const prods=d.produtos?.length?d.produtos:[{}];const now=new Date();
 
   const cH={fontSize:7,fontWeight:700,color:"#333",textTransform:"uppercase",padding:"3px 4px",background:"#f0ebe5",borderBottom:"1px solid #333",whiteSpace:"nowrap"};
   const cD={fontSize:8,padding:"4px",borderBottom:"1px solid #aaa",fontFamily:"'IBM Plex Mono',monospace"};
