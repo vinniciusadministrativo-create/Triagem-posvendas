@@ -144,14 +144,12 @@ async function agentDocument(b64,mime,apiKey){
       info_complementares: ""
     };
     
-    const prompt = `Analise esta Nota Fiscal (DANFE) brasileira e extraia TODOS os campos conforme este JSON. Retorne APENAS o JSON puro. Máximo 4 produtos. Campos vazios como "".
+    const prompt = `Analise esta Nota Fiscal (DANFE) brasileira e extraia TODOS os campos conforme este JSON. Retorne APENAS o JSON puro. Máximo 10 produtos. Campos numéricos vazios como "0,00".
     JSON: ${JSON.stringify(schema)}`;
 
-    const parts = isImg 
-      ? [{inline_data:{mime_type:mime,data:b64}}, {text: prompt}]
-      : [{text: prompt + "\nConsidere que o input é um conteúdo de PDF."}];
+    const parts = [{inline_data:{mime_type:mime,data:b64}}, {text: prompt}];
 
-    const txt=await geminiRequest(apiKey,parts,1500);
+    const txt=await geminiRequest(apiKey,parts,2000); // Aumentado para 2000 tokens para notas longas
     return repairJSON(txt)||{error:"JSON inválido na extração"};
   }catch(e){return{error:e.message};}
 }
