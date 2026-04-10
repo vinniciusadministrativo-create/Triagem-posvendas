@@ -40,20 +40,19 @@ const RESP=["Edite","Gabriel","Gustavo","Carlos","Ana"];
 
 // ── REPAIR JSON ──
 function repairJSON(str){
-  let s=str.trim().replace(/^```json\s*/i,"").replace(/\s*```$/i,"").trim();
-  const i=s.indexOf("{");if(i<0)return null;
-  s=s.substring(i);
-  try{return JSON.parse(s);}catch(e){}
-  s=s.replace(/,\s*([}\]])/g,"$1");
-  let inStr=false;
-  for(let j=0;j<s.length;j++){if(s[j]==='"'&&(j===0||s[j-1]!=='\\'))inStr=!inStr;}
-  if(inStr)s+='"';
-  s=s.replace(/,\s*"[^"]*"?\s*:?\s*"?[^"{}[\]]*$/,"");
-  let stack=[];
-  for(let j=0;j<s.length;j++){const c=s[j];if(c==='{')stack.push('}');else if(c==='[')stack.push(']');else if(c==='}'||c===']')stack.pop();}
-  while(stack.length>0)s+=stack.pop();
-  s=s.replace(/,\s*([}\]])/g,"$1");
-  try{return JSON.parse(s);}catch(e){return null;}
+  if(!str)return null;
+  // Limpa blocos de código markdown e espaços
+  let s=str.trim().replace(/^```(?:json)?\s*/i,"").replace(/\s*```$/i,"").trim();
+  // Busca o primeiro '{' e o último '}'
+  const start=s.indexOf("{");
+  const end=s.lastIndexOf("}");
+  if(start<0||end<0)return null;
+  s=s.substring(start,end+1);
+  try{return JSON.parse(s);}catch(e){
+    // Tenta consertos básicos se falhar
+    s=s.replace(/,\s*([}\]])/g,"$1"); // Remove vírgulas extras
+    try{return JSON.parse(s);}catch(e2){return null;}
+  }
 }
 
 // ── DETERMINISTIC TRIAGE ──
@@ -137,11 +136,23 @@ async function agentDocument(b64,mime,apiKey){
   if(!apiKey)return null;
   try{
     const isImg=mime.startsWith("image/");
-    const parts=isImg
-      ?[{inline_data:{mime_type:mime,data:b64}},{text:"Extraia dados desta NF brasileira. Máximo 3 produtos. SOMENTE JSON puro: {\"numero_nf\":\"\",\"razao_social_dest\":\"\",\"cnpj_dest\":\"\",\"endereco_dest\":\"\",\"bairro_dest\":\"\",\"cep_dest\":\"\",\"municipio_dest\":\"\",\"uf_dest\":\"\",\"telefone_dest\":\"\",\"ie_dest\":\"\",\"natureza_operacao\":\"\",\"base_icms\":\"\",\"valor_icms\":\"\",\"valor_total_produtos\":\"\",\"valor_total_nota\":\"\",\"transportador_nome\":\"\",\"transportador_cnpj\":\"\",\"frete_por_conta\":\"\",\"produtos\":[{\"codigo\":\"\",\"descricao\":\"\",\"ncm\":\"\",\"cfop\":\"\",\"unidade\":\"\",\"quantidade\":\"\",\"valor_unitario\":\"\",\"valor_liquido\":\"\",\"valor_icms\":\"\",\"aliq_icms\":\"\"}],\"info_complementares\":\"\"}"}]
-      :[{text:"Analise esta NF (PDF) e extraia: numero_nf, razao_social_dest, cnpj_dest, produtos (max 3), valor_total_nota. JSON puro apenas. Se não conseguir, retorne {\"error\":\"PDF não suportado\"}"}];
-    const txt=await geminiRequest(apiKey,parts,1000);
-    return repairJSON(txt)||{error:"JSON inválido"};
+    const schema = {
+      numero_nf: "", razao_social_dest: "", cnpj_dest: "", endereco_dest: "", bairro_dest: "", cep_dest: "", municipio_dest: "", uf_dest: "", telefone_dest: "", ie_dest: "", natureza_operacao: "",
+      base_icms: "", valor_icms: "", base_icms_st: "", valor_icms_st: "", valor_total_produtos: "", valor_total_nota: "", valor_frete: "", valor_ipi: "", outras_despesas: "", desconto: "",
+      transportador_nome: "", transportador_cnpj: "", transportador_uf: "", frete_por_conta: "",
+      produtos: [{ codigo: "", descricao: "", ncm: "", cst: "", cfop: "", unidade: "", quantidade: "", valor_unitario: "", valor_liquido: "", valor_icms: "", aliq_icms: "" }],
+      info_complementares: ""
+    };
+    
+    const prompt = `Analise esta Nota Fiscal (DANFE) brasileira e extraia TODOS os campos conforme este JSON. Retorne APENAS o JSON puro. Máximo 4 produtos. Campos vazios como "".
+    JSON: ${JSON.stringify(schema)}`;
+
+    const parts = isImg 
+      ? [{inline_data:{mime_type:mime,data:b64}}, {text: prompt}]
+      : [{text: prompt + "\nConsidere que o input é um conteúdo de PDF."}];
+
+    const txt=await geminiRequest(apiKey,parts,1500);
+    return repairJSON(txt)||{error:"JSON inválido na extração"};
   }catch(e){return{error:e.message};}
 }
 

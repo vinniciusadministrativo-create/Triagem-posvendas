@@ -72,9 +72,22 @@ function DANFE({nf: nfRaw, chamado, isEditing, onChange}) {
     razao_social_dest: nf.razao_social_dest || chamado?.razao_social || "",
     cnpj_dest: nf.cnpj_dest || chamado?.cnpj || "",
     telefone_dest: nf.telefone_dest || chamado?.telefone || "",
-    natureza_operacao: nf.natureza_operacao || "5202 - DEVOLUÇÃO DE COMPRA PARA COMERCIALIZAÇÃO DENTRO DO MESMO ESTADO"
+    natureza_operacao: nf.natureza_operacao || "5202 - DEVOLUÇÃO DE COMPRA PARA COMERCIALIZAÇÃO DENTRO DO MESMO ESTADO",
+    base_icms: nf.base_icms || "0,00",
+    valor_icms: nf.valor_icms || "0,00",
+    base_icms_st: nf.base_icms_st || "0,00",
+    valor_icms_st: nf.valor_icms_st || "0,00",
+    valor_total_produtos: nf.valor_total_produtos || "0,00",
+    valor_total_nota: nf.valor_total_nota || "0,00",
+    valor_frete: nf.valor_frete || "0,00",
+    valor_ipi: nf.valor_ipi || "0,00",
+    outras_despesas: nf.outras_despesas || "0,00",
+    desconto: nf.desconto || "0,00"
   };
-  const prods=d.produtos?.length?d.produtos:[{}];const now=new Date();
+  const prods=d.produtos?.length?d.produtos.map(p=>({
+    cst: "000", // Fallback CST
+    ...p
+  })):[{}];const now=new Date();
 
   const cH={fontSize:7,fontWeight:700,color:"#333",textTransform:"uppercase",padding:"3px 4px",background:"#f0ebe5",borderBottom:"1px solid #333",whiteSpace:"nowrap"};
   const cD={fontSize:8,padding:"4px",borderBottom:"1px solid #aaa",fontFamily:"'IBM Plex Mono',monospace"};
