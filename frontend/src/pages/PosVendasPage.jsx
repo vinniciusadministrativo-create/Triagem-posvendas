@@ -302,6 +302,13 @@ function ChamadoDetail({chamado,onClose,onStatusChange}){
             </div>
           )}
         </div>
+
+        <div style={{marginTop:30, padding:"20px", borderTop:`1px solid ${M.brdN}`, display:"flex", justifyContent:"center"}}>
+           <button onClick={()=>onDelete(d.id)} style={{background:"transparent", color:M.err, border:`1px solid ${M.err}`, padding:"10px 24px", borderRadius:10, fontSize:12, fontWeight:700, cursor:"pointer", transition:"all 0.2s"}}
+             onMouseEnter={e=>e.currentTarget.style.background=M.errS} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+             🗑️ Excluir Chamado (Permanente)
+           </button>
+        </div>
       </div>
     </div>
   );
@@ -419,6 +426,8 @@ export default function PosVendasPage(){
   const[selected,setSelected]=useState(null);
   const[search,setSearch]=useState("");
   const[activeTab,setActiveTab]=useState("chamados");
+  const[selectedIds,setSelectedIds]=useState(new Set());
+  const[deletingSelect,setDeletingSelect]=useState(false);
 
   const LIMIT=15;
 
@@ -442,12 +451,42 @@ export default function PosVendasPage(){
     if(selected?.id===id)setSelected(s=>({...s,status:newStatus,etapa_destino:newStatus}));
   };
 
+  const toggleSelect=(id)=>{
+    const n=new Set(selectedIds);
+    if(n.has(id))n.delete(id);else n.add(id);
+    setSelectedIds(n);
+  };
+  const toggleSelectAll=()=>{
+    if(selectedIds.size===filtered.length)setSelectedIds(new Set());
+    else setSelectedIds(new Set(filtered.map(c=>c.id)));
+  };
+
+  const handleDeleteSelected=async()=>{
+    if(!window.confirm(`Tem certeza que deseja APAGAR PERMANENTEMENTE ${selectedIds.size} chamados selecionados? Esta ação não pode ser desfeita.`))return;
+    setDeletingSelect(true);
+    try{
+      await api.deleteMultipleChamados(Array.from(selectedIds));
+      setSelectedIds(new Set());
+      load(page);
+    }catch(e){alert(e.message);}
+    finally{setDeletingSelect(false);}
+  };
+
+  const handleDeleteSingle=async(id)=>{
+    if(!window.confirm("Tem certeza que deseja APAGAR PERMANENTEMENTE este chamado? Esta ação não pode ser desfeita."))return;
+    try{
+      await api.deleteChamado(id);
+      setSelected(null);
+      load(page);
+    }catch(e){alert(e.message);}
+  };
+
   const filtered=search?chamados.filter(c=>(c.razao_social||"").toLowerCase().includes(search.toLowerCase())||(c.nf_original||"").includes(search)):chamados;
   const totalPages=Math.ceil(total/LIMIT);
 
   return(
     <div style={{minHeight:"100vh",background:M.bg,fontFamily:"'Plus Jakarta Sans',sans-serif",color:M.tx}}>
-      {selected&&<ChamadoDetail chamado={selected} onClose={()=>setSelected(null)} onStatusChange={handleStatusChange}/>}
+      {selected&&<ChamadoDetail chamado={selected} onClose={()=>setSelected(null)} onStatusChange={handleStatusChange} onDelete={handleDeleteSingle} />}
 
       {/* HEADER */}
       <div style={{background:`linear-gradient(135deg,${M.pri},#5E1220)`,padding:"16px 24px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -512,6 +551,12 @@ export default function PosVendasPage(){
         <button onClick={applyFilters} style={{padding:"8px 18px",background:M.pri,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Filtrar</button>
         <button onClick={clearFilters} style={{padding:"8px 14px",background:"#fff",color:M.txM,border:`1px solid ${M.brdN}`,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Limpar</button>
         <button onClick={()=>load(page)} style={{padding:"8px 14px",background:"#fff",color:M.blue,border:`1px solid ${M.blueB}`,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>↻ Atualizar</button>
+        {selectedIds.size>0&&(
+          <button onClick={handleDeleteSelected} disabled={deletingSelect}
+            style={{padding:"8px 18px",background:M.err,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:deletingSelect?"not-allowed":"pointer",fontFamily:"inherit"}}>
+            {deletingSelect?"Apagando...":`🗑️ Apagar Selecionados (${selectedIds.size})`}
+          </button>
+        )}
       </div>
 
       {/* TABLE */}
@@ -531,15 +576,17 @@ export default function PosVendasPage(){
           <>
             <div style={{background:"#fff",borderRadius:12,border:`1px solid ${M.brdN}`,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.04)"}}>
               {/* Table header */}
-              <div style={{display:"grid",gridTemplateColumns:"60px 2fr 1fr 1fr 1fr 1fr 100px",gap:0,background:M.alt,borderBottom:`1px solid ${M.brdN}`,padding:"10px 16px"}}>
+              <div style={{display:"grid",gridTemplateColumns:"40px 60px 2fr 1fr 1fr 1fr 1fr 100px",gap:0,background:M.alt,borderBottom:`1px solid ${M.brdN}`,padding:"10px 16px",alignItems:"center"}}>
+                <input type="checkbox" checked={selectedIds.size===filtered.length && filtered.length>0} onChange={toggleSelectAll} style={{cursor:"pointer"}}/>
                 {["#","Cliente / NF","Tipo","Vendedor","Status","Data","Detalhes"].map(h=>(
                   <div key={h} style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.6,color:M.txM}}>{h}</div>
                 ))}
               </div>
               {filtered.map((c,i)=>(
-                <div key={c.id} style={{display:"grid",gridTemplateColumns:"60px 2fr 1fr 1fr 1fr 1fr 100px",gap:0,padding:"12px 16px",borderBottom:`1px solid ${M.brdN}`,background:i%2===0?"#fff":"#faf9f7",alignItems:"center",transition:"background 0.15s"}}
+                <div key={c.id} style={{display:"grid",gridTemplateColumns:"40px 60px 2fr 1fr 1fr 1fr 1fr 100px",gap:0,padding:"12px 16px",borderBottom:`1px solid ${M.brdN}`,background:i%2===0?"#fff":"#faf9f7",alignItems:"center",transition:"background 0.15s"}}
                   onMouseEnter={e=>e.currentTarget.style.background="#f0ebe5"}
                   onMouseLeave={e=>e.currentTarget.style.background=i%2===0?"#fff":"#faf9f7"}>
+                  <input type="checkbox" checked={selectedIds.has(c.id)} onChange={()=>toggleSelect(c.id)} style={{cursor:"pointer"}}/>
                   <div style={{fontSize:12,fontWeight:700,color:M.txD}}>#{c.id}</div>
                   <div>
                     <div style={{fontSize:13,fontWeight:700,marginBottom:2}}>{c.razao_social}</div>

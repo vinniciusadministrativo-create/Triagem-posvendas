@@ -52,6 +52,9 @@ export const api = {
   updateStatus: (id, status) =>
     request(`/api/chamados/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
 
+  deleteChamado: (id) => request(`/api/chamados/${id}`, { method: "DELETE" }),
+  deleteMultipleChamados: (ids) => request("/api/chamados/batch-delete", { method: "POST", body: JSON.stringify({ ids }) }),
+
   // Users (admin)
   getUsers: () => request("/api/users"),
   createUser: (data) => request("/api/users", { method: "POST", body: JSON.stringify(data) }),

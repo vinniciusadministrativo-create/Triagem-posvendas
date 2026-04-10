@@ -189,4 +189,27 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin"]), async (req,
   }
 });
 
+// DELETE /api/chamados/:id — pos_vendas/admin exclui chamado
+router.delete("/:id", authMiddleware(["pos_vendas", "admin"]), async (req, res) => {
+  try {
+    const { rows } = await pool.query("DELETE FROM chamados WHERE id = $1 RETURNING *", [req.params.id]);
+    if (!rows[0]) return res.status(404).json({ error: "Chamado não encontrado" });
+    res.json({ message: "Chamado excluído com sucesso" });
+  } catch (e) {
+    res.status(500).json({ error: "Erro ao excluir chamado" });
+  }
+});
+
+// POST /api/chamados/batch-delete — pos_vendas/admin exclui vários
+router.post("/batch-delete", authMiddleware(["pos_vendas", "admin"]), async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: "IDs inválidos" });
+    await pool.query("DELETE FROM chamados WHERE id = ANY($1)", [ids]);
+    res.json({ message: `${ids.length} chamados excluídos` });
+  } catch (e) {
+    res.status(500).json({ error: "Erro na exclusão em massa" });
+  }
+});
+
 module.exports = router;
