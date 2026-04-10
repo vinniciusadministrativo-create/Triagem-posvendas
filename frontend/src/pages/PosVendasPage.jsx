@@ -85,7 +85,7 @@ function DANFE({nf, chamado, isEditing, onChange}) {
         </div>
         <div style={sc}>
           <div style={{borderBottom:"1px solid #333"}}>
-            <Bx label="Natureza da Operação" value={d.natureza_operacao||"1202 - DEVOLUÇÃO DE VENDA"} field="natureza_operacao" onChange={onChange} isEditing={isEditing} style={{borderRight:"none"}}/>
+            <Bx label="Natureza da Operação" value={d.natureza_operacao||"5202 - DEVOLUÇÃO DE COMPRA PARA COMERCIALIZAÇÃO DENTRO DO MESMO ESTADO"} field="natureza_operacao" onChange={onChange} isEditing={isEditing} style={{borderRight:"none"}}/>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr"}}>
             <Bx label="IE" value="261935348" isEditing={false} style={{background:"#eee"}}/>
