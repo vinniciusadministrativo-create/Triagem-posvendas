@@ -101,7 +101,20 @@ function DANFE({nf: nfRaw, chamado, isEditing, onChange}) {
   const sectionTitle = { fontSize: "7px", fontWeight: "800", textTransform: "uppercase", padding: "4px 0 2px 2px" };
 
   return (
-    <div id="danfe-print" style={{ background: "#fff", padding: "10mm", color: "#000", fontFamily: "'Plus Jakarta Sans', sans-serif", position: "relative", width: "210mm", minHeight: "297mm", boxSizing: "border-box", margin: "0 auto" }}>
+    <div id="danfe-print" style={{ 
+      background: "#fff", 
+      padding: "5mm", 
+      color: "#000", 
+      fontFamily: "'Plus Jakarta Sans', sans-serif", 
+      position: "relative", 
+      width: "210mm", 
+      minHeight: "297mm", 
+      boxSizing: "border-box", 
+      margin: "0 auto",
+      border: "1px solid #000", // CONTORNO EXTERNO SOLICITADO
+      display: "flex",
+      flexDirection: "column"
+    }}>
       
       {/* Watermark */}
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%) rotate(-35deg)", fontSize: "72px", fontWeight: "900", color: "rgba(0,0,0,0.04)", pointerEvents: "none", zIndex: 0, textAlign: "center", width: "100%" }}>
@@ -111,7 +124,7 @@ function DANFE({nf: nfRaw, chamado, isEditing, onChange}) {
         Não tem valor fiscal.<br/>Documento para simples conferência.
       </div>
 
-      <div style={{ position: "relative", zIndex: 1 }}>
+      <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column" }}>
         {/* HEADER */}
         <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", border: "1px solid #000", marginBottom: "4px" }}>
           <div style={{ padding: "10px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", borderRight: "1px solid #000" }}>
