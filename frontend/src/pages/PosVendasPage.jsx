@@ -576,8 +576,8 @@ export default function PosVendasPage(){
 
       <style>{`
         @media print {
-          @page { size: auto; margin: 0mm; }
-          body { background: #fff !important; margin: 0; padding: 0; }
+          @page { size: portrait; margin: 0mm; }
+          html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
           body * { visibility: hidden; }
           #danfe-print, #danfe-print * { 
             visibility: visible !important; 
@@ -586,15 +586,15 @@ export default function PosVendasPage(){
             position: absolute; 
             top: 0; 
             left: 0; 
+            right: 0;
             width: 100%; 
             margin: 0 !important; 
-            padding: 8mm !important; 
+            padding: 15mm !important; 
             z-index: 10000;
             background: #fff !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             box-sizing: border-box;
-            zoom: 0.94; /* Reduz levemente a escala para caber na altura do A4 */
           }
           .no-print { display: none !important; }
         }
