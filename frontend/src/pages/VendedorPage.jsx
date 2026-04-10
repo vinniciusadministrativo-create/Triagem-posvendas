@@ -97,7 +97,7 @@ function triageDeterministic(formData){
 
 // ── GEMINI API HELPERS ──
 async function geminiRequest(apiKey, parts, maxTokens=800){
-  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,{
+  const r=await fetch(`https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({contents:[{parts}],generationConfig:{maxOutputTokens:maxTokens,temperature:0.1}})

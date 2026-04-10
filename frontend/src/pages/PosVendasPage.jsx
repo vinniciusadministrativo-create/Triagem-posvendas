@@ -40,27 +40,28 @@ const STATUS_COLOR={
   aguardando_financeiro:"#16a34a",encerrado:"#6b7280",
 };
 
+const bL={fontSize:7,textTransform:"uppercase",color:"#666",fontWeight:600,letterSpacing:0.4,marginBottom:1};
+const bV={fontSize:10,fontFamily:"'IBM Plex Mono',monospace",fontWeight:500,minHeight:13};
+const sc={border:"1.5px solid #333",marginBottom:-1.5};
+const sT={fontSize:7,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,background:M.pri,padding:"2px 6px",borderBottom:"1px solid #333",color:"#fff"};
+
+const Bx=({label,value,field,onChange,isEditing,style={}})=>(
+  <div style={{padding:"3px 6px",borderRight:"1px solid #333",...style}}>
+    <div style={bL}>{label}</div>
+    {isEditing ? (
+      <input 
+        value={value||""} 
+        onChange={(e)=>onChange(field, e.target.value)}
+        style={{...bV, width:"100%", border:"none", background:"#fff9c4", outline:"none", padding:0}}
+      />
+    ) : (
+      <div style={bV}>{value||"—"}</div>
+    )}
+  </div>
+);
+
 function DANFE({nf, chamado, isEditing, onChange}) {
   const d=nf||{};const prods=d.produtos?.length?d.produtos:[{}];const now=new Date();
-  const bL={fontSize:7,textTransform:"uppercase",color:"#666",fontWeight:600,letterSpacing:0.4,marginBottom:1};
-  const bV={fontSize:10,fontFamily:"'IBM Plex Mono',monospace",fontWeight:500,minHeight:13};
-  const sc={border:"1.5px solid #333",marginBottom:-1.5};
-  const sT={fontSize:7,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,background:M.pri,padding:"2px 6px",borderBottom:"1px solid #333",color:"#fff"};
-  
-  const Bx=({label,value,field,style={}})=>(
-    <div style={{padding:"3px 6px",borderRight:"1px solid #333",...style}}>
-      <div style={bL}>{label}</div>
-      {isEditing ? (
-        <input 
-          value={value||""} 
-          onChange={(e)=>onChange(field, e.target.value)}
-          style={{...bV, width:"100%", border:"none", background:"#fff9c4", outline:"none", padding:0}}
-        />
-      ) : (
-        <div style={bV}>{value||"—"}</div>
-      )}
-    </div>
-  );
 
   const cH={fontSize:7,fontWeight:700,color:"#333",textTransform:"uppercase",padding:"3px 4px",background:"#f0ebe5",borderBottom:"1px solid #333",whiteSpace:"nowrap"};
   const cD={fontSize:8,padding:"4px",borderBottom:"1px solid #aaa",fontFamily:"'IBM Plex Mono',monospace"};
@@ -84,17 +85,17 @@ function DANFE({nf, chamado, isEditing, onChange}) {
         </div>
         <div style={sc}>
           <div style={{borderBottom:"1px solid #333"}}>
-            <Bx label="Natureza da Operação" value={d.natureza_operacao||"1202 - DEVOLUÇÃO DE VENDA"} field="natureza_operacao" onChange={onChange} style={{borderRight:"none"}}/>
+            <Bx label="Natureza da Operação" value={d.natureza_operacao||"1202 - DEVOLUÇÃO DE VENDA"} field="natureza_operacao" onChange={onChange} isEditing={isEditing} style={{borderRight:"none"}}/>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr"}}>
-            <Bx label="IE" value="261935348" style={{background:"#eee"}}/>
+            <Bx label="IE" value="261935348" isEditing={false} style={{background:"#eee"}}/>
             <Bx label="IE ST" value=""/>
-            <Bx label="CNPJ" value="04.002.562/0004-78" style={{borderRight:"none", background:"#eee"}}/>
+            <Bx label="CNPJ" value="04.002.562/0004-78" isEditing={false} style={{borderRight:"none", background:"#eee"}}/>
           </div>
         </div>
-        <div style={sc}><div style={sT}>Destinatário / Remetente</div><div style={{display:"grid",gridTemplateColumns:"2fr 1fr",borderBottom:"1px solid #333"}}><Bx label="Razão Social" value={d.razao_social_dest||chamado.razao_social} field="razao_social_dest" onChange={onChange}/><Bx label="CNPJ" value={d.cnpj_dest||chamado.cnpj} field="cnpj_dest" onChange={onChange} style={{borderRight:"none"}}/></div><div style={{display:"grid",gridTemplateColumns:"2fr 1fr 0.6fr 0.4fr",borderBottom:"1px solid #333"}}><Bx label="Endereço" value={d.endereco_dest} field="endereco_dest" onChange={onChange}/><Bx label="Bairro" value={d.bairro_dest} field="bairro_dest" onChange={onChange}/><Bx label="CEP" value={d.cep_dest} field="cep_dest" onChange={onChange}/><Bx label="UF" value={d.uf_dest} field="uf_dest" onChange={onChange} style={{borderRight:"none"}}/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr"}}><Bx label="Município" value={d.municipio_dest} field="municipio_dest" onChange={onChange}/><Bx label="Telefone" value={d.telefone_dest||chamado.telefone} field="telefone_dest" onChange={onChange}/><Bx label="IE" value={d.ie_dest} field="ie_dest" onChange={onChange} style={{borderRight:"none"}}/></div></div>
-        <div style={sc}><div style={sT}>Cálculo do Imposto</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",borderBottom:"1px solid #333"}}><Bx label="Base ICMS" value={d.base_icms} field="base_icms" onChange={onChange}/><Bx label="Vlr ICMS" value={d.valor_icms} field="valor_icms" onChange={onChange}/><Bx label="Base ST" value={d.base_icms_st||"0,00"} field="base_icms_st" onChange={onChange}/><Bx label="Vlr ST" value={d.valor_icms_st||"0,00"} field="valor_icms_st" onChange={onChange} style={{borderRight:"none"}}/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr 1fr 1fr"}}><Bx label="Produtos" value={d.valor_total_produtos} field="valor_total_produtos" onChange={onChange}/><Bx label="IPI" value={d.valor_ipi||"0,00"} field="valor_ipi" onChange={onChange}/><Bx label="Outras" value={d.outras_despesas||"0,00"} field="outras_despesas" onChange={onChange}/><Bx label="Desc." value={d.desconto||"0,00"} field="desconto" onChange={onChange}/><Bx label="Frete" value={d.valor_frete||"0,00"} field="valor_frete" onChange={onChange}/><Bx label="TOTAL" value={d.valor_total_nota} field="valor_total_nota" onChange={onChange} style={{borderRight:"none"}}/></div></div>
-        <div style={sc}><div style={sT}>Transportador</div><div style={{display:"grid",gridTemplateColumns:"2fr 1fr 0.4fr 1fr"}}><Bx label="Nome" value={d.transportador_nome} field="transportador_nome" onChange={onChange}/><Bx label="CNPJ" value={d.transportador_cnpj} field="transportador_cnpj" onChange={onChange}/><Bx label="UF" value={d.transportador_uf} field="transportador_uf" onChange={onChange}/><Bx label="Frete" value={d.frete_por_conta||"1-CIF"} field="frete_por_conta" onChange={onChange} style={{borderRight:"none"}}/></div></div>
+        <div style={sc}><div style={sT}>Destinatário / Remetente</div><div style={{display:"grid",gridTemplateColumns:"2fr 1fr",borderBottom:"1px solid #333"}}><Bx label="Razão Social" value={d.razao_social_dest||chamado.razao_social} field="razao_social_dest" onChange={onChange} isEditing={isEditing}/><Bx label="CNPJ" value={d.cnpj_dest||chamado.cnpj} field="cnpj_dest" onChange={onChange} isEditing={isEditing} style={{borderRight:"none"}}/></div><div style={{display:"grid",gridTemplateColumns:"2fr 1fr 0.6fr 0.4fr",borderBottom:"1px solid #333"}}><Bx label="Endereço" value={d.endereco_dest} field="endereco_dest" onChange={onChange} isEditing={isEditing}/><Bx label="Bairro" value={d.bairro_dest} field="bairro_dest" onChange={onChange} isEditing={isEditing}/><Bx label="CEP" value={d.cep_dest} field="cep_dest" onChange={onChange} isEditing={isEditing}/><Bx label="UF" value={d.uf_dest} field="uf_dest" onChange={onChange} isEditing={isEditing} style={{borderRight:"none"}}/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr"}}><Bx label="Município" value={d.municipio_dest} field="municipio_dest" onChange={onChange} isEditing={isEditing}/><Bx label="Telefone" value={d.telefone_dest||chamado.telefone} field="telefone_dest" onChange={onChange} isEditing={isEditing}/><Bx label="IE" value={d.ie_dest} field="ie_dest" onChange={onChange} isEditing={isEditing} style={{borderRight:"none"}}/></div></div>
+        <div style={sc}><div style={sT}>Cálculo do Imposto</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",borderBottom:"1px solid #333"}}><Bx label="Base ICMS" value={d.base_icms} field="base_icms" onChange={onChange} isEditing={isEditing}/><Bx label="Vlr ICMS" value={d.valor_icms} field="valor_icms" onChange={onChange} isEditing={isEditing}/><Bx label="Base ST" value={d.base_icms_st||"0,00"} field="base_icms_st" onChange={onChange} isEditing={isEditing}/><Bx label="Vlr ST" value={d.valor_icms_st||"0,00"} field="valor_icms_st" onChange={onChange} isEditing={isEditing} style={{borderRight:"none"}}/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr 1fr 1fr"}}><Bx label="Produtos" value={d.valor_total_produtos} field="valor_total_produtos" onChange={onChange} isEditing={isEditing}/><Bx label="IPI" value={d.valor_ipi||"0,00"} field="valor_ipi" onChange={onChange} isEditing={isEditing}/><Bx label="Outras" value={d.outras_despesas||"0,00"} field="outras_despesas" onChange={onChange} isEditing={isEditing}/><Bx label="Desc." value={d.desconto||"0,00"} field="desconto" onChange={onChange} isEditing={isEditing}/><Bx label="Frete" value={d.valor_frete||"0,00"} field="valor_frete" onChange={onChange} isEditing={isEditing}/><Bx label="TOTAL" value={d.valor_total_nota} field="valor_total_nota" onChange={onChange} isEditing={isEditing} style={{borderRight:"none"}}/></div></div>
+        <div style={sc}><div style={sT}>Transportador</div><div style={{display:"grid",gridTemplateColumns:"2fr 1fr 0.4fr 1fr"}}><Bx label="Nome" value={d.transportador_nome} field="transportador_nome" onChange={onChange} isEditing={isEditing}/><Bx label="CNPJ" value={d.transportador_cnpj} field="transportador_cnpj" onChange={onChange} isEditing={isEditing}/><Bx label="UF" value={d.transportador_uf} field="transportador_uf" onChange={onChange} isEditing={isEditing}/><Bx label="Frete" value={d.frete_por_conta||"1-CIF"} field="frete_por_conta" onChange={onChange} isEditing={isEditing} style={{borderRight:"none"}}/></div></div>
         <div style={sc}><div style={sT}>Produtos</div><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{["Cód","Descrição","NCM","CST","CFOP","Un","Qtd","Vlr.Un","Vlr.Líq","ICMS","%ICMS"].map(h=><th key={h} style={cH}>{h}</th>)}</tr></thead><tbody>{prods.map((p,i)=>(<tr key={i}>
           {["codigo","descricao","ncm","cst","cfop","unidade","quantidade","valor_unitario","valor_liquido","valor_icms","aliq_icms"].map(f=>(
             <td key={f} style={cD}>
