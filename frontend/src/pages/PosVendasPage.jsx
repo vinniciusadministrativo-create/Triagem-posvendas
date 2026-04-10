@@ -577,24 +577,23 @@ export default function PosVendasPage(){
       <style>{`
         @media print {
           @page { size: auto; margin: 0; }
-          body { margin: 0; padding: 0; background: #fff !important; }
+          body { background: #fff !important; }
+          body * { visibility: hidden; }
+          #danfe-print, #danfe-print * { 
+            visibility: visible !important; 
+          }
           #danfe-print { 
-            position: fixed; 
+            position: absolute; 
             top: 0; 
             left: 0; 
-            width: 100vw; 
-            height: 100vh;
+            width: 100%; 
             margin: 0 !important; 
-            padding: 30px !important; 
-            border: none !important;
-            visibility: visible !important;
+            padding: 40px !important; 
             z-index: 10000;
             background: #fff !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          #danfe-print * { visibility: visible !important; }
-          body > *:not(#danfe-print) { display: none !important; }
           .no-print { display: none !important; }
         }
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
