@@ -61,18 +61,16 @@ const Bx=({label,value,field,onChange,isEditing,style={}})=>(
 );
 
 function DANFE({nf: nfRaw, chamado, isEditing, onChange}) {
-  // Garante que nf seja um objeto, mesmo que venha como string do banco
   let nf = nfRaw;
   if (typeof nf === "string") { try { nf = JSON.parse(nf); } catch(e) { nf = {}; } }
   nf = nf || {};
 
-  // Prioridade: Se o campo da IA for vazio ou nulo, usa o dado manual do chamado
   const d = {
     ...nf,
     razao_social_dest: nf.razao_social_dest || chamado?.razao_social || "",
     cnpj_dest: nf.cnpj_dest || chamado?.cnpj || "",
     telefone_dest: nf.telefone_dest || chamado?.telefone || "",
-    natureza_operacao: nf.natureza_operacao || "5202 - DEVOLUÇÃO DE COMPRA PARA COMERCIALIZAÇÃO DENTRO DO MESMO ESTADO",
+    natureza_operacao: nf.natureza_operacao || "1202 - DEVOLUÇÃO DE VENDA DE MERCADORIA",
     base_icms: nf.base_icms || "0,00",
     valor_icms: nf.valor_icms || "0,00",
     base_icms_st: nf.base_icms_st || "0,00",
@@ -80,80 +78,179 @@ function DANFE({nf: nfRaw, chamado, isEditing, onChange}) {
     valor_total_produtos: nf.valor_total_produtos || "0,00",
     valor_total_nota: nf.valor_total_nota || "0,00",
     valor_frete: nf.valor_frete || "0,00",
+    valor_seguro: nf.valor_seguro || "0,00",
     valor_ipi: nf.valor_ipi || "0,00",
     outras_despesas: nf.outras_despesas || "0,00",
-    desconto: nf.desconto || "0,00"
+    desconto: nf.desconto || "0,00",
+    placa_veiculo: nf.placa_veiculo || "-",
+    placa_uf: nf.placa_uf || "-",
+    quantidade_volumes: nf.quantidade_volumes || "",
+    especie_volumes: nf.especie_volumes || "",
+    peso_bruto: nf.peso_bruto || "",
+    peso_liquido: nf.peso_liquido || "",
   };
-  const prods=d.produtos?.length?d.produtos.map(p=>({
-    cst: "000", // Fallback CST
-    ...p
-  })):[{}];const now=new Date();
-
-  const cH={fontSize:7,fontWeight:700,color:"#333",textTransform:"uppercase",padding:"3px 4px",background:"#f0ebe5",borderBottom:"1px solid #333",whiteSpace:"nowrap"};
-  const cD={fontSize:8,padding:"4px",borderBottom:"1px solid #aaa",fontFamily:"'IBM Plex Mono',monospace"};
-
+  
+  const prods=d.produtos?.length?d.produtos.map(p=>({cst:"000",aliq_icms:"0,00",aliq_ipi:"0,00",...p})):[{}];
+  const now=new Date();
   const footerMsg = `ESPELHO NFD REF.NF-${chamado.nf_original} - CFOP CORRETO 5202`;
 
-  return(
-    <div id="danfe-print" style={{background:"#fff",padding:20,fontFamily:"'Plus Jakarta Sans',sans-serif",color:"#000",position:"relative"}}>
-      <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%) rotate(-35deg)",fontSize:30,fontWeight:800,color:"rgba(155,27,48,0.13)",whiteSpace:"nowrap",pointerEvents:"none",letterSpacing:2}}>NÃO TEM VALOR FISCAL</div>
-      <div style={{position:"relative",zIndex:1}}>
-        <div style={{...sc,display:"grid",gridTemplateColumns:"1fr auto"}}>
-          <div style={{padding:"8px 10px",borderRight:"1px solid #333"}}>
-            <div style={{display:"inline-flex",alignItems:"center",gap:6,background:M.pri,borderRadius:4,padding:"3px 10px",marginBottom:4}}><svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M3 16L10 3L17 16H13L10 9L7 16H3Z" fill="white"/></svg><span style={{color:"#fff",fontSize:10,fontWeight:800,letterSpacing:1.5}}>MARIN</span></div>
-            <div style={{fontSize:10,fontWeight:700}}>MARIN LOGÍSTICA E COMÉRCIO LTDA</div>
-            <div style={{fontSize:7,color:"#444",lineHeight:1.4}}>R VALDO GERLACH, 07 — DISTRITO INDUSTRIAL — CEP: 88104-743 — SÃO JOSÉ/SC</div>
+  // Styles
+  const boxStyle = { border: "1px solid #000", padding: "2px 4px", fontSize: "7px", minHeight: "22px", display: "flex", flexDirection: "column", boxSizing: "border-box" };
+  const labelStyle = { fontSize: "6px", fontWeight: "700", textTransform: "uppercase", marginBottom: "1px" };
+  const valueStyle = { fontSize: "9px", fontWeight: "500", fontFamily: "'IBM Plex Mono', monospace", flex: 1, display: "flex", alignItems: "center" };
+  const sectionTitle = { fontSize: "7px", fontWeight: "800", textTransform: "uppercase", padding: "4px 0 2px 2px" };
+
+  return (
+    <div id="danfe-print" style={{ background: "#fff", padding: "10mm", color: "#000", fontFamily: "'Plus Jakarta Sans', sans-serif", position: "relative", width: "210mm", minHeight: "297mm", boxSizing: "border-box", margin: "0 auto" }}>
+      
+      {/* Watermark */}
+      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%) rotate(-35deg)", fontSize: "72px", fontWeight: "900", color: "rgba(0,0,0,0.04)", pointerEvents: "none", zIndex: 0, textAlign: "center", width: "100%" }}>
+        Não tem valor fiscal.<br/>Documento para simples conferência.
+      </div>
+      <div style={{ position: "absolute", top: "25%", left: "50%", transform: "translate(-50%, -50%) rotate(-35deg)", fontSize: "72px", fontWeight: "900", color: "rgba(0,0,0,0.04)", pointerEvents: "none", zIndex: 0, textAlign: "center", width: "100%" }}>
+        Não tem valor fiscal.<br/>Documento para simples conferência.
+      </div>
+
+      <div style={{ position: "relative", zIndex: 1 }}>
+        {/* HEADER */}
+        <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", border: "1px solid #000", marginBottom: "4px" }}>
+          <div style={{ padding: "10px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", borderRight: "1px solid #000" }}>
+            <div style={{ fontSize: "12px", fontWeight: "900", textAlign: "center" }}>MARIN LOGISTICA E COMERCIO LTDA</div>
           </div>
-          <div style={{padding:"6px 12px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minWidth:130}}>
-            <div style={{fontSize:6,fontWeight:700,color:M.pri,textTransform:"uppercase",letterSpacing:1}}>Espelho Rascunho</div>
-            <div style={{fontSize:22,fontWeight:800,letterSpacing:2,color:M.pri}}>DANFE</div>
+          <div style={{ padding: "6px", fontSize: "7px", textAlign: "center", borderRight: "1px solid #000", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            R VALDO GERLACH, 07<br/>BAIRRO: DISTRITO INDUSTRIAL<br/>CEP: 88104-743<br/>CIDADE: SÃO JOSÉ
+          </div>
+          <div style={{ padding: "10px", textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <div style={{ fontSize: "14px", fontWeight: "900" }}>ESPELHO</div>
+            <div style={{ fontSize: "7px", marginTop: "4px" }}>Espelho Rascunho da<br/>DANFE</div>
           </div>
         </div>
-        <div style={sc}>
-          <div style={{borderBottom:"1px solid #333"}}>
-            <Bx label="Natureza da Operação" value={d.natureza_operacao||"5202 - DEVOLUÇÃO DE COMPRA PARA COMERCIALIZAÇÃO DENTRO DO MESMO ESTADO"} field="natureza_operacao" onChange={onChange} isEditing={isEditing} style={{borderRight:"none"}}/>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr"}}>
-            <Bx label="IE" value="261935348" isEditing={false} style={{background:"#eee"}}/>
-            <Bx label="IE ST" value=""/>
-            <Bx label="CNPJ" value="04.002.562/0004-78" isEditing={false} style={{borderRight:"none", background:"#eee"}}/>
+
+        {/* NATUREZA */}
+        <div style={{ border: "1px solid #000", borderTop: "none", marginBottom: "4px" }}>
+          <div style={boxStyle}><div style={labelStyle}>Natureza da Operação</div><div style={valueStyle}>{d.natureza_operacao}</div></div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr" }}>
+            <div style={{ ...boxStyle, borderTop: "none", borderLeft: "none" }}><div style={labelStyle}>Inscrição Estadual</div><div style={valueStyle}>261935348</div></div>
+            <div style={{ ...boxStyle, borderTop: "none" }}><div style={labelStyle}>Inscrição Estadual Substituta</div><div style={valueStyle}>-</div></div>
+            <div style={{ ...boxStyle, borderTop: "none", borderRight: "none" }}><div style={labelStyle}>CNPJ</div><div style={valueStyle}>04.002.562/0004-78</div></div>
           </div>
         </div>
-        <div style={sc}><div style={sT}>Destinatário / Remetente</div><div style={{display:"grid",gridTemplateColumns:"2fr 1fr",borderBottom:"1px solid #333"}}><Bx label="Razão Social" value={d.razao_social_dest||chamado.razao_social} field="razao_social_dest" onChange={onChange} isEditing={isEditing}/><Bx label="CNPJ" value={d.cnpj_dest||chamado.cnpj} field="cnpj_dest" onChange={onChange} isEditing={isEditing} style={{borderRight:"none"}}/></div><div style={{display:"grid",gridTemplateColumns:"2fr 1fr 0.6fr 0.4fr",borderBottom:"1px solid #333"}}><Bx label="Endereço" value={d.endereco_dest} field="endereco_dest" onChange={onChange} isEditing={isEditing}/><Bx label="Bairro" value={d.bairro_dest} field="bairro_dest" onChange={onChange} isEditing={isEditing}/><Bx label="CEP" value={d.cep_dest} field="cep_dest" onChange={onChange} isEditing={isEditing}/><Bx label="UF" value={d.uf_dest} field="uf_dest" onChange={onChange} isEditing={isEditing} style={{borderRight:"none"}}/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr"}}><Bx label="Município" value={d.municipio_dest} field="municipio_dest" onChange={onChange} isEditing={isEditing}/><Bx label="Telefone" value={d.telefone_dest||chamado.telefone} field="telefone_dest" onChange={onChange} isEditing={isEditing}/><Bx label="IE" value={d.ie_dest} field="ie_dest" onChange={onChange} isEditing={isEditing} style={{borderRight:"none"}}/></div></div>
-        <div style={sc}><div style={sT}>Cálculo do Imposto</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",borderBottom:"1px solid #333"}}><Bx label="Base ICMS" value={d.base_icms} field="base_icms" onChange={onChange} isEditing={isEditing}/><Bx label="Vlr ICMS" value={d.valor_icms} field="valor_icms" onChange={onChange} isEditing={isEditing}/><Bx label="Base ST" value={d.base_icms_st||"0,00"} field="base_icms_st" onChange={onChange} isEditing={isEditing}/><Bx label="Vlr ST" value={d.valor_icms_st||"0,00"} field="valor_icms_st" onChange={onChange} isEditing={isEditing} style={{borderRight:"none"}}/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr 1fr 1fr"}}><Bx label="Produtos" value={d.valor_total_produtos} field="valor_total_produtos" onChange={onChange} isEditing={isEditing}/><Bx label="IPI" value={d.valor_ipi||"0,00"} field="valor_ipi" onChange={onChange} isEditing={isEditing}/><Bx label="Outras" value={d.outras_despesas||"0,00"} field="outras_despesas" onChange={onChange} isEditing={isEditing}/><Bx label="Desc." value={d.desconto||"0,00"} field="desconto" onChange={onChange} isEditing={isEditing}/><Bx label="Frete" value={d.valor_frete||"0,00"} field="valor_frete" onChange={onChange} isEditing={isEditing}/><Bx label="TOTAL" value={d.valor_total_nota} field="valor_total_nota" onChange={onChange} isEditing={isEditing} style={{borderRight:"none"}}/></div></div>
-        <div style={sc}><div style={sT}>Transportador</div><div style={{display:"grid",gridTemplateColumns:"2fr 1fr 0.4fr 1fr"}}><Bx label="Nome" value={d.transportador_nome} field="transportador_nome" onChange={onChange} isEditing={isEditing}/><Bx label="CNPJ" value={d.transportador_cnpj} field="transportador_cnpj" onChange={onChange} isEditing={isEditing}/><Bx label="UF" value={d.transportador_uf} field="transportador_uf" onChange={onChange} isEditing={isEditing}/><Bx label="Frete" value={d.frete_por_conta||"1-CIF"} field="frete_por_conta" onChange={onChange} isEditing={isEditing} style={{borderRight:"none"}}/></div></div>
-        <div style={sc}><div style={sT}>Produtos</div><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{["Cód","Descrição","NCM","CST","CFOP","Un","Qtd","Vlr.Un","Vlr.Líq","ICMS","%ICMS"].map(h=><th key={h} style={cH}>{h}</th>)}</tr></thead><tbody>{prods.map((p,i)=>(<tr key={i}>
-          {["codigo","descricao","ncm","cst","cfop","unidade","quantidade","valor_unitario","valor_liquido","valor_icms","aliq_icms"].map(f=>(
-            <td key={f} style={cD}>
-              {isEditing ? (
-                <input 
-                  value={p[f]||""} 
-                  onChange={(e)=>{
-                    const newPs=[...prods];
-                    newPs[i]={...newPs[i], [f]:e.target.value};
-                    onChange("produtos", newPs);
-                  }}
-                  style={{fontSize:8, width:"100%", border:"none", background:"#fff9c4", outline:"none", padding:0, fontFamily:"inherit"}}
-                />
-              ) : p[f]}
-            </td>
-          ))}
-        </tr>))}</tbody></table></div></div>
-        <div style={{...sc,display:"grid",gridTemplateColumns:"1fr 1fr"}}><div style={{borderRight:"1px solid #333",padding:"4px 8px"}}><div style={bL}>Info. Complementares</div><div style={{fontSize:8,lineHeight:1.5,minHeight:28,fontFamily:"'IBM Plex Mono',monospace"}}>
-          {isEditing ? (
-            <textarea 
-              value={d.info_complementares||`${footerMsg}\n Vendedor: ${chamado.vendedor_nome}`}
-              onChange={(e)=>onChange("info_complementares", e.target.value)}
-              style={{width:"100%", border:"none", background:"#fff9c4", fontInherit:true, outline:"none", resize:"none", height:40}}
-            />
-          ) : (
-            <>
-              {d.info_complementares||footerMsg}
-              <br/>Vendedor: {chamado.vendedor_nome}
-              {(d.nf_referencia||chamado.nf_original)&&<><br/>DEVOLUÇÃO REF. NF {d.nf_referencia||chamado.nf_original}</>}
-            </>
-          )}
-        </div></div><div style={{padding:"4px 8px"}}><div style={bL}>Dados Adicionais</div><div style={{fontSize:7,color:"#888",marginTop:4}}>{now.toLocaleDateString("pt-BR")} {now.toLocaleTimeString("pt-BR")}</div><div style={{fontSize:6,color:"#aaa",marginTop:2}}>Triagem Automática Marin</div></div></div>
+
+        {/* DESTINATÁRIO */}
+        <div style={sectionTitle}>Destinatário / Remetente</div>
+        <div style={{ border: "1px solid #000", marginBottom: "4px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "2.5fr 1.5fr" }}>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Nome / Razão Social</div><div style={valueStyle}>{d.razao_social_dest}</div></div>
+            <div style={{ ...boxStyle, border: "none" }}><div style={labelStyle}>CNPJ / CPF</div><div style={valueStyle}>{d.cnpj_dest}</div></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "2.5fr 1fr 0.5fr 0.5fr", borderTop: "1px solid #000" }}>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Endereço</div><div style={valueStyle}>{d.endereco_dest}</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Bairro / Distrito</div><div style={valueStyle}>{d.bairro_dest}</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>CEP</div><div style={valueStyle}>{d.cep_dest}</div></div>
+            <div style={{ ...boxStyle, border: "none" }}><div style={labelStyle}>Data Emissão</div><div style={valueStyle}>{nf.data_emissao || now.toLocaleDateString("pt-BR")}</div></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 0.3fr 1fr 1fr", borderTop: "1px solid #000" }}>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Município</div><div style={valueStyle}>{d.municipio_dest}</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Telefone / Fax</div><div style={valueStyle}>{d.telefone_dest}</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>UF</div><div style={valueStyle}>{d.uf_dest}</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Inscrição Estadual</div><div style={valueStyle}>{d.ie_dest || "-"}</div></div>
+            <div style={{ ...boxStyle, border: "none" }}><div style={labelStyle}>Hora Saída</div><div style={valueStyle}>{nf.hora_saida_entrada || now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div></div>
+          </div>
+        </div>
+
+        {/* CÁLCULO DO IMPOSTO */}
+        <div style={sectionTitle}>Cálculo do Imposto</div>
+        <div style={{ border: "1px solid #000", marginBottom: "4px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.5fr 1fr 1fr" }}>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Base de Cálculo ICMS</div><div style={valueStyle}>{d.base_icms}</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Valor do ICMS</div><div style={valueStyle}>{d.valor_icms}</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Base Calc. ICMS Subst.</div><div style={valueStyle}>{d.base_icms_st}</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Valor ICMS Subst.</div><div style={valueStyle}>{d.valor_icms_st}</div></div>
+            <div style={{ ...boxStyle, border: "none" }}><div style={labelStyle}>Vlr Total Produtos</div><div style={valueStyle}>{d.valor_total_produtos}</div></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr 1fr", borderTop: "1px solid #000" }}>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Valor do Frete</div><div style={valueStyle}>{d.valor_frete}</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Valor do Seguro</div><div style={valueStyle}>{d.valor_seguro}</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Desconto</div><div style={valueStyle}>{d.desconto}</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Outras Desp. Acc.</div><div style={valueStyle}>{d.outras_despesas}</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Valor do IPI</div><div style={valueStyle}>{d.valor_ipi}</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Vlr IPI Devolvido</div><div style={valueStyle}>0,00</div></div>
+            <div style={{ ...boxStyle, border: "none" }}><div style={labelStyle}>Valor Total da Nota</div><div style={valueStyle}>{d.valor_total_nota}</div></div>
+          </div>
+        </div>
+
+        {/* TRANSPORTADOR */}
+        <div style={sectionTitle}>Transportador / Volumes Transportados</div>
+        <div style={{ border: "1px solid #000", marginBottom: "4px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "2.5fr 1.5fr 1fr" }}>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Nome / Razão Social</div><div style={valueStyle}>MARIN LOGISTICA E COMERCIO LTDA</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Frete por Conta</div><div style={valueStyle}>1 - Emitente (CIF)</div></div>
+            <div style={{ ...boxStyle, border: "none" }}><div style={labelStyle}>CNPJ / CPF</div><div style={valueStyle}>04.002.562/0004-78</div></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "2.5fr 1.5fr 0.3fr 1.1fr", borderTop: "1px solid #000" }}>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Endereço</div><div style={valueStyle}>R VALDO GERLACH, 07</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Município</div><div style={valueStyle}>SAO JOSE</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>UF</div><div style={valueStyle}>SC</div></div>
+            <div style={{ ...boxStyle, border: "none" }}><div style={labelStyle}>Inscrição Estadual</div><div style={valueStyle}>261935348</div></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "0.5fr 1fr 1fr 1fr 1fr 1.2fr", borderTop: "1px solid #000" }}>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Quantidade</div><div style={valueStyle}>{d.quantidade_volumes}</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Espécie</div><div style={valueStyle}>{d.especie_volumes}</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Marca</div><div style={valueStyle}>-</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Numeração</div><div style={valueStyle}>-</div></div>
+            <div style={{ ...boxStyle, border: "none", borderRight: "1px solid #000" }}><div style={labelStyle}>Peso Bruto</div><div style={valueStyle}>{d.peso_bruto}</div></div>
+            <div style={{ ...boxStyle, border: "none" }}><div style={labelStyle}>Peso Líquido</div><div style={valueStyle}>{d.peso_liquido}</div></div>
+          </div>
+        </div>
+
+        {/* PRODUTOS */}
+        <div style={sectionTitle}>Dados dos Produtos / Serviços</div>
+        <div style={{ border: "1px solid #000", borderBottom: "none" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+            <thead>
+              <tr style={{ height: "14px", borderBottom: "1px solid #000" }}>
+                {["CÓD.","DESCRIÇÃO","NCM/SH","CST","CFOP","UNID.","QTDE.","VLR. UNIT.","VLR. LÍQ.","BASE CALC ICMS","VLR ICMS","VLR IPI","ALÍQ ICMS","ALÍQ IPI"].map(h => (
+                  <th key={h} style={{ fontSize: "5px", fontWeight: "700", borderRight: "1px solid #000", padding: "1px", background: "#fff", textAlign: "center" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {prods.map((p, i) => (
+                <tr key={i} style={{ minHeight: "14px", borderBottom: "1px solid #000" }}>
+                  {["codigo","descricao","ncm","cst","cfop","unidade","quantidade","valor_unitario","valor_liquido","base_icms","valor_icms","valor_ipi","aliq_icms","aliq_ipi"].map(f => (
+                    <td key={f} style={{ fontSize: "6.5px", padding: "2px", borderRight: "1px solid #000", textAlign: f.includes("v") || f === "quantidade" ? "right" : "left", fontVariantNumeric: "tabular-nums" }}>
+                      {isEditing ? (
+                        <input value={p[f] || ""} onChange={e => { const newPs = [...prods]; newPs[i] = { ...newPs[i], [f]: e.target.value }; onChange("produtos", newPs); }} style={{ fontSize: "6.5px", width: "100%", border: "none", background: "#fff9c4", padding: 0 }} />
+                      ) : p[f]}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* DADOs ADICIONAIS */}
+        <div style={sectionTitle}>Dados Adicionais</div>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", border: "1px solid #000", minHeight: "60px" }}>
+          <div style={{ padding: "4px", fontSize: "7px", borderRight: "1px solid #000" }}>
+            <div style={labelStyle}>Informações Complementares</div>
+            {isEditing ? (
+              <textarea value={d.info_complementares || `${footerMsg}\nVendedor: ${chamado.vendedor_nome}`} onChange={e => onChange("info_complementares", e.target.value)} style={{ width: "100%", border: "none", background: "#fff9c4", fontInherit: true, resize: "none", height: "40px", fontSize: "7px" }} />
+            ) : (
+              <div style={{ fontSize: "7px", lineHeight: "1.3" }}>
+                {d.info_complementares || footerMsg}<br/>
+                Vendedor: {chamado.vendedor_nome}<br/>
+                DEVOLUÇÃO REF. NF {chamado.nf_original}
+              </div>
+            )}
+          </div>
+          <div style={{ padding: "4px", fontSize: "7px" }}>
+            <div style={labelStyle}>Dados Adicionais</div>
+            <div style={{ fontSize: "6px", color: "#888" }}>{now.toLocaleDateString("pt-BR")} {now.toLocaleTimeString("pt-BR")}</div>
+            <div style={{ fontSize: "6px", color: "#aaa", marginTop: "2px" }}>Triagem Automática Marin</div>
+          </div>
+        </div>
       </div>
     </div>
   );

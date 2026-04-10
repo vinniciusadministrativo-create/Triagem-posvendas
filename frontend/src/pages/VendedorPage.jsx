@@ -137,19 +137,21 @@ async function agentDocument(b64,mime,apiKey){
   try{
     const isImg=mime.startsWith("image/");
     const schema = {
-      numero_nf: "", razao_social_dest: "", cnpj_dest: "", endereco_dest: "", bairro_dest: "", cep_dest: "", municipio_dest: "", uf_dest: "", telefone_dest: "", ie_dest: "", natureza_operacao: "",
-      base_icms: "", valor_icms: "", base_icms_st: "", valor_icms_st: "", valor_total_produtos: "", valor_total_nota: "", valor_frete: "", valor_ipi: "", outras_despesas: "", desconto: "",
-      transportador_nome: "", transportador_cnpj: "", transportador_uf: "", frete_por_conta: "",
-      produtos: [{ codigo: "", descricao: "", ncm: "", cst: "", cfop: "", unidade: "", quantidade: "", valor_unitario: "", valor_liquido: "", valor_icms: "", aliq_icms: "" }],
+      numero_nf: "", natureza_operacao: "", ie_dest: "", data_emissao: "", data_saida_entrada: "", hora_saida_entrada: "",
+      razao_social_dest: "", cnpj_dest: "", endereco_dest: "", bairro_dest: "", cep_dest: "", municipio_dest: "", uf_dest: "", telefone_dest: "",
+      base_icms: "", valor_icms: "", base_icms_st: "", valor_icms_st: "", valor_total_produtos: "", valor_total_nota: "", valor_frete: "", valor_seguro: "", valor_ipi: "", outras_despesas: "", desconto: "",
+      transportador_nome: "", transportador_cnpj: "", transportador_ie: "", transportador_endereco: "", transportador_municipio: "", transportador_uf: "", 
+      frete_por_conta: "", placa_veiculo: "", placa_uf: "", quantidade_volumes: "", especie_volumes: "", marca_volumes: "", numeracao_volumes: "", peso_bruto: "", peso_liquido: "",
+      produtos: [{ codigo: "", descricao: "", ncm: "", cst: "", cfop: "", unidade: "", quantidade: "", valor_unitario: "", valor_liquido: "", valor_icms: "", aliq_icms: "", aliq_ipi: "" }],
       info_complementares: ""
     };
     
-    const prompt = `Analise esta Nota Fiscal (DANFE) brasileira e extraia TODOS os campos conforme este JSON. Retorne APENAS o JSON puro. Máximo 10 produtos. Campos numéricos vazios como "0,00".
+    const prompt = `Analise esta Nota Fiscal (DANFE) brasileira e extraia TODOS os campos conforme este JSON. Retorne APENAS o JSON puro. Máximo 15 produtos. Campos numéricos vazios como "0,00".
     JSON: ${JSON.stringify(schema)}`;
 
     const parts = [{inline_data:{mime_type:mime,data:b64}}, {text: prompt}];
 
-    const txt=await geminiRequest(apiKey,parts,2000); // Aumentado para 2000 tokens para notas longas
+    const txt=await geminiRequest(apiKey,parts,2500); // Aumentado para 2500 tokens para extração massiva
     return repairJSON(txt)||{error:"JSON inválido na extração"};
   }catch(e){return{error:e.message};}
 }
