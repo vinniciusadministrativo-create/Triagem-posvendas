@@ -241,7 +241,8 @@ export default function VendedorPage(){
   const askApiKey=useCallback(()=>new Promise((resolve,reject)=>{setApiKeyModal({resolve,reject});}),[]);
 
   const getApiKey=useCallback(async()=>{
-    let k=sessionStorage.getItem("gemini_key");
+    // Busca primeiro na variável de ambiente (Render), depois no cache, depois pergunta
+    let k = import.meta.env.VITE_GEMINI_KEY || sessionStorage.getItem("gemini_key");
     if(!k){k=await askApiKey();if(!k)throw new Error("Chave não fornecida");sessionStorage.setItem("gemini_key",k);}
     return k;
   },[askApiKey]);
