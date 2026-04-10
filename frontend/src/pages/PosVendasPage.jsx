@@ -143,6 +143,31 @@ function ChamadoDetail({chamado,onClose,onStatusChange}){
             </div>
           )}
 
+          {/* Original Form Data */}
+          <div style={{background:"#fff", border:`1px solid ${M.brdN}`, borderRadius:10, padding:16, marginBottom:16, boxShadow:"0 2px 8px rgba(0,0,0,0.03)"}}>
+            <div style={{fontSize:11, fontWeight:700, textTransform:"uppercase", color:M.txM, marginBottom:12, borderBottom:`1px solid ${M.brdN}`, paddingBottom:6}}>📝 Dados Originais do Formulário (Vendedor)</div>
+            <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px 24px"}}>
+              <div>
+                <div style={{fontSize:10, color:M.txD, textTransform:"uppercase", fontWeight:600}}>Informações do Cliente</div>
+                <div style={{fontSize:12, marginTop:4}}><b>Cód:</b> {d.codigo_cliente}</div>
+                <div style={{fontSize:12}}><b>CNPJ/CPF:</b> {d.cnpj}</div>
+                <div style={{fontSize:12}}><b>Razão:</b> {d.razao_social}</div>
+                <div style={{fontSize:12}}><b>NF Original:</b> {d.nf_original}</div>
+              </div>
+              <div>
+                <div style={{fontSize:10, color:M.txD, textTransform:"uppercase", fontWeight:600}}>Contato do Vendedor</div>
+                <div style={{fontSize:12, marginTop:4}}><b>Vendedor:</b> {d.nome_vendedor}</div>
+                <div style={{fontSize:12}}><b>E-mail:</b> {d.email_vendedor}</div>
+                <div style={{fontSize:12}}><b>Telefone:</b> {d.telefone}</div>
+                <div style={{fontSize:12}}><b>Responsável:</b> {d.responsavel}</div>
+              </div>
+            </div>
+            <div style={{marginTop:12, paddingTop:12, borderTop:`1px dashed ${M.brdN}`}}>
+               <div style={{fontSize:10, color:M.txD, textTransform:"uppercase", fontWeight:600, marginBottom:4}}>Tipo de Solicitação</div>
+               <div style={{fontSize:12}}>{d.tipo_solicitacao?.replace(/_/g," ")}</div>
+            </div>
+          </div>
+
           {/* NF Data */}
           {nf.numero_nf&&(
             <div style={{background:M.alt,borderRadius:10,padding:16,marginBottom:16}}>
