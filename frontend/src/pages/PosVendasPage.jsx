@@ -588,12 +588,13 @@ export default function PosVendasPage(){
             left: 0; 
             width: 100%; 
             margin: 0 !important; 
-            padding: 10mm !important; 
+            padding: 8mm !important; 
             z-index: 10000;
             background: #fff !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             box-sizing: border-box;
+            zoom: 0.94; /* Reduz levemente a escala para caber na altura do A4 */
           }
           .no-print { display: none !important; }
         }
