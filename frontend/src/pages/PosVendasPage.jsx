@@ -107,14 +107,27 @@ function DANFE({nf: nfRaw, chamado, isEditing, onChange}) {
       color: "#000", 
       fontFamily: "'Plus Jakarta Sans', sans-serif", 
       position: "relative", 
-      width: "210mm", 
-      minHeight: "297mm", 
+      width: "200mm", // Reduzido de 210mm para segurança em todas as impressoras
+      minHeight: "287mm", 
       boxSizing: "border-box", 
       margin: "0 auto",
-      border: "1px solid #000", // CONTORNO EXTERNO SOLICITADO
+      border: "1px solid #000",
       display: "flex",
       flexDirection: "column"
     }}>
+      <style>{`
+        @media print {
+          @page { margin: 0; size: A4; }
+          body { margin: 0; -webkit-print-color-adjust: exact; }
+          #danfe-print { 
+            border: 1px solid #000 !important; 
+            margin: 0 auto !important;
+            width: 200mm !important;
+          }
+          /* Oculta elementos que não sejam o espelho na hora de imprimir */
+          button, nav, .no-print { display: none !important; }
+        }
+      `}</style>
       
       {/* Watermark */}
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%) rotate(-35deg)", fontSize: "72px", fontWeight: "900", color: "rgba(0,0,0,0.04)", pointerEvents: "none", zIndex: 0, textAlign: "center", width: "100%" }}>
