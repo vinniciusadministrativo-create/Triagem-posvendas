@@ -188,7 +188,7 @@ function ChamadoDetail({chamado,onClose,onStatusChange}){
           </div>
 
           {/* DANFE Mirror Button (Admin/PosVendas Only) */}
-          {nf.numero_nf && (
+          {(tr.precisa_espelho_nfd || nf.numero_nf) && (
             <div style={{marginTop:20, borderTop:`1px solid ${M.brdN}`, paddingTop:16}}>
               <button onClick={()=>setShowDANFE(!showDANFE)} style={{width:"100%",padding:"12px",background:showDANFE?M.alt:M.pri,color:showDANFE?M.tx:"#fff",border:showDANFE?`1px solid ${M.brdN}`:"none",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:showDANFE?"none":`0 4px 16px ${M.glow}`}}>
                 {showDANFE?"Ocultar Espelho":"🧾 Gerar Espelho NFD (Rascunho)"}

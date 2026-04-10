@@ -344,7 +344,7 @@ export default function VendedorPage(){
     setNfFile(null);setNfB64(null);setNfMime(null);setEvidenceFiles([]);
     setNfData(null);setEvidenceResult(null);setTriageResult(null);
     setAgentStatus({triage:"idle",doc:"idle",evidence:"idle"});
-    setShowDANFE(false);setAnimPhase(0);setFormErrors({});setElapsed(0);setSavedId(null);
+    setAnimPhase(0);setFormErrors({});setElapsed(0);setSavedId(null);
   };
 
   const logout=()=>{localStorage.removeItem("token");localStorage.removeItem("user");window.location.href="/login";};
