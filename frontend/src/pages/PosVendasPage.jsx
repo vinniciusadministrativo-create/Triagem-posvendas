@@ -60,13 +60,19 @@ const Bx=({label,value,field,onChange,isEditing,style={}})=>(
   </div>
 );
 
-function DANFE({nf, chamado, isEditing, onChange}) {
-  // Fallback: se os dados da NF (IA) estiverem vazios, tenta usar o que o vendedor preencheu
+function DANFE({nf: nfRaw, chamado, isEditing, onChange}) {
+  // Garante que nf seja um objeto, mesmo que venha como string do banco
+  let nf = nfRaw;
+  if (typeof nf === "string") { try { nf = JSON.parse(nf); } catch(e) { nf = {}; } }
+  nf = nf || {};
+
+  // Prioridade: Se o campo da IA for vazio ou nulo, usa o dado manual do chamado
   const d = {
-    razao_social_dest: nf?.razao_social_dest || chamado?.razao_social || "",
-    cnpj_dest: nf?.cnpj_dest || chamado?.cnpj || "",
-    telefone_dest: nf?.telefone_dest || chamado?.telefone || "",
-    ...nf
+    ...nf,
+    razao_social_dest: nf.razao_social_dest || chamado?.razao_social || "",
+    cnpj_dest: nf.cnpj_dest || chamado?.cnpj || "",
+    telefone_dest: nf.telefone_dest || chamado?.telefone || "",
+    natureza_operacao: nf.natureza_operacao || "5202 - DEVOLUÇÃO DE COMPRA PARA COMERCIALIZAÇÃO DENTRO DO MESMO ESTADO"
   };
   const prods=d.produtos?.length?d.produtos:[{}];const now=new Date();
 
