@@ -66,7 +66,7 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
     ...localNF,
     razao_social_dest: localNF.razao_social_dest || localNF.cliente || chamado?.razao_social || "",
     cnpj_dest: localNF.cnpj_dest || localNF.cnpj || chamado?.cnpj || "",
-    natureza_operacao: localNF.natureza_operacao || "1202 - DEVOLUÇÃO DE VENDA DE MERCADORIA",
+    natureza_operacao: localNF.natureza_operacao || "5202 - DEVOLUÇÃO DE COMPRA PARA COMERCIALIZAÇÃO",
     produtos: Array.isArray(localNF.produtos) ? localNF.produtos : []
   };
 
