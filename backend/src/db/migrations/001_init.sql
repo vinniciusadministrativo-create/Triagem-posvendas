@@ -39,7 +39,8 @@ CREATE TABLE IF NOT EXISTS chamados (
 
   -- File paths
   nf_file_path      TEXT,
-  evidence_paths    TEXT[]
+  evidence_paths    TEXT[],
+  ressalva_vendedor TEXT
 );
 
 -- Index for faster queries

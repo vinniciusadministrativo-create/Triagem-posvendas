@@ -70,7 +70,7 @@ router.post(
       const {
         codigo, razaoSocial, cnpj, nomeVendedor, telefone,
         emailVendedor, tipoSolicitacao, descricao, nfOriginal, responsavel,
-        triage_result, nf_data, evidence_result,
+        triage_result, nf_data, evidence_result, ressalva_vendedor,
         // suporte aos dois formatos de campo (snake_case e camelCase)
         codigo_cliente, razao_social, nome_vendedor,
         email_vendedor, tipo_solicitacao, nf_original,
@@ -86,8 +86,8 @@ router.post(
           vendedor_id, codigo_cliente, razao_social, cnpj, nome_vendedor,
           telefone, email_vendedor, tipo_solicitacao, descricao, nf_original,
           responsavel, triage_result, nf_data, evidence_result, status,
-          etapa_destino, nf_file_path, evidence_paths
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+          etapa_destino, nf_file_path, evidence_paths, ressalva_vendedor
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
         RETURNING *`,
         [
           req.user.id,
@@ -108,6 +108,7 @@ router.post(
           triageObj.etapa_destino || "novo",
           nfFile ? nfFile.filename : null,
           evFiles.length ? evFiles.map(f => f.filename) : null,
+          ressalva_vendedor || null,
         ]
       );
 

@@ -6,6 +6,9 @@ import LoginPage from './pages/LoginPage.jsx'
 import VendedorPage from './pages/VendedorPage.jsx'
 import PosVendasPage from './pages/PosVendasPage.jsx'
 
+import Layout from './Layout.jsx'
+import AdminPage from './pages/AdminPage.jsx'
+
 function ProtectedRoute({ children, allowedRoles }) {
   const location = useLocation();
   const token = localStorage.getItem('token');
@@ -19,7 +22,6 @@ function ProtectedRoute({ children, allowedRoles }) {
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // Redireciona para a página correta conforme o role
     if (user.role === 'vendedor') return <Navigate to="/formulario" replace />;
     return <Navigate to="/dashboard" replace />;
   }
@@ -43,24 +45,37 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/formulario"
-          element={
-            <ProtectedRoute allowedRoles={['vendedor', 'admin']}>
-              <VendedorPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={['pos_vendas', 'admin']}>
-              <PosVendasPage />
-            </ProtectedRoute>
-          }
-        />
+        
+        {/* ROTAS COM SIDEBAR */}
+        <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Route path="/" element={<RootRedirect />} />
+          <Route
+            path="/formulario"
+            element={
+              <ProtectedRoute allowedRoles={['vendedor', 'admin']}>
+                <VendedorPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['pos_vendas', 'admin']}>
+                <PosVendasPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminPage />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+
         <Route path="*" element={<RootRedirect />} />
       </Routes>
     </BrowserRouter>

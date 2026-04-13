@@ -62,5 +62,13 @@ export const api = {
   changePassword: (id, current_password, new_password) =>
     request(`/api/users/${id}/password`, { method: "PATCH", body: JSON.stringify({ current_password, new_password }) }),
 
+  // AI
+  triageAI: (form, isTest) => 
+    request("/api/ai/triage", { method: "POST", body: JSON.stringify({ form, isTest }) }),
+  extractNFAI: (fileB64, mime, isTest) => 
+    request("/api/ai/extract-nf", { method: "POST", body: JSON.stringify({ fileB64, mime, isTest }) }),
+  analyzeEvidenceAI: (images, isTest) => 
+    request("/api/ai/analyze-evidence", { method: "POST", body: JSON.stringify({ images, isTest }) }),
+
   fileUrl: (filename) => `${API_BASE}/uploads/${filename}`,
 };

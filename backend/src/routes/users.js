@@ -49,6 +49,7 @@ router.patch("/:id", authMiddleware(["admin"]), async (req, res) => {
     if (active !== undefined) { params.push(active); updates.push(`active = $${params.length}`); }
     if (name) { params.push(name); updates.push(`name = $${params.length}`); }
     if (role) { params.push(role); updates.push(`role = $${params.length}`); }
+    if (req.body.email) { params.push(req.body.email.toLowerCase().trim()); updates.push(`email = $${params.length}`); }
     if (!updates.length) return res.status(400).json({ error: "Nenhum campo para atualizar" });
 
     params.push(req.params.id);
