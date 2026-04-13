@@ -98,6 +98,7 @@ export default function Sidebar({ user, onLogout, onSwitchUser }) {
             <NavLink 
               key={item.path} 
               to={item.path} 
+              className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
               style={({ isActive }) => navItemStyle(isActive)}
             >
               <span style={{ fontSize: 20, minWidth: 30 }}>{item.icon}</span>
@@ -109,18 +110,20 @@ export default function Sidebar({ user, onLogout, onSwitchUser }) {
         <div style={{ padding: "20px 0", borderTop: `1px solid ${M.brdN}` }}>
           <button 
             onClick={onSwitchUser}
-            style={{ width: "100%", padding: "12px 22px", textAlign: "left", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: M.txM }}
+            className="nav-item"
+            style={{ width: "calc(100% - 15px)", padding: "12px 22px", textAlign: "left", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "#374151" }}
           >
             <span style={{ fontSize: 18, minWidth: 30 }}>🔄</span>
-            {isOpen && <span style={{ marginLeft: 12, fontSize: 13 }}>Trocar Usuário</span>}
+            {isOpen && <span style={{ marginLeft: 12, fontSize: 13, fontWeight: 600 }}>Trocar Usuário</span>}
           </button>
           
           <button 
             onClick={onLogout}
-            style={{ width: "100%", padding: "12px 22px", textAlign: "left", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "#dc2626" }}
+            className="nav-item"
+            style={{ width: "calc(100% - 15px)", padding: "12px 22px", textAlign: "left", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "#dc2626" }}
           >
             <span style={{ fontSize: 18, minWidth: 30 }}>🚪</span>
-            {isOpen && <span style={{ marginLeft: 12, fontSize: 13, fontWeight: 700 }}>Sair</span>}
+            {isOpen && <span style={{ marginLeft: 12, fontSize: 13, fontWeight: 800 }}>Sair</span>}
           </button>
         </div>
       </div>
