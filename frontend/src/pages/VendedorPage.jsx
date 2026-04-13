@@ -2,8 +2,57 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../api";
 import ChamadoDetail from "../components/ChamadoDetail";
 
-// ... (constantes M, STAGES, TIPOS, RESP, VInput mantidas) ...
-// (Para economizar espaço na resposta, assumo que M, STAGES, TIPOS, RESP e VInput estão definidos acima como no arquivo original)
+const M = {
+  pri: "#9B1B30", priDk: "#7A1526", priLt: "#B82840", priDeep: "#5E1220",
+  glow: "rgba(155,27,48,0.30)", soft: "rgba(155,27,48,0.07)", brd: "rgba(155,27,48,0.25)",
+  bg: "#fafafa", card: "#fff", alt: "#f5f3f0", brdN: "#e5e0db", brdL: "#d5cfc8",
+  tx: "#1a1a1a", txM: "#6b6560", txD: "#9a948d",
+  ok: "#16a34a", okS: "rgba(22,163,74,0.08)", okB: "rgba(22,163,74,0.2)",
+  warn: "#d97706", warnS: "rgba(217,119,6,0.08)", warnB: "rgba(217,119,6,0.2)",
+  blue: "#2563eb", blueS: "rgba(37,99,235,0.08)", blueB: "rgba(37,99,235,0.2)",
+  err: "#dc2626", errS: "rgba(220,38,38,0.08)",
+};
+
+const STAGES = [
+  { id: "novo", label: "Novo Chamado", color: "#6b7280", icon: "📥" },
+  { id: "avaliacao", label: "Avaliação", color: "#f59e0b", icon: "🔍" },
+  { id: "negociacao", label: "Negociação Cliente", color: "#8b5cf6", icon: "🤝" },
+  { id: "espelho", label: "Emitir Espelho NFD", color: M.pri, icon: "🧾" },
+  { id: "aguardando_nfd", label: "Aguard. NFD Cliente", color: "#2563eb", icon: "⏳" },
+  { id: "aguardando_recolhimento", label: "Aguard. Recolhimento", color: "#059669", icon: "🚚" },
+  { id: "aguardando_financeiro", label: "Aguard. Financeiro", color: "#16a34a", icon: "💰" },
+  { id: "encerrado", label: "Encerrado", color: "#6b7280", icon: "✅" },
+];
+
+const TIPOS = [
+  { id: "preco_errado", label: "Preço Errado" },
+  { id: "produto_avariado", label: "Produto Avariado" },
+  { id: "erro_pigmentacao", label: "Erro de Pigmentação" },
+  { id: "produto_defeito", label: "Produto com Defeito" },
+  { id: "qtd_errada", label: "Quantidade Errada / Pedido Errado" },
+  { id: "arrependimento", label: "Arrependimento / Troca" },
+  { id: "recusa_entrega", label: "Recusa na Entrega" },
+];
+
+function VInput({ label, value, onChange, placeholder, maxLength, type = "text", pattern, required = true, error }) {
+  const [touched, setTouched] = useState(false);
+  const showErr = touched && error;
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, color: showErr ? M.err : M.txM, marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>
+        {label}<span style={{ color: M.pri, fontSize: 8 }}>*</span>
+        {maxLength && <span style={{ fontWeight: 400, fontSize: 9, color: M.txD, marginLeft: "auto" }}>{value.length}/{maxLength}</span>}
+      </label>
+      <input type={type} value={value} placeholder={placeholder} maxLength={maxLength} required={required}
+        style={{ width: "100%", padding: "10px 12px", border: `1px solid ${showErr ? M.err : M.brdN}`, borderRadius: 8, fontSize: 13, background: showErr ? M.errS : "#fff", color: M.tx, outline: "none", transition: "all 0.2s", boxSizing: "border-box" }}
+        onFocus={e => { e.target.style.borderColor = M.pri; e.target.style.boxShadow = `0 0 0 3px ${M.soft}`; }}
+        onBlur={e => { setTouched(true); e.target.style.borderColor = showErr ? M.err : M.brdN; e.target.style.boxShadow = "none"; }}
+        onChange={e => { let v = e.target.value; if (pattern === "numeric") v = v.replace(/\D/g, ""); onChange(v); }}
+      />
+      {showErr && <div style={{ fontSize: 10, color: M.err, marginTop: 3 }}>{error}</div>}
+    </div>
+  );
+}
 
 export default function VendedorPage({ defaultTab = "novo" }) {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
