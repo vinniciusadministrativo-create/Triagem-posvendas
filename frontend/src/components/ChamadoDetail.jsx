@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { api } from "../api";
 import ShareChamado from "./ShareChamado";
+import DanfeMirror from "./DanfeMirror";
 
 const M = {
   pri: "#9B1B30",
@@ -96,6 +97,10 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: M.blue, marginBottom: 6 }}>💬 Ressalva do Vendedor</div>
               <div style={{ fontSize: 13, lineHeight: 1.6, color: M.tx }}>{chamado.ressalva_vendedor}</div>
             </div>
+          )}
+
+          {chamado.nf_data && (
+            <DanfeMirror nf={chamado.nf_data} chamado={chamado} />
           )}
 
           {/* ÁREA DE COMPARTILHAMENTO */}
