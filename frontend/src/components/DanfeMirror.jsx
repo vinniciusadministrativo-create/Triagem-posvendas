@@ -202,15 +202,36 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
       <style>{`
         @media print {
           @page { size: portrait; margin: 0mm; }
-          html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
-          body * { visibility: hidden; }
+          
+          /* Esconde tudo */
+          body * { visibility: hidden !important; }
+          
+          /* Mostra apenas a DANFE e garante que ela não seja cortada */
           #danfe-print, #danfe-print * { visibility: visible !important; }
+          
           #danfe-print { 
-            position: absolute; top: 0; left: 0; right: 0; width: 100%; 
-            margin: 0 !important; padding: 10mm !important; z-index: 10000;
-            background: #fff !important; -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important; box-sizing: border-box;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 210mm !important; /* Força largura A4 */
+            min-height: 297mm !important;
+            margin: 0 !important;
+            padding: 10mm !important;
+            z-index: 1000000 !important;
+            background: #fff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            box-sizing: border-box !important;
           }
+
+          /* Remove barras de rolagem e limites de altura dos pais durante a impressão */
+          html, body, #root, .danfe-container, [style*="position: fixed"] {
+            overflow: visible !important;
+            height: auto !important;
+            max-height: none !important;
+            position: static !important;
+          }
+
           .no-print { display: none !important; }
         }
       `}</style>
