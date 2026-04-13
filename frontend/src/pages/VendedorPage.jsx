@@ -6,7 +6,7 @@ const M = {
   pri: "#9B1B30", priDk: "#7A1526", priLt: "#B82840", priDeep: "#5E1220",
   glow: "rgba(155,27,48,0.30)", soft: "rgba(155,27,48,0.07)", brd: "rgba(155,27,48,0.25)",
   bg: "#fafafa", card: "#fff", alt: "#f5f3f0", brdN: "#e5e0db", brdL: "#d5cfc8",
-  tx: "#1a1a1a", txM: "#6b6560", txD: "#9a948d",
+  tx: "#1a1a1a", txM: "#374151", txD: "#4b5563",
   ok: "#16a34a", okS: "rgba(22,163,74,0.08)", okB: "rgba(22,163,74,0.2)",
   warn: "#d97706", warnS: "rgba(217,119,6,0.08)", warnB: "rgba(217,119,6,0.2)",
   blue: "#2563eb", blueS: "rgba(37,99,235,0.08)", blueB: "rgba(37,99,235,0.2)",

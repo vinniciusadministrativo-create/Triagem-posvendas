@@ -45,10 +45,12 @@ export default function Sidebar({ user, onLogout, onSwitchUser }) {
     alignItems: "center",
     padding: "14px 22px",
     textDecoration: "none",
-    color: isActive ? M.pri : M.txM,
-    background: isActive ? M.soft : "transparent",
-    borderLeft: `4px solid ${isActive ? M.pri : "transparent"}`,
-    transition: "all 0.3s",
+    color: isActive ? "#fff" : "#374151",
+    background: isActive ? M.pri : "transparent",
+    borderRadius: "0 25px 25px 0",
+    marginRight: 15,
+    marginBottom: 8,
+    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
     whiteSpace: "nowrap",
   });
 

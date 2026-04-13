@@ -1,12 +1,13 @@
 :root {
-  --text: #6b6375;
-  --text-h: #1a1a1a;
+  --text: #374151; /* Cinza bem mais escuro e legível */
+  --text-h: #111827; /* Quase preto para títulos fortes */
   --bg: #f8fafc;
   --card: #ffffff;
   --border: #e2e8f0;
   --pri: #9B1B30;
+  --pri-glow: rgba(155, 27, 48, 0.15);
   --soft: rgba(155, 27, 48, 0.05);
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   
   font-family: var(--sans);
@@ -15,6 +16,31 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
+}
+
+/* Melhorando a visibilidade de parágrafos e textos de apoio */
+p, span, div {
+  color: var(--text);
+  font-weight: 500; /* Texto com mais corpo */
+}
+
+/* Efeito de fluidez extrema nos ícones do menu */
+.nav-item {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+}
+
+.nav-item:hover {
+  transform: translateX(5px) scale(1.05);
+  background: var(--pri-glow) !important;
+  box-shadow: 0 4px 12px var(--pri-glow);
+}
+
+.nav-item.active {
+  background: var(--pri) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 20px var(--pri-glow);
 }
 
 * {

@@ -4,7 +4,7 @@ import ChamadoDetail from "../components/ChamadoDetail";
 
 const M = {
   pri:"#9B1B30",priDk:"#7A1526",bg:"#fafafa",card:"#fff",alt:"#f5f3f0",
-  brdN:"#e5e0db",brdL:"#d5cfc8",tx:"#1a1a1a",txM:"#6b6560",txD:"#9a948d",
+  brdN:"#e5e0db",brdL:"#d5cfc8",tx:"#1a1a1a",txM:"#4b5563",txD:"#9a948d",
   ok:"#16a34a",okS:"rgba(22,163,74,0.08)",okB:"rgba(22,163,74,0.2)",
   warn:"#d97706",warnS:"rgba(217,119,6,0.08)",warnB:"rgba(217,119,6,0.2)",
   blue:"#2563eb",blueS:"rgba(37,99,235,0.08)",blueB:"rgba(37,99,235,0.2)",
