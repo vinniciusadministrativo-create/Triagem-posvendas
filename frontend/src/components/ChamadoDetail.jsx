@@ -99,7 +99,7 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
             </div>
           )}
 
-          {(chamado.nf_data || chamado.status === "espelho") && (
+          {canEdit && (chamado.nf_data || chamado.status === "espelho") && (
             <DanfeMirror nf={chamado.nf_data} chamado={chamado} />
           )}
 
