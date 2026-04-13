@@ -269,6 +269,7 @@ export default function VendedorPage({ defaultTab = "novo" }) {
           </div>
         </div>
         <VInput label="Código" value={form.codigo} onChange={v => upd("codigo", v)} />
+        <VInput label="Nome do Vendedor" value={form.nomeVendedor} onChange={v => upd("nomeVendedor", v)} />
         <VInput label="CNPJ" value={form.cnpj} onChange={v => upd("cnpj", v)} />
         <div style={{ gridColumn: "1/-1" }}><VInput label="Razão Social" value={form.razaoSocial} onChange={v => upd("razaoSocial", v)} /></div>
         <VInput label="NF Original" value={form.nfOriginal} onChange={v => upd("nfOriginal", v)} />

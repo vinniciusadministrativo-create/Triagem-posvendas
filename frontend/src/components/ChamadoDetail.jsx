@@ -44,7 +44,9 @@ function Badge({ label, color }) {
 export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDelete }) {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const [newStatus, setNewStatus] = useState(chamado.status || "novo");
+  const [localRessalva, setLocalRessalva] = useState(chamado.ressalva_vendedor || "");
   const [saving, setSaving] = useState(false);
+  const [savingRessalva, setSavingRessalva] = useState(false);
 
   // Regras de Permissão
   const isAdmin = user.role === "admin";
@@ -67,9 +69,23 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
     }
   };
 
+  const handleSaveRessalva = async () => {
+    setSavingRessalva(true);
+    try {
+      await api.updateRessalva(chamado.id, localRessalva);
+      alert("Observação enviada com sucesso!");
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setSavingRessalva(false);
+    }
+  };
+
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 20 }}>
+      {/* ... conteúdo encurtado para foco na ressalva ... */}
       <div style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 650, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+        {/* HEADER */}
         <div style={{ padding: 20, borderBottom: `1px solid ${M.brdN}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 18 }}>Chamado #{chamado.id}</h2>
@@ -92,12 +108,30 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
             <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: M.tx }}>{chamado.descricao}</p>
           </div>
 
-          {chamado.ressalva_vendedor && (
-            <div style={{ marginBottom: 20, padding: 15, background: M.blueS, borderRadius: 10, border: `1px solid ${M.blueB}` }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: M.blue, marginBottom: 6 }}>💬 Ressalva do Vendedor</div>
+          {/* RESSALVA EDITÁVEL PARA O VENDEDOR OU VISÍVEL PARA ADMIN */}
+          {isOwner ? (
+            <div style={{ marginBottom: 20, padding: 20, background: M.blueS, borderRadius: 12, border: `1px solid ${M.blueB}` }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: M.blue, textTransform: "uppercase", marginBottom: 8 }}>📝 Sua Ressalva / Observação Extra</label>
+              <textarea 
+                value={localRessalva} 
+                onChange={e => setLocalRessalva(e.target.value)}
+                placeholder="Adicione informações extras aqui..."
+                style={{ width: "100%", padding: 12, borderRadius: 10, border: `1px solid ${M.brdN}`, minHeight: 80, fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
+              />
+              <button 
+                onClick={handleSaveRessalva} 
+                disabled={savingRessalva}
+                style={{ marginTop: 12, padding: "8px 16px", background: M.blue, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+              >
+                {savingRessalva ? "Salvando..." : "Salvar Observação"}
+              </button>
+            </div>
+          ) : chamado.ressalva_vendedor ? (
+            <div style={{ marginBottom: 20, padding: 20, background: M.blueS, borderRadius: 12, border: `1px solid ${M.blueB}` }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: M.blue, textTransform: "uppercase", marginBottom: 8 }}>💬 Ressalva do Vendedor</div>
               <div style={{ fontSize: 13, lineHeight: 1.6, color: M.tx }}>{chamado.ressalva_vendedor}</div>
             </div>
-          )}
+          ) : null}
 
           {canEdit && (chamado.nf_data || chamado.status === "espelho") && (
             <DanfeMirror nf={chamado.nf_data} chamado={chamado} />

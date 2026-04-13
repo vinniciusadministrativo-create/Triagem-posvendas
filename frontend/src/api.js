@@ -54,6 +54,7 @@ export const api = {
 
   deleteChamado: (id) => request(`/api/chamados/${id}`, { method: "DELETE" }),
   deleteMultipleChamados: (ids) => request("/api/chamados/batch-delete", { method: "POST", body: JSON.stringify({ ids }) }),
+  updateRessalva: (id, ressalva_vendedor) => request(`/api/chamados/${id}/ressalva`, { method: "PATCH", body: JSON.stringify({ ressalva_vendedor }) }),
 
   // Users
   getUsers: () => request("/api/users"),

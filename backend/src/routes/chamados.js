@@ -220,6 +220,31 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin"]), async (req,
   }
 });
 
+// PATCH /api/chamados/:id/ressalva — vendedor ou admin atualiza observação
+router.patch("/:id/ressalva", authMiddleware(), async (req, res) => {
+  try {
+    const { ressalva_vendedor } = req.body;
+    
+    // Verifica proprietário
+    const { rows: check } = await pool.query("SELECT vendedor_id FROM chamados WHERE id = $1", [req.params.id]);
+    if (!check[0]) return res.status(404).json({ error: "Chamado não encontrado" });
+    
+    if (req.user.role !== "admin" && check[0].vendedor_id !== req.user.id) {
+      return res.status(403).json({ error: "Acesso negado" });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE chamados SET ressalva_vendedor = $1, updated_at = NOW()
+       WHERE id = $2 RETURNING *`,
+      [ressalva_vendedor, req.params.id]
+    );
+    res.json({ chamado: rows[0] });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Erro ao atualizar ressalva" });
+  }
+});
+
 // DELETE /api/chamados/:id — APENAS ADMIN exclui chamado
 router.delete("/:id", authMiddleware(["admin"]), async (req, res) => {
   try {
