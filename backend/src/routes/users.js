@@ -17,6 +17,18 @@ router.get("/", authMiddleware(["admin"]), async (req, res) => {
   }
 });
 
+// GET /api/users/contacts — list names and emails for sharing (all roles)
+router.get("/contacts", authMiddleware(), async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      "SELECT id, name, email FROM users WHERE active = true ORDER BY name"
+    );
+    res.json({ contacts: rows });
+  } catch (e) {
+    res.status(500).json({ error: "Erro ao buscar contatos" });
+  }
+});
+
 // POST /api/users — create user (admin only)
 router.post("/", authMiddleware(["admin"]), async (req, res) => {
   const { name, email, password, role } = req.body;

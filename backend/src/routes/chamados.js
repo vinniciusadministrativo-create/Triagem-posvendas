@@ -27,8 +27,8 @@ const upload = multer({
   },
 });
 
-// GET /api/chamados/meus — vendedor vê apenas seus próprios chamados
-router.get("/meus", authMiddleware(["vendedor", "admin"]), async (req, res) => {
+// GET /api/chamados/meus — usuário vê seus próprios e os compartilhados
+router.get("/meus", authMiddleware(["vendedor", "pos_vendas", "admin"]), async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
@@ -36,13 +36,18 @@ router.get("/meus", authMiddleware(["vendedor", "admin"]), async (req, res) => {
       `SELECT c.*, u.name as vendedor_nome
        FROM chamados c
        LEFT JOIN users u ON c.vendedor_id = u.id
-       WHERE c.vendedor_id = $1
+       LEFT JOIN chamado_shares s ON c.id = s.chamado_id
+       WHERE c.vendedor_id = $1 OR s.user_id = $1
+       GROUP BY c.id, u.name
        ORDER BY c.created_at DESC
        LIMIT $2 OFFSET $3`,
       [req.user.id, limit, offset]
     );
     const countRes = await pool.query(
-      "SELECT COUNT(*) FROM chamados WHERE vendedor_id = $1",
+      `SELECT COUNT(DISTINCT c.id) 
+       FROM chamados c 
+       LEFT JOIN chamado_shares s ON c.id = s.chamado_id 
+       WHERE c.vendedor_id = $1 OR s.user_id = $1`,
       [req.user.id]
     );
     res.json({ chamados: rows, total: parseInt(countRes.rows[0].count) });
@@ -60,10 +65,10 @@ router.get("/file/:filename", authMiddleware(), (req, res) => {
   res.sendFile(filePath);
 });
 
-// POST /api/chamados — vendedor cria chamado
+// POST /api/chamados — criação (vendedor, pos_vendas, admin)
 router.post(
   "/",
-  authMiddleware(["vendedor", "admin"]),
+  authMiddleware(["vendedor", "pos_vendas", "admin"]),
   upload.fields([{ name: "nf_file", maxCount: 1 }, { name: "evidence_files", maxCount: 6 }]),
   async (req, res) => {
     try {
@@ -119,6 +124,31 @@ router.post(
     }
   }
 );
+
+// POST /api/chamados/:id/share — compartilha chamado com outro usuário
+router.post("/:id/share", authMiddleware(["vendedor", "pos_vendas", "admin"]), async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    if (!user_id) return res.status(400).json({ error: "ID do usuário é obrigatório" });
+    
+    // Verifica se o chamado existe e se o usuário logado tem permissão (dono ou admin)
+    const { rows: ch } = await pool.query("SELECT * FROM chamados WHERE id = $1", [req.params.id]);
+    if (!ch[0]) return res.status(404).json({ error: "Chamado não encontrado" });
+    
+    if (req.user.role !== "admin" && ch[0].vendedor_id !== req.user.id) {
+      return res.status(403).json({ error: "Apenas o dono do chamado pode compartilhar" });
+    }
+
+    await pool.query(
+      "INSERT INTO chamado_shares (chamado_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+      [req.params.id, user_id]
+    );
+    res.json({ message: "Chamado compartilhado com sucesso" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Erro ao compartilhar chamado" });
+  }
+});
 
 // GET /api/chamados — pos_vendas/admin lista com filtros
 router.get("/", authMiddleware(["pos_vendas", "admin"]), async (req, res) => {
@@ -190,8 +220,8 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin"]), async (req,
   }
 });
 
-// DELETE /api/chamados/:id — pos_vendas/admin exclui chamado
-router.delete("/:id", authMiddleware(["pos_vendas", "admin"]), async (req, res) => {
+// DELETE /api/chamados/:id — APENAS ADMIN exclui chamado
+router.delete("/:id", authMiddleware(["admin"]), async (req, res) => {
   try {
     const { rows } = await pool.query("DELETE FROM chamados WHERE id = $1 RETURNING *", [req.params.id]);
     if (!rows[0]) return res.status(404).json({ error: "Chamado não encontrado" });
@@ -201,8 +231,8 @@ router.delete("/:id", authMiddleware(["pos_vendas", "admin"]), async (req, res) 
   }
 });
 
-// POST /api/chamados/batch-delete — pos_vendas/admin exclui vários
-router.post("/batch-delete", authMiddleware(["pos_vendas", "admin"]), async (req, res) => {
+// POST /api/chamados/batch-delete — APENAS ADMIN exclui vários
+router.post("/batch-delete", authMiddleware(["admin"]), async (req, res) => {
   try {
     const { ids } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: "IDs inválidos" });

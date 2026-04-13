@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { api } from "../api";
+import ChamadoDetail from "../components/ChamadoDetail";
 
 const M = {
   pri: "#9B1B30",
@@ -16,6 +18,11 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState(null);
   const [message, setMessage] = useState(null);
+  const [activeTab, setActiveTab] = useState("users");
+  const [selectedSeller, setSelectedSeller] = useState(null);
+  const [sellerChamados, setSellerChamados] = useState([]);
+  const [loadingSeller, setLoadingSeller] = useState(false);
+  const [selectedChamado, setSelectedChamado] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -23,11 +30,7 @@ export default function AdminPage() {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const r = await fetch("/api/users", {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      const data = await r.json();
+      const data = await api.getUsers();
       setUsers(data.users || []);
     } catch (e) {
       console.error("Erro ao carregar usuários", e);
@@ -36,71 +39,83 @@ export default function AdminPage() {
     }
   };
 
-  const handleUpdate = async (e) => {
-    e.preventDefault();
+  const fetchSellerChamados = async (userId) => {
+    setLoadingSeller(true);
     try {
-      const token = localStorage.getItem("token");
-      const r = await fetch(`/api/users/${editingUser.id}`, {
-        method: "PATCH",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}` 
-        },
-        body: JSON.stringify({
-          email: editingUser.email,
-          name: editingUser.name,
-          role: editingUser.role
-        })
+      // Usaremos um parâmetro de filtro que adicionaremos na API ou usaremos o getChamados com filtro
+      const r = await fetch(`/api/chamados?vendedor_id=${userId}`, {
+        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
       });
-      if (r.ok) {
-        setMessage({ type: "success", text: "Usuário atualizado com sucesso!" });
-        setEditingUser(null);
-        fetchUsers();
-      }
+      const data = await r.json();
+      setSellerChamados(data.chamados || []);
     } catch (e) {
-      setMessage({ type: "error", text: "Erro ao atualizar usuário." });
+      console.error(e);
+    } finally {
+      setLoadingSeller(false);
     }
   };
 
-  const handleResetPassword = async (userId) => {
-    const newPass = prompt("Digite a nova senha (mín. 8 caracteres):");
-    if (!newPass || newPass.length < 8) return;
+  const handleSellerClick = (u) => {
+    setSelectedSeller(u);
+    fetchSellerChamados(u.id);
+  };
 
+  const handleUpdate = async (e) => {
+    e.preventDefault();
     try {
-      const token = localStorage.getItem("token");
-      const r = await fetch(`/api/users/${userId}/password`, {
-        method: "PATCH",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}` 
-        },
-        body: JSON.stringify({ new_password: newPass })
-      });
-      if (r.ok) alert("Senha alterada com sucesso!");
+      await api.updateUser(editingUser.id, editingUser);
+      setMessage({ type: "success", text: "Usuário atualizado!" });
+      setEditingUser(null);
+      fetchUsers();
     } catch (e) {
-      alert("Erro ao alterar senha.");
+      setMessage({ type: "error", text: "Erro ao atualizar." });
+    }
+  };
+
+  const handleDeleteChamado = async (id) => {
+    if(!window.confirm("Admin: Tem certeza que deseja excluir este chamado permanentemente?")) return;
+    try {
+      await api.deleteChamado(id);
+      fetchSellerChamados(selectedSeller.id);
+      setSelectedChamado(null);
+    } catch (e) {
+      alert("Erro ao excluir chamado.");
     }
   };
 
   return (
     <div style={{ padding: "40px 20px 40px 90px", minHeight: "100vh", background: M.bg, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      <header style={{ marginBottom: 30 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: M.tx }}>Gestão de Cadastros</h1>
-        <p style={{ color: M.txM }}>Administração de acesso e credenciais de colaboradores.</p>
-      </header>
-
-      {message && (
-        <div style={{ padding: 15, borderRadius: 8, background: message.type === "success" ? "#f0fdf4" : "#fef2f2", color: message.type === "success" ? M.ok : M.err, marginBottom: 20, border: `1px solid ${message.type === "success" ? "#bcf0da" : "#fecaca"}` }}>
-          {message.text}
-        </div>
+      {selectedChamado && (
+        <ChamadoDetail 
+          chamado={selectedChamado} 
+          onClose={() => setSelectedChamado(null)} 
+          onStatusChange={() => fetchSellerChamados(selectedSeller.id)}
+          onDelete={handleDeleteChamado}
+        />
       )}
 
+      <header style={{ marginBottom: 30 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: M.tx }}>Painel de Administração</h1>
+        <div style={{ display: "flex", gap: 20, marginTop: 20, borderBottom: `1px solid ${M.brdN}` }}>
+          <button onClick={() => setActiveTab("users")} style={{ paddingBottom: 10, border: "none", background: "none", borderBottom: activeTab === "users" ? `2px solid ${M.pri}` : "none", color: activeTab === "users" ? M.pri : M.txM, fontWeight: 700, cursor: "pointer" }}>Usuários</button>
+          <button onClick={() => setActiveTab("sellers")} style={{ paddingBottom: 10, border: "none", background: "none", borderBottom: activeTab === "sellers" ? `2px solid ${M.pri}` : "none", color: activeTab === "sellers" ? M.pri : M.txM, fontWeight: 700, cursor: "pointer" }}>Gestão por Vendedor</button>
+        </div>
+      </header>
+
+      {activeTab === "users" ? renderUsersTable() : renderSellersManagement()}
+
+      {editingUser && renderEditModal()}
+    </div>
+  );
+
+  function renderUsersTable() {
+    return (
       <div style={{ background: M.card, borderRadius: 14, border: `1px solid ${M.brdN}`, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#f8f9fa", textAlign: "left" }}>
-              {["Nome", "E-mail", "Função", "Status", "Ações"].map(h => (
-                <th key={h} style={{ padding: "16px", fontSize: 12, textTransform: "uppercase", letterSpacing: 1, color: M.txM }}>{h}</th>
+              {["Nome", "E-mail", "Função", "Ações"].map(h => (
+                <th key={h} style={{ padding: "16px", fontSize: 12, textTransform: "uppercase", color: M.txM }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -110,44 +125,87 @@ export default function AdminPage() {
                 <td style={{ padding: "16px", fontSize: 14, fontWeight: 600 }}>{u.name}</td>
                 <td style={{ padding: "16px", fontSize: 14, color: M.txM }}>{u.email}</td>
                 <td style={{ padding: "16px" }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 8px", borderRadius: 4, background: u.role === "admin" ? "#eef2ff" : "#f5f3f0", color: u.role === "admin" ? "#4f46e5" : M.txM }}>
-                    {u.role.toUpperCase()}
-                  </span>
-                </td>
-                <td style={{ padding: "16px" }}>
-                  <span style={{ color: u.active ? M.ok : M.err }}>{u.active ? "● Ativo" : "● Inativo"}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 8px", borderRadius: 4, background: "#f5f3f0", color: M.txM }}>{u.role.toUpperCase()}</span>
                 </td>
                 <td style={{ padding: "16px", display: "flex", gap: 10 }}>
-                  <button onClick={() => setEditingUser(u)} style={{ background: "none", border: "none", color: M.pri, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>Editar</button>
-                  <button onClick={() => handleResetPassword(u.id)} style={{ background: "none", border: "none", color: M.txM, cursor: "pointer", fontSize: 13 }}>Reset Senha</button>
+                  <button onClick={() => setEditingUser(u)} style={{ background: "none", border: "none", color: M.pri, fontWeight: 700, cursor: "pointer" }}>Editar</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+    );
+  }
 
-      {editingUser && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyCenter: "center", zIndex: 1100 }}>
-          <div style={{ background: "#fff", padding: 30, borderRadius: 14, width: 400 }}>
-            <h2 style={{ marginBottom: 20 }}>Editar Usuário</h2>
-            <form onSubmit={handleUpdate}>
-              <div style={{ marginBottom: 15 }}>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 5 }}>Nome</label>
-                <input style={{ width: "100%", padding: 10, border: `1px solid ${M.brdN}`, borderRadius: 8 }} value={editingUser.name} onChange={e => setEditingUser({...editingUser, name: e.target.value})} />
-              </div>
-              <div style={{ marginBottom: 15 }}>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 5 }}>E-mail</label>
-                <input style={{ width: "100%", padding: 10, border: `1px solid ${M.brdN}`, borderRadius: 8 }} value={editingUser.email} onChange={e => setEditingUser({...editingUser, email: e.target.value})} />
-              </div>
-              <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-                <button type="button" onClick={() => setEditingUser(null)} style={{ flex: 1, padding: 12, borderRadius: 8, border: `1px solid ${M.brdN}`, background: "#fff", cursor: "pointer" }}>Cancelar</button>
-                <button type="submit" style={{ flex: 1, padding: 12, borderRadius: 8, border: "none", background: M.pri, color: "#fff", fontWeight: 700, cursor: "pointer" }}>Salvar</button>
-              </div>
-            </form>
-          </div>
+  function renderSellersManagement() {
+    const sellers = users.filter(u => u.role === "vendedor");
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 20 }}>
+        <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${M.brdN}`, overflow: "hidden" }}>
+          <div style={{ padding: 15, background: "#f8f9fa", fontWeight: 700, borderBottom: `1px solid ${M.brdN}` }}>Vendedores</div>
+          {sellers.map(s => (
+            <div 
+              key={s.id} 
+              onClick={() => handleSellerClick(s)}
+              style={{ padding: 15, cursor: "pointer", borderBottom: `1px solid ${M.brdN}`, background: selectedSeller?.id === s.id ? M.soft : "none" }}
+            >
+              <div style={{ fontWeight: 600 }}>{s.name}</div>
+              <div style={{ fontSize: 11, color: M.txM }}>{s.email}</div>
+            </div>
+          ))}
         </div>
-      )}
-    </div>
-  );
+        
+        <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${M.brdN}`, padding: 20 }}>
+          {selectedSeller ? (
+            <>
+              <h3 style={{ marginTop: 0 }}>Chamados de: {selectedSeller.name}</h3>
+              {loadingSeller ? <p>Carregando...</p> : (
+                sellerChamados.length === 0 ? <p>Nenhum chamado para este vendedor.</p> : (
+                  sellerChamados.map(c => (
+                    <div key={c.id} style={{ padding: "12px 15px", borderBottom: `1px solid ${M.brdN}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontWeight: 700 }}>{c.razao_social}</div>
+                        <div style={{ fontSize: 12, color: M.txM }}>NF {c.nf_original} | #{c.id}</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 10 }}>
+                        <button onClick={() => setSelectedChamado(c)} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${M.pri}`, color: M.pri, background: "none", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>Ver/Gestão</button>
+                        <button onClick={() => handleDeleteChamado(c.id)} style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: M.err, color: "#fff", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>Excluir</button>
+                      </div>
+                    </div>
+                  ))
+                )
+              )}
+            </>
+          ) : (
+            <p style={{ textAlign: "center", color: M.txM, paddingTop: 100 }}>Selecione um vendedor à esquerda para gerenciar seus chamados.</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function renderEditModal() {
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100 }}>
+        <div style={{ background: "#fff", padding: 30, borderRadius: 14, width: 400 }}>
+          <h2 style={{ marginBottom: 20 }}>Editar Usuário</h2>
+          <form onSubmit={handleUpdate}>
+            <div style={{ marginBottom: 15 }}>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 5 }}>Nome</label>
+              <input style={{ width: "100%", padding: 10, border: `1px solid ${M.brdN}`, borderRadius: 8 }} value={editingUser.name} onChange={e => setEditingUser({...editingUser, name: e.target.value})} />
+            </div>
+            <div style={{ marginBottom: 15 }}>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 5 }}>E-mail</label>
+              <input style={{ width: "100%", padding: 10, border: `1px solid ${M.brdN}`, borderRadius: 8 }} value={editingUser.email} onChange={e => setEditingUser({...editingUser, email: e.target.value})} />
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              <button type="button" onClick={() => setEditingUser(null)} style={{ flex: 1, padding: 12, borderRadius: 8, border: `1px solid ${M.brdN}`, background: "#fff", cursor: "pointer" }}>Cancelar</button>
+              <button type="submit" style={{ flex: 1, padding: 12, borderRadius: 8, border: "none", background: M.pri, color: "#fff", fontWeight: 700, cursor: "pointer" }}>Salvar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 }

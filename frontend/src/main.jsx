@@ -53,8 +53,16 @@ createRoot(document.getElementById('root')).render(
           <Route
             path="/formulario"
             element={
-              <ProtectedRoute allowedRoles={['vendedor', 'admin']}>
+              <ProtectedRoute allowedRoles={['vendedor', 'pos_vendas', 'admin']}>
                 <VendedorPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/meus-chamados"
+            element={
+              <ProtectedRoute allowedRoles={['vendedor', 'admin']}>
+                <VendedorPage defaultTab="meus" />
               </ProtectedRoute>
             }
           />

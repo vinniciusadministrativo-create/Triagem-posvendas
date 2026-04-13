@@ -55,20 +55,25 @@ export const api = {
   deleteChamado: (id) => request(`/api/chamados/${id}`, { method: "DELETE" }),
   deleteMultipleChamados: (ids) => request("/api/chamados/batch-delete", { method: "POST", body: JSON.stringify({ ids }) }),
 
-  // Users (admin)
+  // Users
   getUsers: () => request("/api/users"),
+  getContacts: () => request("/api/users/contacts"),
   createUser: (data) => request("/api/users", { method: "POST", body: JSON.stringify(data) }),
   updateUser: (id, data) => request(`/api/users/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   changePassword: (id, current_password, new_password) =>
     request(`/api/users/${id}/password`, { method: "PATCH", body: JSON.stringify({ current_password, new_password }) }),
 
-  // AI
-  triageAI: (form, isTest) => 
+  // Triagem e Processamento (Antiga IA)
+  triage: (form, isTest) => 
     request("/api/ai/triage", { method: "POST", body: JSON.stringify({ form, isTest }) }),
-  extractNFAI: (fileB64, mime, isTest) => 
+  extractNF: (fileB64, mime, isTest) => 
     request("/api/ai/extract-nf", { method: "POST", body: JSON.stringify({ fileB64, mime, isTest }) }),
-  analyzeEvidenceAI: (images, isTest) => 
+  analyzeEvidence: (images, isTest) => 
     request("/api/ai/analyze-evidence", { method: "POST", body: JSON.stringify({ images, isTest }) }),
+
+  // Compartilhamento
+  shareChamado: (id, user_id) =>
+    request(`/api/chamados/${id}/share`, { method: "POST", body: JSON.stringify({ user_id }) }),
 
   fileUrl: (filename) => `${API_BASE}/uploads/${filename}`,
 };
