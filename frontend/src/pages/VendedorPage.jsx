@@ -235,9 +235,21 @@ export default function VendedorPage({ defaultTab = "novo" }) {
           <div style={{ fontWeight: 700 }}>{c.razao_social}</div>
           <div style={{ fontSize: 12, color: M.txM }}>NF {c.nf_original} | #{c.id}</div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {c.vendedor_id !== user.id && <span style={{ fontSize: 10, background: M.blueS, color: M.blue, padding: "2px 6px", borderRadius: 4 }}>Compartilhado</span>}
-          <div style={{ fontWeight: 700, color: M.pri }}>{c.status?.toUpperCase()}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {c.vendedor_id !== user.id && <span style={{ fontSize: 9, fontWeight: 800, background: M.blueS, color: M.blue, padding: "3px 8px", borderRadius: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Compartilhado</span>}
+          <span style={{ 
+            fontSize: 10, 
+            fontWeight: 800, 
+            color: M.pri, 
+            background: M.soft, 
+            padding: "4px 12px", 
+            borderRadius: 20, 
+            border: `1px solid ${M.brd}`,
+            letterSpacing: 0.8,
+            boxShadow: "0 2px 4px rgba(155,27,48,0.05)"
+          }}>
+            {c.status?.toUpperCase()}
+          </span>
         </div>
       </div>
     ));
