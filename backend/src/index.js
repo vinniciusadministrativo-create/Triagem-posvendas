@@ -1,15 +1,19 @@
+console.log("🎬 Iniciando servidor...");
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
 
+console.log("🛠️ Carregando middlewares...");
 const app = express();
 
 // Middleware
 app.use(cors({ origin: process.env.FRONTEND_URL || "*" }));
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+console.log("🛤️ Carregando rotas...");
 
 // Rate limiting
 app.use("/api/auth", rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { error: "Muitas tentativas. Aguarde 15 minutos." } }));
