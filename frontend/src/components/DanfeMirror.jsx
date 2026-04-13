@@ -16,21 +16,15 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
 
   const d = {
     ...nf,
-    razao_social_dest: nf.razao_social_dest || chamado?.razao_social || "",
-    cnpj_dest: nf.cnpj_dest || chamado?.cnpj || "",
-    telefone_dest: nf.telefone_dest || chamado?.telefone || "",
-    natureza_operacao: nf.natureza_operacao || "1202 - DEVOLUÇÃO DE VENDA DE MERCADORIA",
+    razao_social_dest: nf.razao_social_dest || nf.cliente || chamado?.razao_social || "N/A",
+    cnpj_dest: nf.cnpj_dest || nf.cnpj || chamado?.cnpj || "N/A",
+    endereco_dest: nf.endereco_dest || nf.endereco || "N/A",
+    natureza_operacao: nf.natureza_operacao || "DEVOLUÇÃO DE MERCADORIA",
     base_icms: nf.base_icms || "0,00",
     valor_icms: nf.valor_icms || "0,00",
-    base_icms_st: nf.base_icms_st || "0,00",
-    valor_icms_st: nf.valor_icms_st || "0,00",
-    valor_total_produtos: nf.valor_total_produtos || "0,00",
-    valor_total_nota: nf.valor_total_nota || "0,00",
-    valor_frete: nf.valor_frete || "0,00",
-    valor_seguro: nf.valor_seguro || "0,00",
-    valor_ipi: nf.valor_ipi || "0,00",
-    outras_despesas: nf.outras_despesas || "0,00",
-    desconto: nf.desconto || "0,00",
+    valor_total_produtos: nf.valor_total_produtos || nf.total_produtos || "0,00",
+    valor_total_nota: nf.valor_total_nota || nf.total_nota || nf.valor_total || "0,00",
+    produtos: Array.isArray(nf.produtos) ? nf.produtos : []
   };
 
   const handlePrint = () => {
