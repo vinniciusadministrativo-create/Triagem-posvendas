@@ -181,7 +181,7 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
           </div>
 
           <div style={sectionTitle}>Dados Adicionais</div>
-          <div style={{ display: "grid", gridTemplateColumns: "2.fr 1fr", border: "1px solid #000", minHeight: "60px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", border: "1px solid #000", minHeight: "60px" }}>
             <div style={{ padding: "4px", fontSize: "7px", borderRight: "1px solid #000" }}>
               <div style={labelStyle}>Informações Complementares</div>
               <div style={{ fontSize: "7px", lineHeight: "1.3" }}>
