@@ -109,15 +109,6 @@ export default function Sidebar({ user, onLogout, onSwitchUser }) {
 
         <div style={{ padding: "20px 0", borderTop: `1px solid ${M.brdN}` }}>
           <button 
-            onClick={onSwitchUser}
-            className="nav-item"
-            style={{ width: "calc(100% - 15px)", padding: "12px 22px", textAlign: "left", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "#374151" }}
-          >
-            <span style={{ fontSize: 18, minWidth: 30 }}>🔄</span>
-            {isOpen && <span style={{ marginLeft: 12, fontSize: 13, fontWeight: 600 }}>Trocar Usuário</span>}
-          </button>
-          
-          <button 
             onClick={onLogout}
             className="nav-item"
             style={{ width: "calc(100% - 15px)", padding: "12px 22px", textAlign: "left", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "#dc2626" }}
