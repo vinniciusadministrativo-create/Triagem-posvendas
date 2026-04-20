@@ -139,17 +139,17 @@ export default function PosVendasPage(){
                     onClick={() => setSelected(c)}
                     style={{ background: M.card, padding: 15, borderRadius: 10, border: `1px solid ${M.brdN}`, cursor: "grab", boxShadow: "0 4px 10px rgba(0,0,0,0.02)" }}
                   >
-                    <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 5 }}>{c.razao_social}</div>
-                    <div style={{ fontSize: 11, color: M.txM, marginBottom: 10 }}>NF {c.nf_original} | #{c.id}</div>
-                    <div style={{ fontSize: 12, color: M.txM, marginBottom: 15, display: "flex", gap: 8, alignItems: "center" }}>
-                       <span style={{background: "#f1f3f5", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontWeight: 700}}>Vendedor</span>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: M.tx, marginBottom: 5, letterSpacing: "-0.01em" }}>{c.razao_social}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: M.tx, marginBottom: 10 }}>NF {c.nf_original} <span style={{color: M.txM, fontWeight: 500}}>| #{c.id}</span></div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: M.tx, marginBottom: 15, display: "flex", gap: 8, alignItems: "center" }}>
+                       <span style={{background: "#f1f3f5", padding: "3px 6px", borderRadius: 4, fontSize: 10, fontWeight: 800, color: M.txM, textTransform: "uppercase"}}>Vendedor</span>
                        {c.vendedor_nome || c.nome_vendedor}
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                        <span style={{ fontSize: 10, color: M.txD }}>{new Date(c.created_at).toLocaleDateString()}</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: M.txM }}>{new Date(c.created_at).toLocaleDateString()}</span>
                         {c.mensagens_count > 0 && (
-                          <span title="Mensagens Ativas" style={{ fontSize: 10, fontWeight: 800, background: M.blueS, color: M.blue, padding: "2px 6px", borderRadius: 10 }}>
+                          <span title="Mensagens Ativas" style={{ fontSize: 11, fontWeight: 800, background: M.blueS, color: M.blue, padding: "2px 8px", borderRadius: 10 }}>
                             💬 {c.mensagens_count}
                           </span>
                         )}
