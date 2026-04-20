@@ -61,7 +61,7 @@ export default function PosVendasPage(){
   const load=useCallback(async(p=1)=>{
     setLoading(true);
     try{
-      const res=await api.getChamados({page:p,limit:200});
+      const res=await api.getChamados({page:p,limit:200, exclude_old_encerrados: true});
       setChamados(res.chamados||[]);setTotal(res.total||0);
     }catch(e){console.error(e);}
     finally{setLoading(false);}
@@ -97,10 +97,14 @@ export default function PosVendasPage(){
           return (
             <div 
               key={column.id} 
+              className="kanban-col"
               style={{ minWidth: 320, maxWidth: 320, background: "#f8f9fa", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", border: `1px solid ${M.brdN}` }}
               onDragOver={e => e.preventDefault()}
+              onDragEnter={e => e.currentTarget.classList.add("drag-over")}
+              onDragLeave={e => e.currentTarget.classList.remove("drag-over")}
               onDrop={async e => {
                 e.preventDefault();
+                e.currentTarget.classList.remove("drag-over");
                 const id = e.dataTransfer.getData("chamadoId");
                 if(!id) return;
                 const ch = chamados.find(c => c.id == id);
@@ -123,11 +127,17 @@ export default function PosVendasPage(){
                 {colChamados.map(c => (
                   <div 
                     key={c.id} 
+                    className="kanban-card"
                     draggable 
-                    onDragStart={e => e.dataTransfer.setData("chamadoId", c.id)}
+                    onDragStart={e => {
+                      e.dataTransfer.setData("chamadoId", c.id);
+                      e.currentTarget.classList.add("dragging");
+                    }}
+                    onDragEnd={e => {
+                      e.currentTarget.classList.remove("dragging");
+                    }}
                     onClick={() => setSelected(c)}
                     style={{ background: M.card, padding: 15, borderRadius: 10, border: `1px solid ${M.brdN}`, cursor: "grab", boxShadow: "0 4px 10px rgba(0,0,0,0.02)" }}
-                    onDragEnd={e => e.target.style.opacity = 1}
                   >
                     <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 5 }}>{c.razao_social}</div>
                     <div style={{ fontSize: 11, color: M.txM, marginBottom: 10 }}>NF {c.nf_original} | #{c.id}</div>
@@ -136,7 +146,14 @@ export default function PosVendasPage(){
                        {c.vendedor_nome || c.nome_vendedor}
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 10, color: M.txD }}>{new Date(c.created_at).toLocaleDateString()}</span>
+                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        <span style={{ fontSize: 10, color: M.txD }}>{new Date(c.created_at).toLocaleDateString()}</span>
+                        {c.mensagens_count > 0 && (
+                          <span title="Mensagens Ativas" style={{ fontSize: 10, fontWeight: 800, background: M.blueS, color: M.blue, padding: "2px 6px", borderRadius: 10 }}>
+                            💬 {c.mensagens_count}
+                          </span>
+                        )}
+                      </div>
                       <span style={{ fontSize: 10, background: M.soft, color: M.pri, padding: "4px 8px", borderRadius: 6, fontWeight: 700 }}>Ver Detalhes</span>
                     </div>
                   </div>

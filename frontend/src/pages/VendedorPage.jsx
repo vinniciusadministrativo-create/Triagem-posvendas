@@ -237,8 +237,9 @@ export default function VendedorPage({ defaultTab = "novo" }) {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {c.vendedor_id !== user.id && <span style={{ fontSize: 9, fontWeight: 800, background: M.blueS, color: M.blue, padding: "3px 8px", borderRadius: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Compartilhado</span>}
+          {c.mensagens_count > 0 && <span title="Mensagens do Chat" style={{ fontSize: 11, fontWeight: 800, background: M.blueS, color: M.blue, padding: "3px 8px", borderRadius: 10 }}>💬 {c.mensagens_count}</span>}
           <span style={{ 
-            fontSize: 10, 
+            fontSize: 10,  
             fontWeight: 800, 
             color: M.pri, 
             background: M.soft, 

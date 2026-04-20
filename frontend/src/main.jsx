@@ -5,7 +5,7 @@ import './index.css'
 import LoginPage from './pages/LoginPage.jsx'
 import VendedorPage from './pages/VendedorPage.jsx'
 import PosVendasPage from './pages/PosVendasPage.jsx'
-
+import HistoricoPage from './pages/HistoricoPage.jsx'
 import Layout from './Layout.jsx'
 import AdminPage from './pages/AdminPage.jsx'
 
@@ -71,6 +71,14 @@ createRoot(document.getElementById('root')).render(
             element={
               <ProtectedRoute allowedRoles={['pos_vendas', 'admin']}>
                 <PosVendasPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/historico"
+            element={
+              <ProtectedRoute allowedRoles={['pos_vendas', 'admin']}>
+                <HistoricoPage />
               </ProtectedRoute>
             }
           />

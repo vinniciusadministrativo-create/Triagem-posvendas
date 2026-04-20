@@ -30,14 +30,21 @@ const upload = multer({
 // GET /api/chamados/meus — usuário vê seus próprios e os compartilhados
 router.get("/meus", authMiddleware(["vendedor", "pos_vendas", "admin"]), async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
+    const { page = 1, limit = 20, exclude_old_encerrados } = req.query;
     const offset = (page - 1) * limit;
+
+    let whereClause = `(c.vendedor_id = $1 OR s.user_id = $1)`;
+    if (exclude_old_encerrados === "true") {
+       whereClause += ` AND NOT (c.status = 'encerrado' AND c.updated_at < NOW() - INTERVAL '3 days')`;
+    }
+
     const { rows } = await pool.query(
-      `SELECT c.*, u.name as vendedor_nome
+      `SELECT c.*, u.name as vendedor_nome,
+       (SELECT COUNT(id) FROM chamado_mensagens m WHERE m.chamado_id = c.id) as mensagens_count
        FROM chamados c
        LEFT JOIN users u ON c.vendedor_id = u.id
        LEFT JOIN chamado_shares s ON c.id = s.chamado_id
-       WHERE c.vendedor_id = $1 OR s.user_id = $1
+       WHERE ${whereClause}
        GROUP BY c.id, u.name
        ORDER BY c.created_at DESC
        LIMIT $2 OFFSET $3`,
@@ -47,7 +54,7 @@ router.get("/meus", authMiddleware(["vendedor", "pos_vendas", "admin"]), async (
       `SELECT COUNT(DISTINCT c.id) 
        FROM chamados c 
        LEFT JOIN chamado_shares s ON c.id = s.chamado_id 
-       WHERE c.vendedor_id = $1 OR s.user_id = $1`,
+       WHERE ${whereClause}`,
       [req.user.id]
     );
     res.json({ chamados: rows, total: parseInt(countRes.rows[0].count) });
@@ -153,7 +160,7 @@ router.post("/:id/share", authMiddleware(["vendedor", "pos_vendas", "admin"]), a
 // GET /api/chamados — pos_vendas/admin lista com filtros
 router.get("/", authMiddleware(["pos_vendas", "admin"]), async (req, res) => {
   try {
-    const { status, tipo, vendedor_id, from, to, page = 1, limit = 20 } = req.query;
+    const { status, tipo, vendedor_id, from, to, page = 1, limit = 20, exclude_old_encerrados } = req.query;
     const offset = (page - 1) * limit;
     const conditions = [];
     const params = [];
@@ -163,12 +170,16 @@ router.get("/", authMiddleware(["pos_vendas", "admin"]), async (req, res) => {
     if (vendedor_id) { params.push(vendedor_id); conditions.push(`c.vendedor_id = $${params.length}`); }
     if (from) { params.push(from); conditions.push(`c.created_at >= $${params.length}`); }
     if (to) { params.push(to); conditions.push(`c.created_at <= $${params.length}`); }
+    if (exclude_old_encerrados === "true") {
+      conditions.push(`NOT (c.status = 'encerrado' AND c.updated_at < NOW() - INTERVAL '3 days')`);
+    }
 
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     params.push(limit, offset);
 
     const { rows } = await pool.query(
-      `SELECT c.*, u.name as vendedor_nome
+      `SELECT c.*, u.name as vendedor_nome,
+       (SELECT COUNT(id) FROM chamado_mensagens m WHERE m.chamado_id = c.id) as mensagens_count
        FROM chamados c
        LEFT JOIN users u ON c.vendedor_id = u.id
        ${where}

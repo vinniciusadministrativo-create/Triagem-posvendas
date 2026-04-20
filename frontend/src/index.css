@@ -119,3 +119,47 @@ h1, h2, h3 {
 main, .card, .v-container {
   animation: fadeIn 0.4s ease-out forwards;
 }
+
+/* KANBAN E CHAT - FLUIDEZ E ANIMAÇÕES */
+.kanban-col {
+  transition: all 0.3s ease;
+}
+.kanban-col.drag-over {
+  background-color: #f1f5f9 !important;
+  border-style: dashed !important;
+  border-color: var(--pri) !important;
+}
+
+.kanban-card {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  will-change: transform;
+}
+.kanban-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 24px -6px rgba(0,0,0,0.1), 0 4px 8px -4px rgba(0,0,0,0.06) !important;
+  border-color: #cdd5df !important;
+  z-index: 10;
+}
+.kanban-card:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+}
+.kanban-card.dragging {
+  opacity: 0.6;
+  transform: scale(1.05) rotate(2deg);
+  box-shadow: 0 25px 30px -5px rgba(0,0,0,0.15) !important;
+  z-index: 999;
+}
+
+.chat-bubble {
+  animation: messagePop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transform-origin: bottom right;
+}
+.chat-bubble.left {
+  transform-origin: bottom left;
+}
+
+@keyframes messagePop {
+  0% { opacity: 0; transform: translateY(15px) scale(0.9); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}

@@ -283,15 +283,17 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
                     <div style={{ fontSize: 9, color: M.txM, marginBottom: 2, textAlign: isMe ? "right" : "left", fontWeight: 700 }}>
                       {m.user_name} <span style={{ fontWeight: 400 }}>({m.user_role})</span>
                     </div>
-                    <div style={{
+                    <div 
+                      className={`chat-bubble ${isMe ? "" : "left"}`}
+                      style={{
                       background: isMe ? M.pri : "#fff",
                       color: isMe ? "#fff" : M.tx,
-                      padding: "8px 12px",
-                      borderRadius: 12,
+                      padding: "10px 14px",
+                      borderRadius: 14,
                       border: isMe ? "none" : `1px solid ${M.brdN}`,
                       fontSize: 13,
-                      lineHeight: 1.4,
-                      boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
+                      lineHeight: 1.5,
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.04)"
                     }}>
                       {m.mensagem && <div>{renderMessageText(m.mensagem)}</div>}
                       {m.anexo && (
