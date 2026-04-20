@@ -34,7 +34,7 @@ const TIPOS = [
   { id: "recusa_entrega", label: "Recusa na Entrega" },
 ];
 
-function VInput({ label, value, onChange, placeholder, maxLength, type = "text", pattern, required = true, error }) {
+function VInput({ label, value, onChange, placeholder, maxLength, type = "text", pattern, required = true, error, readOnly = false }) {
   const [touched, setTouched] = useState(false);
   const showErr = touched && error;
   return (
@@ -43,9 +43,9 @@ function VInput({ label, value, onChange, placeholder, maxLength, type = "text",
         {label}<span style={{ color: M.pri, fontSize: 8 }}>*</span>
         {maxLength && <span style={{ fontWeight: 400, fontSize: 9, color: M.txD, marginLeft: "auto" }}>{value.length}/{maxLength}</span>}
       </label>
-      <input type={type} value={value} placeholder={placeholder} maxLength={maxLength} required={required}
-        style={{ width: "100%", padding: "10px 12px", border: `1px solid ${showErr ? M.err : M.brdN}`, borderRadius: 8, fontSize: 13, background: showErr ? M.errS : "#fff", color: M.tx, outline: "none", transition: "all 0.2s", boxSizing: "border-box" }}
-        onFocus={e => { e.target.style.borderColor = M.pri; e.target.style.boxShadow = `0 0 0 3px ${M.soft}`; }}
+      <input type={type} value={value} placeholder={placeholder} maxLength={maxLength} required={required} readOnly={readOnly}
+        style={{ width: "100%", padding: "10px 12px", border: `1px solid ${showErr ? M.err : M.brdN}`, borderRadius: 8, fontSize: 13, background: readOnly ? M.alt : (showErr ? M.errS : "#fff"), color: readOnly ? M.txM : M.tx, outline: "none", transition: "all 0.2s", boxSizing: "border-box", cursor: readOnly ? "not-allowed" : "text" }}
+        onFocus={e => { if (!readOnly) { e.target.style.borderColor = M.pri; e.target.style.boxShadow = `0 0 0 3px ${M.soft}`; } }}
         onBlur={e => { setTouched(true); e.target.style.borderColor = showErr ? M.err : M.brdN; e.target.style.boxShadow = "none"; }}
         onChange={e => { let v = e.target.value; if (pattern === "numeric") v = v.replace(/\D/g, ""); onChange(v); }}
       />
@@ -57,7 +57,7 @@ function VInput({ label, value, onChange, placeholder, maxLength, type = "text",
 export default function VendedorPage({ defaultTab = "novo" }) {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState({ codigo: "", razaoSocial: "", cnpj: "", responsavel: "", nomeVendedor: user.name || "", telefone: "", emailVendedor: user.email || "", tipoSolicitacao: "", descricao: "", nfOriginal: "" });
+  const [form, setForm] = useState({ codigo: "", razaoSocial: "", cnpj: "", responsavel: "", nomeVendedor: user.name || "", telefone: "+55 ( )", emailVendedor: user.email || "", tipoSolicitacao: "", descricao: "", nfOriginal: "" });
   const [nfFile, setNfFile] = useState(null); const [nfB64, setNfB64] = useState(null); const [nfMime, setNfMime] = useState(null);
   const [evidenceFiles, setEvidenceFiles] = useState([]);
   const [nfData, setNfData] = useState(null); const [evidenceResult, setEvidenceResult] = useState(null);
@@ -268,11 +268,29 @@ export default function VendedorPage({ defaultTab = "novo" }) {
             {evidenceFiles.length ? <p>📸 {evidenceFiles.length} fotos anexadas</p> : <p>📸 Fotos de Evidência</p>}
           </div>
         </div>
-        <VInput label="Código" value={form.codigo} onChange={v => upd("codigo", v)} />
-        <VInput label="Nome do Vendedor" value={form.nomeVendedor} onChange={v => upd("nomeVendedor", v)} />
-        <VInput label="CNPJ" value={form.cnpj} onChange={v => upd("cnpj", v)} />
-        <div style={{ gridColumn: "1/-1" }}><VInput label="Razão Social" value={form.razaoSocial} onChange={v => upd("razaoSocial", v)} /></div>
+        <VInput label="Código do Cliente" placeholder="Ex: 12345" value={form.codigo} onChange={v => upd("codigo", v)} />
+        <VInput 
+          label="Nome do Vendedor / Responsável" 
+          value={form.nomeVendedor} 
+          onChange={v => upd("nomeVendedor", v)} 
+          readOnly={user.role !== "vendedor"}
+        />
+        <VInput 
+          label="Telefone de Contato" 
+          placeholder="+55 ( )"
+          value={form.telefone} 
+          onChange={v => upd("telefone", v)} 
+        />
+        <VInput 
+          label="E-mail para Retorno" 
+          type="email"
+          value={form.emailVendedor} 
+          onChange={v => upd("emailVendedor", v)} 
+          readOnly={user.role !== "vendedor"}
+        />
+        <VInput label="CNPJ / CPF do Cliente" value={form.cnpj} onChange={v => upd("cnpj", v)} />
         <VInput label="NF Original" value={form.nfOriginal} onChange={v => upd("nfOriginal", v)} />
+        <div style={{ gridColumn: "1/-1" }}><VInput label="Razão Social" value={form.razaoSocial} onChange={v => upd("razaoSocial", v)} /></div>
         <div>
           <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 5 }}>Tipo</label>
           <select value={form.tipoSolicitacao} onChange={e => upd("tipoSolicitacao", e.target.value)} style={{ width: "100%", padding: 10, borderRadius: 8, border: `1px solid ${M.brdN}` }}>

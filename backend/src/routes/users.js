@@ -9,7 +9,7 @@ const router = express.Router();
 router.get("/", authMiddleware(["admin"]), async (req, res) => {
   try {
     const { rows } = await pool.query(
-      "SELECT id, name, email, role, active, created_at FROM users ORDER BY role, name"
+      "SELECT id, name, email, telefone, role, active, created_at FROM users ORDER BY role, name"
     );
     res.json({ users: rows });
   } catch (e) {
@@ -31,7 +31,7 @@ router.get("/contacts", authMiddleware(), async (req, res) => {
 
 // POST /api/users — create user (admin only)
 router.post("/", authMiddleware(["admin"]), async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role, telefone } = req.body;
   if (!name || !email || !password || !role)
     return res.status(400).json({ error: "Todos os campos são obrigatórios" });
   if (!["vendedor", "pos_vendas", "admin"].includes(role))
@@ -40,10 +40,10 @@ router.post("/", authMiddleware(["admin"]), async (req, res) => {
   try {
     const hash = await bcrypt.hash(password, 12);
     const { rows } = await pool.query(
-      `INSERT INTO users (name, email, password_hash, role)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, name, email, role, active, created_at`,
-      [name, email.toLowerCase().trim(), hash, role]
+      `INSERT INTO users (name, email, password_hash, role, telefone)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, name, email, telefone, role, active, created_at`,
+      [name, email.toLowerCase().trim(), hash, role, telefone || null]
     );
     res.status(201).json({ user: rows[0] });
   } catch (e) {
@@ -54,20 +54,26 @@ router.post("/", authMiddleware(["admin"]), async (req, res) => {
 
 // PATCH /api/users/:id — toggle active (admin only)
 router.patch("/:id", authMiddleware(["admin"]), async (req, res) => {
-  const { active, name, role } = req.body;
+  const { active, name, role, telefone, password } = req.body;
   try {
     const updates = [];
     const params = [];
     if (active !== undefined) { params.push(active); updates.push(`active = $${params.length}`); }
     if (name) { params.push(name); updates.push(`name = $${params.length}`); }
     if (role) { params.push(role); updates.push(`role = $${params.length}`); }
+    if (telefone !== undefined) { params.push(telefone); updates.push(`telefone = $${params.length}`); }
     if (req.body.email) { params.push(req.body.email.toLowerCase().trim()); updates.push(`email = $${params.length}`); }
+    if (password) {
+      const hash = await bcrypt.hash(password, 12);
+      params.push(hash);
+      updates.push(`password_hash = $${params.length}`);
+    }
     if (!updates.length) return res.status(400).json({ error: "Nenhum campo para atualizar" });
 
     params.push(req.params.id);
     const { rows } = await pool.query(
       `UPDATE users SET ${updates.join(", ")} WHERE id = $${params.length}
-       RETURNING id, name, email, role, active`,
+       RETURNING id, name, email, telefone, role, active`,
       params
     );
     if (!rows[0]) return res.status(404).json({ error: "Usuário não encontrado" });

@@ -45,6 +45,7 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const [newStatus, setNewStatus] = useState(chamado.status || "novo");
   const [localRessalva, setLocalRessalva] = useState(chamado.ressalva_vendedor || "");
+  const [ressalvaFiles, setRessalvaFiles] = useState([]);
   const [saving, setSaving] = useState(false);
   const [savingRessalva, setSavingRessalva] = useState(false);
 
@@ -72,8 +73,13 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
   const handleSaveRessalva = async () => {
     setSavingRessalva(true);
     try {
-      await api.updateRessalva(chamado.id, localRessalva);
+      const fd = new FormData();
+      fd.append("ressalva_vendedor", localRessalva);
+      ressalvaFiles.forEach((file) => fd.append("ressalva_arquivos", file));
+      
+      await api.updateRessalva(chamado.id, fd);
       alert("Observação enviada com sucesso!");
+      setRessalvaFiles([]);
     } catch (e) {
       alert(e.message);
     } finally {
@@ -116,20 +122,55 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
                 value={localRessalva} 
                 onChange={e => setLocalRessalva(e.target.value)}
                 placeholder="Adicione informações extras aqui..."
-                style={{ width: "100%", padding: 12, borderRadius: 10, border: `1px solid ${M.brdN}`, minHeight: 80, fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
+                style={{ width: "100%", padding: 12, borderRadius: 10, border: `1px solid ${M.brdN}`, minHeight: 80, fontSize: 13, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 10 }}
               />
+              <div style={{ marginBottom: 10 }}>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: M.blue, marginBottom: 5 }}>ANEXAR ARQUIVOS (Até 3)</label>
+                <input 
+                  type="file" 
+                  multiple 
+                  accept="image/*,application/pdf,video/*"
+                  onChange={e => setRessalvaFiles(Array.from(e.target.files).slice(0, 3))}
+                  style={{ fontSize: 12 }}
+                />
+                {ressalvaFiles.length > 0 && <div style={{ fontSize: 11, color: M.txM, marginTop: 4 }}>{ressalvaFiles.length} arquivo(s) selecionado(s)</div>}
+              </div>
               <button 
                 onClick={handleSaveRessalva} 
                 disabled={savingRessalva}
-                style={{ marginTop: 12, padding: "8px 16px", background: M.blue, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                style={{ padding: "8px 16px", background: M.blue, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
               >
                 {savingRessalva ? "Salvando..." : "Salvar Observação"}
               </button>
+              {chamado.ressalva_arquivos && chamado.ressalva_arquivos.length > 0 && (
+                <div style={{ marginTop: 15, paddingTop: 15, borderTop: `1px solid ${M.brdN}` }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: M.txM }}>ARQUIVOS ANEXADOS:</span>
+                  <div style={{ display: "flex", gap: 10, marginTop: 5, flexWrap: "wrap" }}>
+                    {chamado.ressalva_arquivos.map((file, i) => (
+                      <a key={i} href={api.fileUrl(file)} target="_blank" rel="noreferrer" style={{ fontSize: 10, display: "inline-block", padding: "4px 8px", background: "#fff", border: `1px solid ${M.brdN}`, borderRadius: 4, textDecoration: "none", color: M.blue }}>
+                        📄 {file.slice(0, 15)}...
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          ) : chamado.ressalva_vendedor ? (
+          ) : (chamado.ressalva_vendedor || (chamado.ressalva_arquivos && chamado.ressalva_arquivos.length > 0)) ? (
             <div style={{ marginBottom: 20, padding: 20, background: M.blueS, borderRadius: 12, border: `1px solid ${M.blueB}` }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: M.blue, textTransform: "uppercase", marginBottom: 8 }}>💬 Ressalva do Vendedor</div>
-              <div style={{ fontSize: 13, lineHeight: 1.6, color: M.tx }}>{chamado.ressalva_vendedor}</div>
+              {chamado.ressalva_vendedor && <div style={{ fontSize: 13, lineHeight: 1.6, color: M.tx, marginBottom: 10 }}>{chamado.ressalva_vendedor}</div>}
+              {chamado.ressalva_arquivos && chamado.ressalva_arquivos.length > 0 && (
+                <div>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: M.txM }}>ARQUIVOS ANEXADOS:</span>
+                  <div style={{ display: "flex", gap: 10, marginTop: 5, flexWrap: "wrap" }}>
+                    {chamado.ressalva_arquivos.map((file, i) => (
+                      <a key={i} href={api.fileUrl(file)} target="_blank" rel="noreferrer" style={{ fontSize: 10, display: "inline-block", padding: "4px 8px", background: "#fff", border: `1px solid ${M.brdN}`, borderRadius: 4, textDecoration: "none", color: M.blue }}>
+                        📄 {file.slice(0, 15)}...
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : null}
 

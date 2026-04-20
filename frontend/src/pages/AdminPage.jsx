@@ -24,7 +24,7 @@ export default function AdminPage() {
   const [loadingSeller, setLoadingSeller] = useState(false);
   const [selectedChamado, setSelectedChamado] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "vendedor" });
+  const [newUser, setNewUser] = useState({ name: "", email: "", telefone: "", password: "", role: "vendedor" });
 
   useEffect(() => {
     fetchUsers();
@@ -147,6 +147,10 @@ export default function AdminPage() {
               <input style={{ width: "100%", padding: 10, border: `1px solid ${M.brdN}`, borderRadius: 8 }} value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} required />
             </div>
             <div style={{ marginBottom: 15 }}>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 5 }}>Telefone</label>
+              <input style={{ width: "100%", padding: 10, border: `1px solid ${M.brdN}`, borderRadius: 8 }} value={newUser.telefone} onChange={e => setNewUser({...newUser, telefone: e.target.value})} />
+            </div>
+            <div style={{ marginBottom: 15 }}>
               <label style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 5 }}>Senha Provisória</label>
               <input type="password" style={{ width: "100%", padding: 10, border: `1px solid ${M.brdN}`, borderRadius: 8 }} value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} required />
             </div>
@@ -258,6 +262,14 @@ export default function AdminPage() {
             <div style={{ marginBottom: 15 }}>
               <label style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 5 }}>E-mail</label>
               <input style={{ width: "100%", padding: 10, border: `1px solid ${M.brdN}`, borderRadius: 8 }} value={editingUser.email} onChange={e => setEditingUser({...editingUser, email: e.target.value})} />
+            </div>
+            <div style={{ marginBottom: 15 }}>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 5 }}>Telefone</label>
+              <input style={{ width: "100%", padding: 10, border: `1px solid ${M.brdN}`, borderRadius: 8 }} value={editingUser.telefone || ""} onChange={e => setEditingUser({...editingUser, telefone: e.target.value})} />
+            </div>
+            <div style={{ marginBottom: 15 }}>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 5 }}>Nova Senha (deixe em branco para não alterar)</label>
+              <input type="password" style={{ width: "100%", padding: 10, border: `1px solid ${M.brdN}`, borderRadius: 8 }} value={editingUser.password || ""} onChange={e => setEditingUser({...editingUser, password: e.target.value})} />
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <button type="button" onClick={() => setEditingUser(null)} style={{ flex: 1, padding: 12, borderRadius: 8, border: `1px solid ${M.brdN}`, background: "#fff", cursor: "pointer" }}>Cancelar</button>

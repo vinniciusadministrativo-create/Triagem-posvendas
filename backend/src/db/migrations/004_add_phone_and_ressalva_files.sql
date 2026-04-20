@@ -1,0 +1,2 @@
+ALTER TABLE users ADD COLUMN IF NOT EXISTS telefone VARCHAR(20);
+ALTER TABLE chamados ADD COLUMN IF NOT EXISTS ressalva_arquivos TEXT[];

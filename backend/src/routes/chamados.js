@@ -221,9 +221,13 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin"]), async (req,
 });
 
 // PATCH /api/chamados/:id/ressalva — vendedor ou admin atualiza observação
-router.patch("/:id/ressalva", authMiddleware(), async (req, res) => {
+router.patch("/:id/ressalva", authMiddleware(), upload.array("ressalva_arquivos", 3), async (req, res) => {
   try {
     const { ressalva_vendedor } = req.body;
+    let newFiles = [];
+    if (req.files && req.files.length > 0) {
+      newFiles = req.files.map(f => f.filename);
+    }
     
     // Verifica proprietário
     const { rows: check } = await pool.query("SELECT vendedor_id FROM chamados WHERE id = $1", [req.params.id]);
@@ -233,11 +237,15 @@ router.patch("/:id/ressalva", authMiddleware(), async (req, res) => {
       return res.status(403).json({ error: "Acesso negado" });
     }
 
-    const { rows } = await pool.query(
-      `UPDATE chamados SET ressalva_vendedor = $1, updated_at = NOW()
-       WHERE id = $2 RETURNING *`,
-      [ressalva_vendedor, req.params.id]
-    );
+    let query = `UPDATE chamados SET ressalva_vendedor = $1, updated_at = NOW() WHERE id = $2 RETURNING *`;
+    let qParams = [ressalva_vendedor, req.params.id];
+
+    if (newFiles.length > 0) {
+      query = `UPDATE chamados SET ressalva_vendedor = $1, ressalva_arquivos = array_cat(COALESCE(ressalva_arquivos, '{}'), $3), updated_at = NOW() WHERE id = $2 RETURNING *`;
+      qParams.push(newFiles);
+    }
+
+    const { rows } = await pool.query(query, qParams);
     res.json({ chamado: rows[0] });
   } catch (e) {
     console.error(e);
