@@ -301,17 +301,43 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
 
       <style>{`
         @media print {
-          @page { size: portrait; margin: 0mm; }
+          @page { size: A4 portrait; margin: 0; }
+          
+          /* Hide all text/elements by default but keep their physical flow to not break DOM */
           body * { visibility: hidden !important; }
-          #danfe-print, #danfe-print * { visibility: visible !important; }
-          #danfe-print { 
-            position: absolute !important; top: 0 !important; left: 0 !important; width: 210mm !important; 
-            min-height: 297mm !important; margin: 0 !important; padding: 10mm !important; z-index: 1000000 !important;
-            background: #fff !important; -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important; box-sizing: border-box !important;
+          
+          /* Force all containers above danfe-print to be block and 100% wide to prevent flex-box squishing */
+          body, html, #root, .modal-wrapper, .modal-content, .split-view, .split-left, .danfe-container, div[style*="position: fixed"] {
+             display: block !important;
+             position: static !important;
+             width: 100% !important;
+             max-width: 100% !important;
+             height: auto !important;
+             max-height: none !important;
+             margin: 0 !important;
+             padding: 0 !important;
+             overflow: visible !important;
+             transform: none !important;
+             border: none !important;
+             box-shadow: none !important;
           }
-          html, body, #root, .danfe-container, [style*="position: fixed"] {
-            overflow: visible !important; height: auto !important; max-height: none !important; position: static !important;
+
+          /* Make ONLY the danfe visible and position it perfectly */
+          #danfe-print, #danfe-print * { 
+            visibility: visible !important; 
+          }
+          #danfe-print { 
+            position: absolute !important; 
+            top: 0 !important; 
+            left: 0 !important; 
+            width: 210mm !important; 
+            min-height: 297mm !important; 
+            margin: 0 !important; 
+            padding: 10mm !important; 
+            background: #fff !important; 
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            box-sizing: border-box !important;
           }
           .no-print { display: none !important; }
         }
