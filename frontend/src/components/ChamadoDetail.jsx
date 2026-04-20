@@ -53,9 +53,23 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
   const [saving, setSaving] = useState(false);
   const [savingRessalva, setSavingRessalva] = useState(false);
 
+  // MENTIONS
+  const [contacts, setContacts] = useState([]);
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionFilter, setMentionFilter] = useState("");
+  const inputRef = useRef(null);
+
   useEffect(() => {
     loadMessages();
+    loadContacts();
   }, [chamado.id]);
+
+  const loadContacts = async () => {
+    try {
+      const res = await api.getContacts();
+      setContacts(res.contacts || []);
+    } catch(e) {}
+  };
 
   const loadMessages = async () => {
     try {
@@ -84,6 +98,38 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setNewMessage(val);
+    
+    const cursor = e.target.selectionStart;
+    const textBeforeCursor = val.slice(0, cursor);
+    const words = textBeforeCursor.split(/\s/);
+    const lastWord = words[words.length - 1];
+
+    if (lastWord.startsWith("@")) {
+      setMentionFilter(lastWord.slice(1).toLowerCase());
+      setShowMentions(true);
+    } else {
+      setShowMentions(false);
+    }
+  };
+
+  const insertMention = (userName) => {
+    const cursor = inputRef.current.selectionStart || newMessage.length;
+    const textBeforeCursor = newMessage.slice(0, cursor);
+    const textAfterCursor = newMessage.slice(cursor);
+    
+    const words = textBeforeCursor.split(/\s/);
+    words.pop(); 
+    
+    const newBefore = words.length > 0 ? words.join(" ") + ` @${userName} ` : `@${userName} `;
+    
+    setNewMessage(newBefore + textAfterCursor);
+    setShowMentions(false);
+    inputRef.current.focus();
   };
 
   const renderMessageText = (txt) => {
@@ -313,7 +359,33 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
               <div ref={messagesEndRef} />
             </div>
 
-            <div style={{ padding: 15, borderTop: `1px solid ${M.brdN}`, background: "#fff", display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ padding: 15, borderTop: `1px solid ${M.brdN}`, background: "#fff", display: "flex", flexDirection: "column", gap: 10, position: "relative" }}>
+              
+              {showMentions && contacts.length > 0 && (
+                <div style={{ position: "absolute", bottom: "100%", left: 15, right: 15, background: "#fff", border: `1px solid ${M.brdN}`, borderRadius: 10, boxShadow: "0 -4px 15px rgba(0,0,0,0.08)", maxHeight: 180, overflowY: "auto", zIndex: 100, marginBottom: 5 }}>
+                  {contacts.filter(c => c.name.toLowerCase().includes(mentionFilter) || c.role.toLowerCase().includes(mentionFilter)).map(c => (
+                    <div 
+                      key={c.id} 
+                      onClick={() => insertMention(c.name)}
+                      style={{ padding: "8px 12px", cursor: "pointer", borderBottom: `1px solid ${M.alt}`, display: "flex", alignItems: "center", gap: 10 }}
+                      onMouseEnter={e => e.currentTarget.style.background = M.bg}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    >
+                       <div style={{ width: 26, height: 26, borderRadius: "50%", background: M.pri, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800 }}>
+                         {c.name.charAt(0).toUpperCase()}
+                       </div>
+                       <div style={{ fontSize: 12 }}>
+                         <div style={{ fontWeight: 800, color: M.tx }}>{c.name}</div>
+                         <div style={{ fontSize: 10, color: M.txM, textTransform: "uppercase", letterSpacing: 0.5 }}>{c.role}</div>
+                       </div>
+                    </div>
+                  ))}
+                  {contacts.filter(c => c.name.toLowerCase().includes(mentionFilter)).length === 0 && (
+                    <div style={{ padding: "10px 12px", fontSize: 11, color: M.txM, textAlign: "center" }}>Nenhum usuário encontrado.</div>
+                  )}
+                </div>
+              )}
+
               {chatFile && (
                 <div style={{ fontSize: 11, color: M.blue, background: M.blueS, padding: "6px 10px", borderRadius: 6, display: "flex", justifyContent: "space-between" }}>
                   <span>📎 {chatFile.name} (Pronto para enviar)</span>
@@ -326,10 +398,13 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
                   📎
                 </label>
                 <input 
+                   ref={inputRef}
                    placeholder="Ex: @NomeUsuario..." 
-                   style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: `1px solid ${M.brdN}`, fontSize: 13 }} 
+                   style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: `1px solid ${M.brdN}`, fontSize: 13, outline: "none", transition: "border 0.2s" }} 
+                   onFocus={e => e.target.style.borderColor = M.pri}
+                   onBlur={e => { e.target.style.borderColor = M.brdN; setTimeout(() => setShowMentions(false), 200); }}
                    value={newMessage} 
-                   onChange={e => setNewMessage(e.target.value)} 
+                   onChange={handleInputChange} 
                 />
                 <button type="submit" disabled={saving || (!newMessage.trim() && !chatFile)} style={{ background: M.pri, color: "#fff", border: "none", borderRadius: 10, padding: "0 15px", fontWeight: 700, cursor: "pointer", opacity: ((!newMessage.trim() && !chatFile) || saving) ? 0.5 : 1 }}>
                    Enviar
