@@ -293,4 +293,69 @@ router.post("/batch-delete", authMiddleware(["admin"]), async (req, res) => {
   }
 });
 
+// ===========================
+// SISTEMA DE CHAT DO CHAMADO
+// ===========================
+
+// GET /api/chamados/:id/messages
+router.get("/:id/messages", authMiddleware(), async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT m.*, u.name as user_name, u.role as user_role 
+       FROM chamado_mensagens m 
+       LEFT JOIN users u ON m.user_id = u.id 
+       WHERE m.chamado_id = $1 
+       ORDER BY m.created_at ASC`,
+      [req.params.id]
+    );
+    res.json({ messages: rows });
+  } catch (e) {
+    console.error("Erro ao buscar mensagens do chat:", e);
+    res.status(500).json({ error: "Erro ao buscar mensagens" });
+  }
+});
+
+// POST /api/chamados/:id/messages
+router.post("/:id/messages", authMiddleware(), upload.single("anexo"), async (req, res) => {
+  try {
+    const { mensagem } = req.body;
+    const isTextEmpty = !mensagem || !mensagem.trim();
+    const hasFile = !!req.file;
+    
+    if (isTextEmpty && !hasFile) return res.status(400).json({ error: "Mensagem ou anexo vazio" });
+
+    // Verifica permissão (qualquer um do grupo pos_vendas ou admin, mas vendedor só se for o dono ou compartilhado)
+    const { rows: ch } = await pool.query("SELECT vendedor_id FROM chamados WHERE id = $1", [req.params.id]);
+    if (!ch[0]) return res.status(404).json({ error: "Chamado não encontrado" });
+
+    if (req.user.role === "vendedor" && ch[0].vendedor_id !== req.user.id) {
+       // verifica os compartilhamentos
+       const { rows: sh } = await pool.query("SELECT * FROM chamado_shares WHERE chamado_id = $1 AND user_id = $2", [req.params.id, req.user.id]);
+       if (!sh[0]) return res.status(403).json({ error: "Acesso negado para postar chat" });
+    }
+
+    const filename = req.file ? req.file.filename : null;
+
+    const { rows } = await pool.query(
+      `INSERT INTO chamado_mensagens (chamado_id, user_id, mensagem, anexo) 
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [req.params.id, req.user.id, (mensagem || "").trim(), filename]
+    );
+
+    // Retorna mensagem com detalhes de quem mandou para injetar na interface
+    const { rows: finalMsg } = await pool.query(
+      `SELECT m.*, u.name as user_name, u.role as user_role 
+       FROM chamado_mensagens m 
+       LEFT JOIN users u ON m.user_id = u.id 
+       WHERE m.id = $1`,
+      [rows[0].id]
+    );
+
+    res.status(201).json({ message: finalMsg[0] });
+  } catch (e) {
+    console.error("Erro ao enviar mensagem:", e);
+    res.status(500).json({ error: "Erro ao enviar mensagem" });
+  }
+});
+
 module.exports = router;

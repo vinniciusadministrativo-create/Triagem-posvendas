@@ -61,7 +61,7 @@ export default function PosVendasPage(){
   const load=useCallback(async(p=1)=>{
     setLoading(true);
     try{
-      const res=await api.getChamados({page:p,limit:20});
+      const res=await api.getChamados({page:p,limit:200});
       setChamados(res.chamados||[]);setTotal(res.total||0);
     }catch(e){console.error(e);}
     finally{setLoading(false);}
@@ -91,30 +91,61 @@ export default function PosVendasPage(){
         <p style={{color:M.txM}}>Acompanhamento e triagem de solicitações em tempo real.</p>
       </header>
 
-      <div style={{background:"#fff",borderRadius:14,border:`1px solid ${M.brdN}`,overflow:"hidden",boxShadow:"0 10px 30px rgba(0,0,0,0.05)"}}>
-        <table style={{width:"100%",borderCollapse:"collapse"}}>
-          <thead style={{background:"#f8f9fa",textAlign:"left"}}>
-            <tr>
-              {["Cliente","NF","Tipo","Vendedor","Status","Data","Ação"].map(h=><th key={h} style={{padding:15,fontSize:11,textTransform:"uppercase",color:M.txM}}>{h}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? <tr><td colSpan="7" style={{padding:40,textAlign:"center"}}>Carregando...</td></tr> : 
-             chamados.map(c=>(
-              <tr key={c.id} style={{borderTop:`1px solid ${M.brdN}`}}>
-                <td style={{padding:15,fontSize:14,fontWeight:700}}>{c.razao_social}</td>
-                <td style={{padding:15,fontSize:13}}>{c.nf_original}</td>
-                <td style={{padding:15,fontSize:12,color:M.txM}}>{c.tipo_solicitacao}</td>
-                <td style={{padding:15,fontSize:12}}>{c.vendedor_nome || c.nome_vendedor}</td>
-                <td style={{padding:15}}><Badge label={c.status} color={STATUS_COLOR[c.status]||"#000"} /></td>
-                <td style={{padding:15,fontSize:12,color:M.txD}}>{new Date(c.created_at).toLocaleDateString()}</td>
-                <td style={{padding:15}}>
-                  <button onClick={()=>setSelected(c)} style={{padding:"6px 12px",borderRadius:6,border:`1px solid ${M.pri}`,background:"none",color:M.pri,fontWeight:700,cursor:"pointer"}}>Ver →</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div style={{ display: "flex", gap: 15, overflowX: "auto", paddingBottom: 20 }}>
+        {STATUSES.filter(s => s.id !== "").map(column => {
+          const colChamados = chamados.filter(c => c.status === column.id);
+          return (
+            <div 
+              key={column.id} 
+              style={{ minWidth: 320, maxWidth: 320, background: "#f8f9fa", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", border: `1px solid ${M.brdN}` }}
+              onDragOver={e => e.preventDefault()}
+              onDrop={async e => {
+                e.preventDefault();
+                const id = e.dataTransfer.getData("chamadoId");
+                if(!id) return;
+                const ch = chamados.find(c => c.id == id);
+                if(ch && ch.status !== column.id) {
+                  setChamados(p => p.map(c => c.id == id ? { ...c, status: column.id } : c));
+                  try {
+                    await api.updateStatus(id, column.id);
+                  } catch(err) {
+                    setChamados(p => p.map(c => c.id == id ? { ...c, status: ch.status } : c));
+                    alert("Erro ao mudar status.");
+                  }
+                }
+              }}
+            >
+              <div style={{ padding: "5px 10px", marginBottom: 15, fontWeight: 800, fontSize: 13, color: M.txM, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ textTransform: "uppercase" }}>{column.label}</span>
+                <span style={{ background: M.brdL, padding: "2px 8px", borderRadius: 12, fontSize: 11 }}>{colChamados.length}</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 15, flex: 1, minHeight: 200 }}>
+                {colChamados.map(c => (
+                  <div 
+                    key={c.id} 
+                    draggable 
+                    onDragStart={e => e.dataTransfer.setData("chamadoId", c.id)}
+                    onClick={() => setSelected(c)}
+                    style={{ background: M.card, padding: 15, borderRadius: 10, border: `1px solid ${M.brdN}`, cursor: "grab", boxShadow: "0 4px 10px rgba(0,0,0,0.02)" }}
+                    onDragEnd={e => e.target.style.opacity = 1}
+                  >
+                    <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 5 }}>{c.razao_social}</div>
+                    <div style={{ fontSize: 11, color: M.txM, marginBottom: 10 }}>NF {c.nf_original} | #{c.id}</div>
+                    <div style={{ fontSize: 12, color: M.txM, marginBottom: 15, display: "flex", gap: 8, alignItems: "center" }}>
+                       <span style={{background: "#f1f3f5", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontWeight: 700}}>Vendedor</span>
+                       {c.vendedor_nome || c.nome_vendedor}
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 10, color: M.txD }}>{new Date(c.created_at).toLocaleDateString()}</span>
+                      <span style={{ fontSize: 10, background: M.soft, color: M.pri, padding: "4px 8px", borderRadius: 6, fontWeight: 700 }}>Ver Detalhes</span>
+                    </div>
+                  </div>
+                ))}
+                {colChamados.length === 0 && <div style={{ textAlign: "center", padding: 20, color: M.txD, fontSize: 12, fontStyle: "italic", border: `1px dashed ${M.brdL}`, borderRadius: 10 }}>Arraste um card para cá</div>}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

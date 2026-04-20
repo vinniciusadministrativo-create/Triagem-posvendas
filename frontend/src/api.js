@@ -57,6 +57,10 @@ export const api = {
   updateRessalva: (id, data) => request(`/api/chamados/${id}/ressalva`, { method: "PATCH", body: data }),
   updateNFData: (id, nf_data) => request(`/api/chamados/${id}/nf-data`, { method: "PATCH", body: JSON.stringify({ nf_data }) }),
 
+  // Chat
+  getMessages: (id) => request(`/api/chamados/${id}/messages`),
+  sendMessage: (id, data) => request(`/api/chamados/${id}/messages`, { method: "POST", body: data }),
+
   // Users
   getUsers: () => request("/api/users"),
   getContacts: () => request("/api/users/contacts"),

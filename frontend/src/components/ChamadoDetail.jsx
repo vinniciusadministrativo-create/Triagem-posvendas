@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { api } from "../api";
 import ShareChamado from "./ShareChamado";
 import DanfeMirror from "./DanfeMirror";
@@ -46,8 +46,52 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
   const [newStatus, setNewStatus] = useState(chamado.status || "novo");
   const [localRessalva, setLocalRessalva] = useState(chamado.ressalva_vendedor || "");
   const [ressalvaFiles, setRessalvaFiles] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [chatFile, setChatFile] = useState(null);
+  const messagesEndRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [savingRessalva, setSavingRessalva] = useState(false);
+
+  useEffect(() => {
+    loadMessages();
+  }, [chamado.id]);
+
+  const loadMessages = async () => {
+    try {
+      const res = await api.getMessages(chamado.id);
+      setMessages(res.messages || []);
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+    } catch(e) { }
+  };
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if ((!newMessage.trim() && !chatFile) || saving) return;
+    setSaving(true);
+    try {
+      const fd = new FormData();
+      if (newMessage.trim()) fd.append("mensagem", newMessage);
+      if (chatFile) fd.append("anexo", chatFile);
+
+      const res = await api.sendMessage(chamado.id, fd);
+      setMessages(p => [...p, res.message]);
+      setNewMessage("");
+      setChatFile(null);
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+    } catch (err) {
+      alert("Erro ao enviar mensagem.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const renderMessageText = (txt) => {
+    return txt.split(/(@\w+)/g).map((part, i) => {
+       if (part.startsWith("@")) return <span key={i} style={{ color: part.includes(user.name?.split(" ")[0]) ? M.warn : M.blue, fontWeight: 800 }}>{part}</span>;
+       return <span key={i}>{part}</span>;
+    });
+  };
 
   // Regras de Permissão
   const isAdmin = user.role === "admin";
@@ -89,10 +133,10 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 20 }}>
-      {/* ... conteúdo encurtado para foco na ressalva ... */}
-      <div style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 650, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+      {/* Modal Container maior para comportar o chat */}
+      <div style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 1000, maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
         {/* HEADER */}
-        <div style={{ padding: 20, borderBottom: `1px solid ${M.brdN}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ padding: 20, borderBottom: `1px solid ${M.brdN}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 18 }}>Chamado #{chamado.id}</h2>
             <div style={{ fontSize: 11, color: M.txM }}>Criado em: {new Date(chamado.created_at).toLocaleString()}</div>
@@ -100,8 +144,10 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
           <button onClick={onClose} style={{ border: "none", background: "none", fontSize: 24, cursor: "pointer" }}>×</button>
         </div>
 
-        <div style={{ padding: 25 }}>
-          <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+          {/* LADO ESQUERDO: DETALHES DO CHAMADO */}
+          <div style={{ flex: 1, padding: 25, overflowY: "auto" }}>
+            <div style={{ marginBottom: 20 }}>
             <Badge label={chamado.status} color={STATUS_COLOR[chamado.status] || "#000"} />
             <h3 style={{ marginTop: 12, marginBottom: 4, fontSize: 20 }}>{chamado.razao_social}</h3>
             <p style={{ color: M.txM, fontSize: 13, margin: 0 }}>
@@ -212,15 +258,83 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
             </div>
           )}
 
-          {/* BOTÃO DE EXCLUSÃO (APENAS ADMIN) */}
-          {canDelete && (
-            <button 
-              onClick={() => { if(window.confirm("Tem certeza que deseja excluir?")) onDelete(chamado.id); }} 
-              style={{ marginTop: 30, width: "100%", padding: 12, background: "transparent", color: M.err, border: `1px solid ${M.err}`, borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13 }}
-            >
-              🗑️ Excluir Chamado Permanentemente
-            </button>
-          )}
+            {canDelete && (
+              <button 
+                onClick={() => { if(window.confirm("Tem certeza que deseja excluir?")) onDelete(chamado.id); }} 
+                style={{ marginTop: 30, width: "100%", padding: 12, background: "transparent", color: M.err, border: `1px solid ${M.err}`, borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13 }}
+              >
+                🗑️ Excluir Chamado Permanentemente
+              </button>
+            )}
+          </div> {/* FIM DO LADO ESQUERDO */}
+
+          {/* LADO DIREITO: CHAT INTERNO */}
+          <div style={{ width: 350, display: "flex", flexDirection: "column", borderLeft: `1px solid ${M.brdN}`, background: "#fafafa" }}>
+            <div style={{ padding: 15, borderBottom: `1px solid ${M.brdN}`, fontWeight: 800, color: M.tx, fontSize: 14 }}>
+              💬 Chat Interno
+            </div>
+            
+            <div style={{ flex: 1, padding: 15, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+              {messages.length === 0 && <p style={{ fontSize: 12, color: M.txM, textAlign: "center", marginTop: 20, fontStyle: "italic" }}>Nenhuma mensagem ainda.</p>}
+              {messages.map(m => {
+                const isMe = m.user_id === user.id;
+                return (
+                  <div key={m.id} style={{ alignSelf: isMe ? "flex-end" : "flex-start", maxWidth: "85%" }}>
+                    <div style={{ fontSize: 9, color: M.txM, marginBottom: 2, textAlign: isMe ? "right" : "left", fontWeight: 700 }}>
+                      {m.user_name} <span style={{ fontWeight: 400 }}>({m.user_role})</span>
+                    </div>
+                    <div style={{
+                      background: isMe ? M.pri : "#fff",
+                      color: isMe ? "#fff" : M.tx,
+                      padding: "8px 12px",
+                      borderRadius: 12,
+                      border: isMe ? "none" : `1px solid ${M.brdN}`,
+                      fontSize: 13,
+                      lineHeight: 1.4,
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
+                    }}>
+                      {m.mensagem && <div>{renderMessageText(m.mensagem)}</div>}
+                      {m.anexo && (
+                        <div style={{ marginTop: m.mensagem ? 8 : 0 }}>
+                          <a href={api.fileUrl(m.anexo)} target="_blank" rel="noreferrer" style={{ display: "inline-block", background: isMe ? M.priDk : M.bg, color: isMe ? "#fff" : M.tx, padding: "6px 10px", borderRadius: 8, textDecoration: "none", fontSize: 11, border: `1px solid ${isMe ? M.pri : M.brdN}` }}>
+                            📎 Ver Anexo
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 8, color: M.txD, marginTop: 4, textAlign: isMe ? "right" : "left" }}>
+                       {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <div style={{ padding: 15, borderTop: `1px solid ${M.brdN}`, background: "#fff", display: "flex", flexDirection: "column", gap: 10 }}>
+              {chatFile && (
+                <div style={{ fontSize: 11, color: M.blue, background: M.blueS, padding: "6px 10px", borderRadius: 6, display: "flex", justifyContent: "space-between" }}>
+                  <span>📎 {chatFile.name} (Pronto para enviar)</span>
+                  <button onClick={() => setChatFile(null)} style={{ border: "none", background: "none", color: M.err, cursor: "pointer", fontWeight: 700 }}>X</button>
+                </div>
+              )}
+              <form onSubmit={handleSendMessage} style={{ display: "flex", gap: 8 }}>
+                <label style={{ display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: M.alt, padding: "0 10px", borderRadius: 10, border: `1px solid ${M.brdN}` }}>
+                  <input type="file" style={{ display: "none" }} onChange={e => setChatFile(e.target.files[0])} />
+                  📎
+                </label>
+                <input 
+                   placeholder="Ex: @NomeUsuario..." 
+                   style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: `1px solid ${M.brdN}`, fontSize: 13 }} 
+                   value={newMessage} 
+                   onChange={e => setNewMessage(e.target.value)} 
+                />
+                <button type="submit" disabled={saving || (!newMessage.trim() && !chatFile)} style={{ background: M.pri, color: "#fff", border: "none", borderRadius: 10, padding: "0 15px", fontWeight: 700, cursor: "pointer", opacity: ((!newMessage.trim() && !chatFile) || saving) ? 0.5 : 1 }}>
+                   Enviar
+                </button>
+              </form>
+            </div>
+          </div> {/* FIM DO LADO DIREITO */}
         </div>
       </div>
     </div>

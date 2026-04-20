@@ -1,0 +1,1 @@
+ALTER TABLE chamado_mensagens ADD COLUMN IF NOT EXISTS anexo TEXT;
