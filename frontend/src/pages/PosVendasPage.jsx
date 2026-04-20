@@ -83,7 +83,7 @@ export default function PosVendasPage(){
   };
 
   return(
-    <div style={{minHeight:"100vh",background:M.bg,padding:"40px 20px 40px 90px",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+    <div className="page-container">
       {selected&&<ChamadoDetail chamado={selected} onClose={()=>setSelected(null)} onStatusChange={handleStatusChange} onDelete={handleDeleteSingle} />}
       
       <header style={{marginBottom:30}}>

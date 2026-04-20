@@ -99,7 +99,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div style={{ padding: "40px 20px 40px 90px", minHeight: "100vh", background: M.bg, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="page-container">
       {selectedChamado && (
         <ChamadoDetail 
           chamado={selectedChamado} 
@@ -110,7 +110,7 @@ export default function AdminPage() {
       )}
 
       <header style={{ marginBottom: 30 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="responsive-header" style={{ marginBottom: 0 }}>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: M.tx }}>Painel de Administração</h1>
           <button 
             onClick={() => setShowCreateModal(true)} 
@@ -174,8 +174,8 @@ export default function AdminPage() {
 
   function renderUsersTable() {
     return (
-      <div style={{ background: M.card, borderRadius: 14, border: `1px solid ${M.brdN}`, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <div className="table-wrapper">
+        <table className="table-responsive">
           <thead>
             <tr style={{ background: "#f8f9fa", textAlign: "left" }}>
               {["Nome", "E-mail", "Função", "Ações"].map(h => (
@@ -205,7 +205,7 @@ export default function AdminPage() {
   function renderSellersManagement() {
     const sellers = users.filter(u => u.role === "vendedor");
     return (
-      <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 20 }}>
+      <div className="responsive-grid">
         <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${M.brdN}`, overflow: "hidden" }}>
           <div style={{ padding: 15, background: "#f8f9fa", fontWeight: 700, borderBottom: `1px solid ${M.brdN}` }}>Vendedores</div>
           {sellers.map(s => (

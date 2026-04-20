@@ -163,3 +163,103 @@ main, .card, .v-container {
   0% { opacity: 0; transform: translateY(15px) scale(0.9); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* -------------------------------
+   RESPONSIVIDADE E CAMADAS MOBILE 
+--------------------------------- */
+.page-container {
+  min-height: 100vh;
+  background-color: var(--bg);
+  padding: 40px 20px 40px 90px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.responsive-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.responsive-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 30px;
+}
+
+.split-view {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.table-wrapper {
+  background: var(--card);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+.table-responsive {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+@media (max-width: 850px) {
+  .page-container {
+    padding: 80px 15px 40px 15px !important;
+  }
+  .responsive-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .responsive-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 15px;
+  }
+  .responsive-header > div, .responsive-header input, .responsive-header button {
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+  .split-view {
+    flex-direction: column !important;
+    overflow-y: auto !important;
+  }
+  .split-left {
+    flex: none !important;
+    padding: 15px !important;
+    overflow-y: visible !important;
+  }
+  .split-right {
+    width: 100% !important;
+    border-left: none !important;
+    border-top: 1px solid var(--border) !important;
+    min-height: 600px !important;
+    flex: none !important;
+  }
+  .kanban-col {
+    min-width: 85vw !important;
+    max-width: 85vw !important;
+  }
+  .table-wrapper {
+    overflow-x: auto !important;
+  }
+  .table-responsive {
+    min-width: 800px;
+  }
+  .sidebar-container {
+    width: 0px !important;
+  }
+  .sidebar-container.open {
+    width: 260px !important;
+  }
+  
+  /* Ajuste no modal wrapper */
+  .modal-wrapper {
+     padding: 10px !important;
+  }
+  .modal-content {
+     max-height: 95vh !important;
+  }
+}

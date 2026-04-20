@@ -178,9 +178,8 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 20 }}>
-      {/* Modal Container maior para comportar o chat */}
-      <div style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 1000, maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+    <div className="modal-wrapper" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 20 }}>
+      <div className="modal-content">
         {/* HEADER */}
         <div style={{ padding: 20, borderBottom: `1px solid ${M.brdN}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <div>
@@ -190,9 +189,9 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
           <button onClick={onClose} style={{ border: "none", background: "none", fontSize: 24, cursor: "pointer" }}>×</button>
         </div>
 
-        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        <div className="split-view">
           {/* LADO ESQUERDO: DETALHES DO CHAMADO */}
-          <div style={{ flex: 1, padding: 25, overflowY: "auto" }}>
+          <div className="split-left">
             <div style={{ marginBottom: 20 }}>
             <Badge label={chamado.status} color={STATUS_COLOR[chamado.status] || "#000"} />
             <h3 style={{ marginTop: 12, marginBottom: 4, fontSize: 20 }}>{chamado.razao_social}</h3>
@@ -315,7 +314,7 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
           </div> {/* FIM DO LADO ESQUERDO */}
 
           {/* LADO DIREITO: CHAT INTERNO */}
-          <div style={{ width: 350, display: "flex", flexDirection: "column", borderLeft: `1px solid ${M.brdN}`, background: "#fafafa" }}>
+          <div className="split-right">
             <div style={{ padding: 15, borderBottom: `1px solid ${M.brdN}`, fontWeight: 800, color: M.tx, fontSize: 14 }}>
               💬 Chat Interno
             </div>

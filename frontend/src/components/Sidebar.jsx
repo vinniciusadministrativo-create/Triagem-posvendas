@@ -84,7 +84,7 @@ export default function Sidebar({ user, onLogout, onSwitchUser }) {
         {isOpen ? "✕" : "☰"}
       </button>
 
-      <div style={sidebarStyle}>
+      <div className={`sidebar-container ${isOpen ? 'open' : ''}`} style={sidebarStyle}>
         <div style={{ padding: "80px 20px 30px", textAlign: isOpen ? "left" : "center" }}>
           {isOpen && (
             <div style={{ marginBottom: 20 }}>

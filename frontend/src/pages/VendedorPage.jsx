@@ -204,7 +204,7 @@ export default function VendedorPage({ defaultTab = "novo" }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: M.bg, padding: "40px 20px 40px 90px", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="page-container">
       {selected && <ChamadoDetail chamado={selected} onClose={() => setSelected(null)} onStatusChange={loadChamados} onDelete={() => { /* Admin only handled inside */ }} />}
 
       {/* HEADER */}
@@ -258,8 +258,8 @@ export default function VendedorPage({ defaultTab = "novo" }) {
 
   function renderForm() {
     if (step === 0) return (
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        <div style={{ gridColumn: "1/-1", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+      <div className="responsive-grid">
+        <div className="responsive-grid-left">
           <div onClick={() => fRef.current.click()} style={{ padding: 20, border: `2px dashed ${nfFile ? M.ok : M.brdN}`, borderRadius: 12, textAlign: "center", cursor: "pointer", background: nfFile ? M.okS : M.bg }}>
             <input ref={fRef} type="file" style={{ display: "none"}} onChange={onFile} />
             {nfFile ? <p>✅ {nfFile.name}</p> : <p>📄 Anexar Nota Fiscal *</p>}
@@ -291,7 +291,7 @@ export default function VendedorPage({ defaultTab = "novo" }) {
         />
         <VInput label="CNPJ / CPF do Cliente" value={form.cnpj} onChange={v => upd("cnpj", v)} />
         <VInput label="NF Original" value={form.nfOriginal} onChange={v => upd("nfOriginal", v)} />
-        <div style={{ gridColumn: "1/-1" }}><VInput label="Razão Social" value={form.razaoSocial} onChange={v => upd("razaoSocial", v)} /></div>
+        <div className="responsive-grid-full"><VInput label="Razão Social" value={form.razaoSocial} onChange={v => upd("razaoSocial", v)} /></div>
         <div>
           <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 5 }}>Tipo</label>
           <select value={form.tipoSolicitacao} onChange={e => upd("tipoSolicitacao", e.target.value)} style={{ width: "100%", padding: 10, borderRadius: 8, border: `1px solid ${M.brdN}` }}>
@@ -299,11 +299,11 @@ export default function VendedorPage({ defaultTab = "novo" }) {
             {TIPOS.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
           </select>
         </div>
-        <div style={{ gridColumn: "1/-1" }}>
+        <div className="responsive-grid-full">
           <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 5 }}>Descrição</label>
           <textarea value={form.descricao} onChange={e => upd("descricao", e.target.value)} style={{ width: "100%", padding: 10, borderRadius: 8, border: `1px solid ${M.brdN}`, minHeight: 100 }} />
         </div>
-        <button onClick={submit} style={{ gridColumn: "1/-1", padding: 15, background: M.pri, color: "#fff", border: "none", borderRadius: 10, fontWeight: 800, cursor: "pointer" }}>⚡ Enviar Chamado</button>
+        <button onClick={submit} className="responsive-grid-full" style={{ padding: 15, background: M.pri, color: "#fff", border: "none", borderRadius: 10, fontWeight: 800, cursor: "pointer" }}>⚡ Enviar Chamado</button>
       </div>
     );
     if (step === 1) return (

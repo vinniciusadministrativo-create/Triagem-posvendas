@@ -67,10 +67,10 @@ export default function HistoricoPage() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: M.bg, padding: "40px 20px 40px 90px", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+    <div className="page-container">
       {selected && <ChamadoDetail chamado={selected} onClose={() => setSelected(null)} onStatusChange={handleStatusChange} onDelete={handleDeleteSingle} />}
       
-      <header style={{ marginBottom: 30, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+      <header className="responsive-header">
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: M.tx }}>🗃️ Histórico de Chamados</h1>
           <p style={{ color: M.txM }}>Consulta de todos os registros e ferramentas de filtro e exclusão.</p>
@@ -85,8 +85,8 @@ export default function HistoricoPage() {
         </div>
       </header>
 
-      <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${M.brdN}`, overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,0.05)" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <div className="table-wrapper">
+        <table className="table-responsive">
           <thead style={{ background: "#f8f9fa", textAlign: "left" }}>
             <tr>
               {["Cliente", "NF", "Tipo", "Vendedor", "Mensagens", "Status", "Data", "Ação"].map(h => <th key={h} style={{ padding: 15, fontSize: 11, textTransform: "uppercase", color: M.txM }}>{h}</th>)}
