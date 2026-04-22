@@ -325,6 +325,11 @@ main, .card, .v-container {
    ESTILOS DE IMPRESSÃO (ESTRUTURADOS)
 --------------------------------- */
 @media print {
+  @page { 
+    size: A4 portrait; 
+    margin: 0; 
+  }
+  
   /* Esconde tudo */
   body * {
     visibility: hidden !important;
@@ -341,12 +346,14 @@ main, .card, .v-container {
     left: 0 !important;
     top: 0 !important;
     width: 210mm !important;
-    min-height: 297mm !important;
+    height: 297mm !important; /* Altura exata do A4 */
     margin: 0 !important;
     padding: 10mm !important;
     background: #fff !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important; /* Evita quebra para segunda página se houver overflow mínimo */
   }
 
   /* Força ocultação de elementos indesejáveis */
