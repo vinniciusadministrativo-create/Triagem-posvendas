@@ -34,7 +34,7 @@ export default function Layout() {
         flex: 1, 
         minHeight: "100vh", 
         position: "relative",
-        paddingLeft: isSidebarOpen ? "260px" : "0px",
+        paddingLeft: isSidebarOpen ? "260px" : "80px",
         transition: "padding-left 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
       }}>
         <Outlet />
