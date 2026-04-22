@@ -69,7 +69,7 @@ createRoot(document.getElementById('root')).render(
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute allowedRoles={['pos_vendas', 'admin']}>
+              <ProtectedRoute allowedRoles={['pos_vendas', 'admin', 'operacional']}>
                 <PosVendasPage />
               </ProtectedRoute>
             }
