@@ -34,7 +34,7 @@ router.post("/", authMiddleware(["admin"]), async (req, res) => {
   const { name, email, password, role, telefone } = req.body;
   if (!name || !email || !password || !role)
     return res.status(400).json({ error: "Todos os campos são obrigatórios" });
-  if (!["vendedor", "pos_vendas", "admin"].includes(role))
+  if (!["vendedor", "pos_vendas", "admin", "operacional"].includes(role))
     return res.status(400).json({ error: "Role inválido" });
 
   try {

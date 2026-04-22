@@ -159,6 +159,7 @@ export default function AdminPage() {
               <select style={{ width: "100%", padding: 10, border: `1px solid ${M.brdN}`, borderRadius: 8 }} value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}>
                 <option value="vendedor">Vendedor</option>
                 <option value="pos_vendas">Pós-Vendas</option>
+                <option value="operacional">Operacional (Logística)</option>
                 <option value="admin">Administrador</option>
               </select>
             </div>

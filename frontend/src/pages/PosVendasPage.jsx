@@ -57,6 +57,8 @@ export default function PosVendasPage(){
   const[loading,setLoading]=useState(false);
   const[selected,setSelected]=useState(null);
   const[page,setPage]=useState(1);
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const isOperacional = user.role === "operacional";
 
   const load=useCallback(async(p=1)=>{
     setLoading(true);
@@ -153,7 +155,13 @@ export default function PosVendasPage(){
         ref={kanbanRef}
         style={{ display: "flex", gap: 15, overflowX: "auto", paddingBottom: 20 }}
       >
-        {STATUSES.filter(s => s.id !== "").map(column => {
+        {STATUSES.filter(s => {
+          if (s.id === "") return false;
+          if (isOperacional) {
+            return ["aguardando_nfd", "aguardando_recolhimento"].includes(s.id);
+          }
+          return true;
+        }).map(column => {
           const colChamados = chamados.filter(c => c.status === column.id);
           return (
             <div 

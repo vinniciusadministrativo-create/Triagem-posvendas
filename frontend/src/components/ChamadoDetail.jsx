@@ -171,8 +171,9 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
   // Regras de Permissão
   const isAdmin = user.role === "admin";
   const isPosVendas = user.role === "pos_vendas";
+  const isOperacional = user.role === "operacional";
   const isOwner = chamado.vendedor_id === user.id;
-  const canEdit = isAdmin || isPosVendas;
+  const canEdit = isAdmin || isPosVendas || isOperacional;
   const canDelete = isAdmin;
   const canShare = isOwner || isAdmin;
 

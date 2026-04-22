@@ -16,7 +16,7 @@ export default function Sidebar({ user, onLogout, onSwitchUser, isOpen, onToggle
   const menuItems = [
     { label: "Novo Chamado", path: "/formulario", icon: "📥", roles: ["vendedor", "pos_vendas", "admin"] },
     { label: "Meus Chamados", path: "/meus-chamados", icon: "📋", roles: ["vendedor"] },
-    { label: "Pós-Vendas", path: "/dashboard", icon: "🔍", roles: ["pos_vendas", "admin"] },
+    { label: "Pós-Vendas", path: "/dashboard", icon: "🔍", roles: ["pos_vendas", "admin", "operacional"] },
     { label: "Visão Geral", path: "/historico", icon: "🗃️", roles: ["pos_vendas", "admin"] },
     { label: "Gestão Usuários", path: "/admin", icon: "👤", roles: ["admin"] },
   ].filter(item => item.roles.includes(user?.role));
