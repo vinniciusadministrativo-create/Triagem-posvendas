@@ -32,9 +32,21 @@ const BxView = ({ label, value, style = {} }) => (
   </div>
 );
 
+// Helpers para cálculo
+function parseNum(val) {
+  if (!val && val !== 0) return 0;
+  // Suporte a formato brasileiro (1.234,56) e americano (1234.56)
+  const s = String(val).replace(/\./g, "").replace(",", ".");
+  return parseFloat(s) || 0;
+}
+function fmtBR(num) {
+  return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export default function DanfeMirror({ nf: nfRaw, chamado }) {
   const [isEditing, setIsEditing] = useState(false);
   const [localNF, setLocalNF] = useState({});
+  const [origProds, setOrigProds] = useState([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -42,11 +54,60 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
     if (typeof nf === "string") {
       try { nf = JSON.parse(nf); } catch(e) { nf = {}; }
     }
-    setLocalNF(nf || {});
+    const parsed = nf || {};
+    setLocalNF(parsed);
+    // Guarda originais para comparação de destaque
+    if (Array.isArray(parsed.produtos)) {
+      setOrigProds(parsed.produtos.map(p => ({ ...p })));
+    }
   }, [nfRaw]);
 
-  const upd = (field, val) => {
-    setLocalNF(prev => ({ ...prev, [field]: val }));
+  // Recalcula totais gerais da nota com base nos itens
+  const recalcTotals = (allProds) => {
+    let sum = 0;
+    allProds.forEach(p => {
+      sum += parseNum(p.valor_total);
+    });
+    
+    const formattedSum = fmtBR(sum);
+    // Aqui poderíamos recalcular impostos proporcionalmente, 
+    // mas o usuário pediu apenas ajuste de valor de acordo com a qtde.
+    // Assim, atualizamos os totais principais.
+    setLocalNF(prev => ({
+      ...prev,
+      produtos: allProds,
+      valor_total_produtos: formattedSum,
+      valor_total_nota: formattedSum // Por padrão, nota total = prod total, usuário ajusta se tiver frete/etc.
+    }));
+  };
+
+  // Atualiza um campo de um produto e recalcula valor_total se quantidade ou valor_unitario mudou
+  const updProd = (i, field, val, allProds) => {
+    const newProds = [...allProds];
+    newProds[i] = { ...newProds[i], [field]: val };
+
+    if (field === "quantidade" || field === "valor_unitario") {
+      const qtde = parseNum(field === "quantidade" ? val : newProds[i].quantidade);
+      const unit = parseNum(field === "valor_unitario" ? val : newProds[i].valor_unitario);
+      if (qtde >= 0 && unit >= 0) {
+        newProds[i].valor_total = fmtBR(qtde * unit);
+      }
+      recalcTotals(newProds);
+    } else {
+      upd("produtos", newProds);
+    }
+  };
+
+  const removeProd = (i) => {
+    const newProds = localNF.produtos.filter((_, idx) => idx !== i);
+    recalcTotals(newProds);
+  };
+
+  const addProd = () => {
+    const newProds = [...(localNF.produtos || []), {
+      codigo: "", descricao: "", ncm: "", cst: "", cfop: "5202", unidade: "UN", quantidade: "0", valor_unitario: "0,00", valor_total: "0,00"
+    }];
+    upd("produtos", newProds);
   };
 
   const save = async () => {
@@ -55,6 +116,8 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
       await api.updateNFData(chamado.id, localNF);
       alert("Espelho atualizado com sucesso!");
       setIsEditing(false);
+      // Atualiza referência dos originais após salvar
+      setOrigProds((localNF.produtos || []).map(p => ({ ...p })));
     } catch (e) {
       alert("Erro ao salvar: " + e.message);
     } finally {
@@ -70,6 +133,7 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
     produtos: Array.isArray(localNF.produtos) ? localNF.produtos : []
   };
 
+  // Usa todos os produtos — sem filtrar por devolvidos
   const prods = d.produtos.length > 0 ? d.produtos : [{}];
   const now = new Date();
   const footerMsg = `ESPELHO NFD REF.NF-${chamado?.nf_original || ""} - CFOP CORRETO 5202`;
@@ -243,33 +307,66 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
             <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
               <thead>
                 <tr style={{ height: "14px", borderBottom: "1px solid #000" }}>
+                  {isEditing && <th style={{ width: "20px", background: "#fee2e2" }}></th>}
                   {["CÓD.","DESCRIÇÃO","NCM/SH","CST","CFOP","UNID.","QTDE.","VLR. UNIT.","VLR. TOTAL"].map(h => (
                     <th key={h} style={{ fontSize: "5px", fontWeight: "700", borderRight: "1px solid #000", padding: "1px", background: "#f5f5f5", textAlign: "center" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {prods.map((p, i) => (
-                  <tr key={i} style={{ minHeight: "14px", borderBottom: "1px solid #000" }}>
-                    {["codigo","descricao","ncm","cst","cfop","unidade","quantidade","valor_unitario","valor_total"].map(f => (
-                      <td key={f} style={{ fontSize: "6.5px", padding: "2px", borderRight: "1px solid #000", textAlign: f.includes("v") || f === "quantidade" || f === "valor_total" ? "right" : "left" }}>
-                        {isEditing ? (
-                          <input 
-                            value={p[f] || ""} 
-                            onChange={e => {
-                              const newPs = [...prods];
-                              newPs[i] = { ...newPs[i], [f]: e.target.value };
-                              upd("produtos", newPs);
-                            }} 
-                            style={{ fontSize: "6.5px", width: "100%", border: "none", background: "#fff9c4", padding: 0 }} 
-                          />
-                        ) : p[f] || (f === "valor_total" ? (p.valor_liquido || "0,00") : "-")}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                {prods.map((p, i) => {
+                  // Verifica se a quantidade foi alterada em relação ao original
+                  const origQtde = origProds[i]?.quantidade;
+                  const wasEdited = origQtde !== undefined && String(p.quantidade) !== String(origQtde);
+
+                  return (
+                    <tr key={i} style={{ minHeight: "14px", borderBottom: "1px solid #000", background: wasEdited ? "#fffde7" : "transparent" }}>
+                      {isEditing && (
+                        <td style={{ textAlign: "center", borderRight: "1px solid #000", padding: "1px" }}>
+                          <button onClick={() => removeProd(i)} style={{ border: "none", background: "none", cursor: "pointer", fontSize: "8px", color: "#dc2626", padding: 0 }}>❌</button>
+                        </td>
+                      )}
+                      {["codigo","descricao","ncm","cst","cfop","unidade","quantidade","valor_unitario","valor_total"].map(f => {
+                        const isNumericField = ["quantidade","valor_unitario","valor_total"].includes(f);
+                        const isReadonlyInEdit = f === "valor_total"; // valor_total é calculado automaticamente
+                        return (
+                          <td key={f} style={{ fontSize: "6.5px", padding: "2px", borderRight: "1px solid #000", textAlign: isNumericField ? "right" : "left" }}>
+                            {isEditing ? (
+                              isReadonlyInEdit ? (
+                                // Valor total: somente leitura, calculado automaticamente
+                                <span style={{ fontSize: "6.5px", fontWeight: "700", color: wasEdited ? "#b45309" : "#222" }}>
+                                  {p.valor_total || "0,00"}
+                                </span>
+                              ) : (
+                                <input 
+                                  value={p[f] || ""} 
+                                  onChange={e => updProd(i, f, e.target.value, prods)}
+                                  style={{ 
+                                    fontSize: "6.5px", width: "100%", border: "none", 
+                                    background: ["quantidade","valor_unitario"].includes(f) ? "#fff9c4" : "#ffffff", 
+                                    padding: 0,
+                                    fontWeight: f === "quantidade" && wasEdited ? "700" : "normal"
+                                  }} 
+                                />
+                              )
+                            ) : (
+                              <span style={{ fontWeight: wasEdited && isNumericField ? "700" : "normal", color: wasEdited && isNumericField ? "#b45309" : "inherit" }}>
+                                {p[f] || (f === "valor_total" ? (p.valor_liquido || "0,00") : "-")}
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
+            {isEditing && (
+              <div style={{ padding: "4px", borderTop: "1px solid #000" }}>
+                <button onClick={addProd} style={{ fontSize: "8px", background: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "4px", padding: "2px 8px", cursor: "pointer", fontWeight: "700" }}>➕ Adicionar Item</button>
+              </div>
+            )}
           </div>
 
           <div style={sectionTitle}>Dados Adicionais</div>

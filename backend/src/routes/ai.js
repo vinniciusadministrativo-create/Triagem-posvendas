@@ -97,7 +97,7 @@ router.post("/extract-nf", authMiddleware(), async (req, res) => {
           role: "user",
           content: [
             { type: ct, source: { type: "base64", media_type: mime, data: fileB64 } },
-            { type: "text", text: "Extraia dados desta NF em JSON puro." }
+            { type: "text", text: "Extraia TODOS os dados desta NF em JSON puro. É mandatório extrair TODOS os itens da tabela de produtos, sem resumir ou omitir nenhum. Retorne campos: numero_nf, data_emissao, natureza_operacao, valor_total_nota, valor_total_produtos, base_icms, valor_icms, base_icms_st, valor_icms_st, valor_frete, valor_seguro, valor_ipi, peso_bruto, peso_liquido, quantidade_volumes, especie_volumes, cliente (razao social), cnpj, endereco_dest, bairro_dest, cep_dest, e a lista de 'produtos' contendo: codigo, descricao, ncm, cst, cfop, unidade, quantidade, valor_unitario, valor_total." }
           ]
         }]
       })
