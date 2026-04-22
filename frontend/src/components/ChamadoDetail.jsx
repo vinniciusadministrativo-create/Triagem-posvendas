@@ -16,19 +16,19 @@ const M = {
 };
 
 const STATUS_COLOR = {
-  novo: "#6b7280", avaliacao: "#f59e0b", negociacao: "#8b5cf6", 
+  novo: "#6b7280", negociacao: "#8b5cf6", 
   espelho: "#9B1B30", aguardando_nfd: "#2563eb", 
-  aguardando_recolhimento: "#059669", aguardando_financeiro: "#16a34a", 
-  encerrado: "#6b7280",
+  aguardando_recolhimento: "#f59e0b", recolhido: "#059669", 
+  aguardando_financeiro: "#16a34a", encerrado: "#6b7280",
 };
 
 const STATUSES = [
   { id: "novo", label: "Novo" },
-  { id: "avaliacao", label: "Avaliação" },
   { id: "negociacao", label: "Negociação" },
   { id: "espelho", label: "Emitir Espelho NFD" },
   { id: "aguardando_nfd", label: "Aguard. NFD" },
   { id: "aguardando_recolhimento", label: "Aguard. Recolhimento" },
+  { id: "recolhido", label: "Recolhido" },
   { id: "aguardando_financeiro", label: "Aguard. Financeiro" },
   { id: "encerrado", label: "Encerrado" },
 ];
