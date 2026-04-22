@@ -47,16 +47,21 @@ p, span, div {
   box-sizing: border-box;
   /* Transição suave em tudo para fluidez */
   transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  caret-color: transparent; /* Remove o cursor piscante global */
+}
+
+input, textarea {
+  caret-color: auto; /* Mantém o cursor apenas onde é necessário digitar */
 }
 
 /* Evita que o cursor de digitação "pisque" em locais de apenas leitura */
-body, button, label, .sidebar, .card-header, h1, h2, h3, span, svg {
+body, button, label, .sidebar, .card-header, h1, h2, h3, span, svg, .nav-item {
   user-select: none;
   -webkit-user-select: none;
 }
 
 /* Permite seleção apenas onde realmente importa */
-p, input, textarea, .selectable-text {
+p, input, textarea, .selectable-text, .chat-bubble {
   user-select: text;
   -webkit-user-select: text;
 }
