@@ -10,8 +10,7 @@ const M = {
   brdN: "#e5e0db",
 };
 
-export default function Sidebar({ user, onLogout, onSwitchUser }) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function Sidebar({ user, onLogout, onSwitchUser, isOpen, onToggle }) {
   const navigate = useNavigate();
 
   const menuItems = [
@@ -22,23 +21,21 @@ export default function Sidebar({ user, onLogout, onSwitchUser }) {
     { label: "Gestão Usuários", path: "/admin", icon: "👤", roles: ["admin"] },
   ].filter(item => item.roles.includes(user?.role));
 
-  const toggle = () => setIsOpen(!isOpen);
-
   const sidebarStyle = {
     position: "fixed",
     left: 0,
     top: 0,
     bottom: 0,
-    width: isOpen ? "260px" : "70px",
-    background: "rgba(255, 255, 255, 0.85)",
+    width: isOpen ? "260px" : "0px",
+    background: "rgba(255, 255, 255, 0.95)",
     backdropFilter: "blur(12px)",
-    borderRight: `1px solid ${M.brdN}`,
-    transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+    borderRight: isOpen ? `1px solid ${M.brdN}` : "none",
+    transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
     zIndex: 1000,
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
-    boxShadow: "10px 0 30px rgba(0,0,0,0.03)",
+    boxShadow: isOpen ? "10px 0 30px rgba(0,0,0,0.03)" : "none",
   };
 
   const navItemStyle = (isActive) => ({
@@ -53,13 +50,14 @@ export default function Sidebar({ user, onLogout, onSwitchUser }) {
     marginBottom: 8,
     transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
     whiteSpace: "nowrap",
+    opacity: isOpen ? 1 : 0,
   });
 
   return (
     <>
       {/* HAMBURGER BUTTON */}
       <button 
-        onClick={toggle}
+        onClick={onToggle}
         style={{
           position: "fixed",
           top: 20,
@@ -76,22 +74,19 @@ export default function Sidebar({ user, onLogout, onSwitchUser }) {
           alignItems: "center",
           justifyContent: "center",
           boxShadow: `0 4px 12px rgba(155,27,48,0.3)`,
-          transition: "transform 0.2s",
+          transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+          transform: isOpen ? "translateX(210px)" : "translateX(0)",
         }}
-        onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1)"}
-        onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
       >
         {isOpen ? "✕" : "☰"}
       </button>
 
       <div className={`sidebar-container ${isOpen ? 'open' : ''}`} style={sidebarStyle}>
-        <div style={{ padding: "80px 20px 30px", textAlign: isOpen ? "left" : "center" }}>
-          {isOpen && (
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: M.pri }}>MARIN</div>
-              <div style={{ fontSize: 10, color: M.txM, textTransform: "uppercase", letterSpacing: 1 }}>{user?.role}</div>
-            </div>
-          )}
+        <div style={{ padding: "80px 20px 30px", opacity: isOpen ? 1 : 0, transition: "opacity 0.3s" }}>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: M.pri }}>MARIN</div>
+            <div style={{ fontSize: 10, color: M.txM, textTransform: "uppercase", letterSpacing: 1 }}>{user?.role}</div>
+          </div>
         </div>
 
         <nav style={{ flex: 1 }}>
@@ -103,35 +98,24 @@ export default function Sidebar({ user, onLogout, onSwitchUser }) {
               style={({ isActive }) => navItemStyle(isActive)}
             >
               <span style={{ fontSize: 20, minWidth: 30 }}>{item.icon}</span>
-              {isOpen && <span style={{ marginLeft: 12, fontSize: 14, fontWeight: 600 }}>{item.label}</span>}
+              <span style={{ marginLeft: 12, fontSize: 14, fontWeight: 600 }}>{item.label}</span>
             </NavLink>
           ))}
         </nav>
 
-        <div style={{ padding: "20px 0", borderTop: `1px solid ${M.brdN}` }}>
+        <div style={{ padding: "20px 0", borderTop: `1px solid ${M.brdN}`, opacity: isOpen ? 1 : 0 }}>
           <button 
             onClick={onLogout}
             className="nav-item"
             style={{ width: "calc(100% - 15px)", padding: "12px 22px", textAlign: "left", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "#dc2626" }}
           >
             <span style={{ fontSize: 18, minWidth: 30 }}>🚪</span>
-            {isOpen && <span style={{ marginLeft: 12, fontSize: 13, fontWeight: 800 }}>Sair</span>}
+            <span style={{ marginLeft: 12, fontSize: 13, fontWeight: 800 }}>Sair</span>
           </button>
         </div>
       </div>
 
-      {/* OVERLAY FOR MOBILE */}
-      {isOpen && (
-        <div 
-          onClick={toggle}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.1)",
-            zIndex: 999,
-          }}
-        />
-      )}
+      {/* OVERLAY FOR MOBILE (Optional, keeping simple for desktop push) */}
     </>
   );
 }

@@ -175,7 +175,7 @@ main, .card, .v-container {
 .page-container {
   min-height: 100vh;
   background-color: var(--bg);
-  padding: 40px 20px 40px 90px;
+  padding: 40px 20px 40px 20px;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
