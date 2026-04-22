@@ -41,6 +41,34 @@ function Badge({ label, color }) {
   );
 }
 
+function AttachmentCard({ filename, label }) {
+  if (!filename) return null;
+  const url = api.fileUrl(filename);
+  const ext = filename.split('.').pop().toLowerCase();
+  
+  const isImg = ["jpg", "jpeg", "png", "webp", "gif"].includes(ext);
+  const isVideo = ["mp4", "mov", "avi", "webm"].includes(ext);
+  const isPdf = ext === "pdf";
+
+  return (
+    <div className="attachment-card" onClick={() => window.open(url, "_blank")}>
+      <div className="attachment-preview">
+        {isImg && <img src={url} alt={label} />}
+        {isVideo && (
+          <video muted preload="metadata">
+            <source src={url} />
+          </video>
+        )}
+        {isPdf && <div className="attachment-icon">📄</div>}
+        {!isImg && !isVideo && !isPdf && <div className="attachment-icon">📎</div>}
+      </div>
+      <div className="attachment-info">
+        <div className="attachment-label">{label}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDelete }) {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const [newStatus, setNewStatus] = useState(chamado.status || "novo");
@@ -265,9 +293,36 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
             </div>
           ) : null}
 
-          {canEdit && (chamado.nf_data || ["espelho", "aguardando_nfd", "aguardando_recolhimento", "aguardando_financeiro", "encerrado"].includes(chamado.status)) && (
-            <DanfeMirror nf={chamado.nf_data} chamado={chamado} />
+          {/* GALERIA DE ANEXOS ORIGINAIS */}
+          {(chamado.nf_file_path || (chamado.evidence_paths && chamado.evidence_paths.length > 0)) && (
+            <div className="attachment-gallery">
+              <div style={{ fontSize: 11, fontWeight: 800, color: M.txM, textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                📁 Documentos e Evidências Originais
+              </div>
+              <div className="attachment-grid">
+                {chamado.nf_file_path && (
+                  <AttachmentCard filename={chamado.nf_file_path} label="Nota Fiscal Original" />
+                )}
+                {chamado.evidence_paths && chamado.evidence_paths.map((p, i) => (
+                  <AttachmentCard key={i} filename={p} label={`Evidência ${i + 1}`} />
+                )}
+              </div>
+            </div>
           )}
+
+          {/* ESPELHO DA NFD (CONDICIONAL) */}
+          {(() => {
+            const hasMirrorData = chamado.nf_data && Object.keys(chamado.nf_data).length > 0;
+            const statusRequiresMirror = ["espelho", "aguardando_nfd", "aguardando_recolhimento", "aguardando_financeiro"].includes(chamado.status);
+            const triageWantsMirror = chamado.triage_result?.precisa_espelho_nfd === true;
+            
+            // Só mostra se for necessário, se o status obrigar ou se já foi iniciado
+            const showMirror = canEdit && (hasMirrorData || statusRequiresMirror || triageWantsMirror);
+            
+            if (!showMirror) return null;
+            
+            return <DanfeMirror nf={chamado.nf_data} chamado={chamado} />;
+          })()}
 
           {/* ÁREA DE COMPARTILHAMENTO */}
           {canShare && (

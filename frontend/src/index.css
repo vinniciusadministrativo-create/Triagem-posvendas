@@ -376,3 +376,76 @@ main, .card, .v-container {
     transform: none !important;
   }
 }
+
+/* -------------------------------
+   GALERIA DE ANEXOS
+--------------------------------- */
+.attachment-gallery {
+  margin-bottom: 25px;
+  background: var(--bg);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.attachment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.attachment-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  height: 180px;
+}
+
+.attachment-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border-color: var(--pri);
+}
+
+.attachment-preview {
+  flex: 1;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.attachment-preview img, .attachment-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.attachment-icon {
+  font-size: 40px;
+}
+
+.attachment-info {
+  padding: 8px;
+  background: #fff;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.attachment-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-h);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
