@@ -57,8 +57,15 @@ export default function PosVendasPage(){
   const[loading,setLoading]=useState(false);
   const[selected,setSelected]=useState(null);
   const[page,setPage]=useState(1);
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const isOperacional = user.role === "operacional";
+  
+  const user = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "{}");
+    } catch (e) {
+      return {};
+    }
+  })();
+  const isOperacional = user?.role === "operacional";
 
   const load=useCallback(async(p=1)=>{
     setLoading(true);
