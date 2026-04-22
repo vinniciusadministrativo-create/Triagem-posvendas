@@ -44,7 +44,7 @@ const frontendPath = path.join(__dirname, "../../frontend/dist");
 app.use(express.static(frontendPath));
 
 // Web App SPA fallback (Must be after all other routes)
-app.get("*", (req, res) => {
+app.get("(.*)", (req, res) => {
   // Se for uma rota de API ou de UPLOADS que não foi capturada acima, retorna 404 real
   if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) {
     return res.status(404).json({ error: "Recurso não encontrado" });
