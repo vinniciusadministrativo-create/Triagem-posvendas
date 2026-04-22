@@ -293,31 +293,45 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
             </div>
           ) : null}
 
-          {/* GALERIA DE ANEXOS ORIGINAIS */}
-          {(chamado.nf_file_path || (chamado.evidence_paths && chamado.evidence_paths.length > 0)) && (
-            <div className="attachment-gallery">
-              <div style={{ fontSize: 11, fontWeight: 800, color: M.txM, textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
-                📁 Documentos e Evidências Originais
+          {/* GALERIA DE ANEXOS ORIGINAIS (CONSOLIDADA) */}
+          {(() => {
+            const hasNF = !!chamado.nf_file_path;
+            const hasEvidence = chamado.evidence_paths && chamado.evidence_paths.length > 0;
+            const hasRessalva = chamado.ressalva_arquivos && chamado.ressalva_arquivos.length > 0;
+
+            if (!hasNF && !hasEvidence && !hasRessalva) return null;
+
+            return (
+              <div className="attachment-gallery">
+                <div style={{ fontSize: 11, fontWeight: 800, color: M.txM, textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                  📁 Documentos e Evidências
+                </div>
+                <div className="attachment-grid">
+                  {hasNF && (
+                    <AttachmentCard filename={chamado.nf_file_path} label="Nota Fiscal Original" />
+                  )}
+                  {hasEvidence && chamado.evidence_paths.map((p, i) => (
+                    <AttachmentCard key={`ev-${i}`} filename={p} label={`Evidência ${i + 1}`} />
+                  ))}
+                  {hasRessalva && chamado.ressalva_arquivos.map((p, i) => (
+                    <AttachmentCard key={`res-${i}`} filename={p} label={`Anexo Extra ${i + 1}`} />
+                  ))}
+                </div>
               </div>
-              <div className="attachment-grid">
-                {chamado.nf_file_path && (
-                  <AttachmentCard filename={chamado.nf_file_path} label="Nota Fiscal Original" />
-                )}
-                {chamado.evidence_paths && chamado.evidence_paths.map((p, i) => (
-                  <AttachmentCard key={i} filename={p} label={`Evidência ${i + 1}`} />
-                ))}
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ESPELHO DA NFD (CONDICIONAL) */}
           {(() => {
-            const hasMirrorData = chamado.nf_data && Object.keys(chamado.nf_data).length > 0;
-            const statusRequiresMirror = ["espelho", "aguardando_nfd", "aguardando_recolhimento", "aguardando_financeiro"].includes(chamado.status);
-            const triageWantsMirror = chamado.triage_result?.precisa_espelho_nfd === true;
+            // Regra: Só mostra o espelho se a triagem disser que precisa (ex: devolução) 
+            // OU se o status atual for de uma etapa que exige o espelho.
+            const triageNeedsMirror = chamado.triage_result?.precisa_espelho_nfd === true;
+            const statusStageRequiresMirror = ["espelho", "aguardando_nfd", "aguardando_recolhimento", "aguardando_financeiro"].includes(chamado.status);
             
-            // Só mostra se for necessário, se o status obrigar ou se já foi iniciado
-            const showMirror = canEdit && (hasMirrorData || statusRequiresMirror || triageWantsMirror);
+            // Caso especial: mesmo se a triagem disse que não, se o Admin preencheu dados manualmente, 
+            // e mudou o status para um que requer espelho, ele deve ver.
+            // Mas para "Preço Errado" (onde triageNeedsMirror é false e o status não é de espelho), ele some.
+            const showMirror = canEdit && (triageNeedsMirror || statusStageRequiresMirror);
             
             if (!showMirror) return null;
             
