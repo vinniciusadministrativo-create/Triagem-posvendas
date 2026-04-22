@@ -88,6 +88,7 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
   const inputRef = useRef(null);
 
   useEffect(() => {
+    window.scrollTo(0, 0); // Sobe a página ao abrir o detalhe
     loadMessages();
     loadContacts();
   }, [chamado.id]);
