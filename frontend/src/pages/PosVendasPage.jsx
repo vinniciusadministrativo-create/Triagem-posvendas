@@ -91,8 +91,8 @@ export default function PosVendasPage(){
     if (!kanbanRef.current) return;
     const { left, width } = kanbanRef.current.getBoundingClientRect();
     const x = e.clientX - left;
-    const edgeSize = 150;
-    const maxSpeed = 12; // Suave mas não tão lento
+    const edgeSize = 250;
+    const maxSpeed = 8; // Mais suave e controlado
 
     if (x < edgeSize) {
       // Proporcional à proximidade da borda esquerda (negativo para scrollLeft diminuir)
