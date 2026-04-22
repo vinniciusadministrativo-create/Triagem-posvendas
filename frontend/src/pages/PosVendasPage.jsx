@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { api } from "../api";
 import ChamadoDetail from "../components/ChamadoDetail";
 
@@ -69,6 +69,49 @@ export default function PosVendasPage(){
 
   useEffect(()=>{load(1);},[]);
 
+  // AUTO-SCROLL LOGIC
+  const kanbanRef = useRef(null);
+  const scrollSpeed = useRef(0);
+  const rafRef = useRef(null);
+
+  const startScrolling = () => {
+    if (rafRef.current) return;
+    const loop = () => {
+      if (kanbanRef.current && scrollSpeed.current !== 0) {
+        kanbanRef.current.scrollLeft += scrollSpeed.current;
+        rafRef.current = requestAnimationFrame(loop);
+      } else {
+        rafRef.current = null;
+      }
+    };
+    rafRef.current = requestAnimationFrame(loop);
+  };
+
+  const handleEdgeScroll = (e) => {
+    if (!kanbanRef.current) return;
+    const { left, width } = kanbanRef.current.getBoundingClientRect();
+    const x = e.clientX - left;
+    const edgeSize = 150;
+    const maxSpeed = 12; // Suave mas não tão lento
+
+    if (x < edgeSize) {
+      // Proporcional à proximidade da borda esquerda (negativo para scrollLeft diminuir)
+      scrollSpeed.current = -maxSpeed * (1 - x / edgeSize);
+      startScrolling();
+    } else if (x > width - edgeSize) {
+      // Proporcional à proximidade da borda direita (positivo para scrollLeft aumentar)
+      const dist = width - x;
+      scrollSpeed.current = maxSpeed * (1 - dist / edgeSize);
+      startScrolling();
+    } else {
+      scrollSpeed.current = 0;
+    }
+  };
+
+  const stopScrolling = () => {
+    scrollSpeed.current = 0;
+  };
+
   const handleStatusChange=(id,newStatus)=>{
     setChamados(p=>p.map(c=>c.id===id?{...c,status:newStatus}:c));
     setSelected(null);
@@ -91,7 +134,17 @@ export default function PosVendasPage(){
         <p style={{color:M.txM}}>Acompanhamento e triagem de solicitações em tempo real.</p>
       </header>
 
-      <div style={{ display: "flex", gap: 15, overflowX: "auto", paddingBottom: 20 }}>
+      <div 
+        ref={kanbanRef}
+        onMouseMove={handleEdgeScroll}
+        onMouseLeave={stopScrolling}
+        onDragOver={(e) => {
+          e.preventDefault();
+          handleEdgeScroll(e);
+        }}
+        onDrop={stopScrolling}
+        style={{ display: "flex", gap: 15, overflowX: "auto", paddingBottom: 20 }}
+      >
         {STATUSES.filter(s => s.id !== "").map(column => {
           const colChamados = chamados.filter(c => c.status === column.id);
           return (
