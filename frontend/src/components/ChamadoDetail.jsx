@@ -178,7 +178,7 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
   };
 
   return (
-    <div className="modal-wrapper" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 20 }}>
+    <div className="modal-wrapper">
       <div className="modal-content">
         {/* HEADER */}
         <div style={{ padding: 20, borderBottom: `1px solid ${M.brdN}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>

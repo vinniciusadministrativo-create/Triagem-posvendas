@@ -191,6 +191,54 @@ main, .card, .v-container {
   display: flex;
   flex: 1;
   overflow: hidden;
+  height: 100%;
+}
+
+.split-left {
+  flex: 1.2;
+  padding: 30px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: #fff;
+  scrollbar-width: thin;
+}
+
+.split-right {
+  flex: 0.8;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  min-width: 380px;
+}
+
+.modal-wrapper {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: #fff;
+  width: 95%;
+  max-width: 1400px;
+  height: 90vh;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+  animation: modalEnter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalEnter {
+  from { opacity: 0; transform: scale(0.95) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .table-wrapper {
@@ -260,6 +308,64 @@ main, .card, .v-container {
      padding: 10px !important;
   }
   .modal-content {
-     max-height: 95vh !important;
+     height: 100vh !important;
+     width: 100% !important;
+     max-height: none !important;
+     border-radius: 0 !important;
+  }
+  .split-left {
+    padding: 15px !important;
+  }
+  .split-right {
+    min-width: 100% !important;
+  }
+}
+
+/* -------------------------------
+   ESTILOS DE IMPRESSÃO (ESTRUTURADOS)
+--------------------------------- */
+@media print {
+  /* Esconde tudo */
+  body * {
+    visibility: hidden !important;
+  }
+  
+  /* Garante que o container de impressão e seus filhos sejam visíveis */
+  #danfe-print, #danfe-print * {
+    visibility: visible !important;
+  }
+
+  /* Posiciona o DANFE no topo da página */
+  #danfe-print {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+    padding: 10mm !important;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Força ocultação de elementos indesejáveis */
+  .no-print, .no-print *, button, select, .modal-wrapper::before {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Reseta containers pais para não quebrarem o fluxo da impressão */
+  html, body, #root, .modal-wrapper, .modal-content, .split-view, .split-left {
+    display: block !important;
+    overflow: visible !important;
+    position: static !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: auto !important;
+    height: auto !important;
+    transform: none !important;
   }
 }
