@@ -80,6 +80,7 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
   const messagesEndRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [savingRessalva, setSavingRessalva] = useState(false);
+  const [history, setHistory] = useState([]);
 
   // MENTIONS
   const [contacts, setContacts] = useState([]);
@@ -91,7 +92,15 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
     window.scrollTo(0, 0); // Sobe a página ao abrir o detalhe
     loadMessages();
     loadContacts();
+    if (isAdmin || isPosVendas) loadHistory();
   }, [chamado.id]);
+
+  const loadHistory = async () => {
+    try {
+      const res = await api.getHistory(chamado.id);
+      setHistory(res.history || []);
+    } catch(e) {}
+  };
 
   const loadContacts = async () => {
     try {
@@ -182,6 +191,7 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
     try {
       await api.updateStatus(chamado.id, newStatus);
       if (onStatusChange) onStatusChange(chamado.id, newStatus);
+      if (isAdmin || isPosVendas) loadHistory();
       alert("Status atualizado!");
     } catch (e) {
       alert(e.message);
@@ -234,6 +244,28 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
             <div style={{ fontSize: 11, fontWeight: 800, color: M.txM, textTransform: "uppercase", marginBottom: 8 }}>Descrição da Solicitação</div>
             <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: M.tx }}>{chamado.descricao}</p>
           </div>
+
+          {/* LINHA DO TEMPO (HISTÓRICO) - Apenas Admin e Pos-Vendas */}
+          {(isAdmin || isPosVendas) && history.length > 0 && (
+            <div style={{ marginBottom: 25, padding: "0 10px" }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: M.txM, textTransform: "uppercase", marginBottom: 15, display: "flex", alignItems: "center", gap: 6 }}>
+                🕒 Histórico de Movimentação
+              </div>
+              <div style={{ borderLeft: `2px solid ${M.brdN}`, marginLeft: 8, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 18 }}>
+                {history.map((h, i) => (
+                  <div key={h.id} style={{ position: "relative" }}>
+                    <div style={{ position: "absolute", left: -27, top: 4, width: 12, height: 12, borderRadius: "50%", background: i === 0 ? M.pri : M.brdL, border: `2px solid #fff`, boxShadow: "0 0 0 2px #fff" }} />
+                    <div style={{ fontSize: 13, fontWeight: 700, color: M.tx }}>
+                      {h.user_name} <span style={{ fontWeight: 400, color: M.txM }}>moveu para</span> {STATUSES.find(s => s.id === h.status_novo)?.label || h.status_novo}
+                    </div>
+                    <div style={{ fontSize: 11, color: M.txD, marginTop: 2 }}>
+                      {new Date(h.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* RESSALVA EDITÁVEL PARA O VENDEDOR OU VISÍVEL PARA ADMIN */}
           {isOwner ? (

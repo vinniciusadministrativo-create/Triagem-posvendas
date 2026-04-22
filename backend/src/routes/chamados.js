@@ -219,14 +219,30 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
   try {
     const { status } = req.body;
     if (!status) return res.status(400).json({ error: "Status obrigatório" });
+
+    // Busca status atual para o histórico
+    const oldRes = await pool.query("SELECT status FROM chamados WHERE id = $1", [req.params.id]);
+    const oldStatus = oldRes.rows[0]?.status;
+
     const { rows } = await pool.query(
       `UPDATE chamados SET status = $1, etapa_destino = $1, updated_at = NOW()
        WHERE id = $2 RETURNING *`,
       [status, req.params.id]
     );
     if (!rows[0]) return res.status(404).json({ error: "Chamado não encontrado" });
+
+    // Grava no histórico se mudou
+    if (oldStatus !== status) {
+      await pool.query(
+        `INSERT INTO chamado_historico (chamado_id, user_id, status_anterior, status_novo)
+         VALUES ($1, $2, $3, $4)`,
+        [req.params.id, req.user.id, oldStatus, status]
+      );
+    }
+
     res.json({ chamado: rows[0] });
   } catch (e) {
+    console.error(e);
     res.status(500).json({ error: "Erro ao atualizar status" });
   }
 });
@@ -366,6 +382,24 @@ router.post("/:id/messages", authMiddleware(), upload.single("anexo"), async (re
   } catch (e) {
     console.error("Erro ao enviar mensagem:", e);
     res.status(500).json({ error: "Erro ao enviar mensagem" });
+  }
+});
+
+// GET /api/chamados/:id/history — busca histórico de movimentação
+router.get("/:id/history", authMiddleware(["pos_vendas", "admin"]), async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT h.*, u.name as user_name, u.role as user_role
+       FROM chamado_historico h
+       LEFT JOIN users u ON h.user_id = u.id
+       WHERE h.chamado_id = $1
+       ORDER BY h.created_at DESC`,
+      [req.params.id]
+    );
+    res.json({ history: rows });
+  } catch (e) {
+    console.error("Erro ao buscar histórico:", e);
+    res.status(500).json({ error: "Erro ao buscar histórico" });
   }
 });
 
