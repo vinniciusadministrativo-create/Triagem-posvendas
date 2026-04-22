@@ -45,25 +45,25 @@ p, span, div {
 
 * {
   box-sizing: border-box;
-  /* Transição suave em tudo para fluidez */
   transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-  caret-color: transparent; /* Remove o cursor piscante global */
+  caret-color: transparent; /* Remove o cursor de inserção global */
 }
 
-input, textarea {
-  caret-color: auto; /* Mantém o cursor apenas onde é necessário digitar */
+input, textarea, [contenteditable="true"] {
+  caret-color: auto !important; /* Estritamente onde é necessário digitar */
 }
 
-/* Evita que o cursor de digitação "pisque" em locais de apenas leitura */
-body, button, label, .sidebar, .card-header, h1, h2, h3, span, svg, .nav-item {
+/* Bloqueia o cursor de texto em áreas de clique e navegação */
+body, button, label, .sidebar, .card-header, h1, h2, h3, h4, span, svg, .nav-item, .attachment-card {
   user-select: none;
   -webkit-user-select: none;
 }
 
-/* Permite seleção apenas onde realmente importa */
-p, input, textarea, .selectable-text, .chat-bubble {
+/* Permite seleção apenas onde o conteúdo é relevante para cópia */
+p, .selectable-text, .chat-bubble, .danfe-mirror-container {
   user-select: text;
   -webkit-user-select: text;
+  cursor: default;
 }
 
 body {
