@@ -90,24 +90,21 @@ export default function PosVendasPage(){
 
     const handleGlobalMouseMove = (e) => {
       if (!kanbanRef.current) return;
-      const rect = kanbanRef.current.getBoundingClientRect();
       
-      // Verifica se o mouse está na altura do Kanban
-      if (e.clientY < rect.top || e.clientY > rect.bottom) {
-        scrollSpeed.current = 0;
-        return;
-      }
+      const mouseX = e.clientX;
+      const screenWidth = window.innerWidth;
+      const edgeSize = 350; // Área de gatilho bem generosa
+      const maxSpeed = 10;  // Velocidade ajustada
 
-      const x = e.clientX - rect.left;
-      const edgeSize = 350; // Área bem maior conforme solicitado
-      const maxSpeed = 6;    // Mais suave
-
-      if (x >= 0 && x < edgeSize) {
-        scrollSpeed.current = -maxSpeed * (1 - x / edgeSize);
+      if (mouseX < edgeSize) {
+        // Lado ESQUERDO: mouseX varia de 0 a edgeSize
+        // Se mouseX é 0, velocidade é maxSpeed (negativo para scrollLeft diminuir)
+        scrollSpeed.current = -maxSpeed * (1 - mouseX / edgeSize);
         startScrolling();
-      } else if (x > rect.width - edgeSize && x <= rect.width) {
-        const dist = rect.width - x;
-        scrollSpeed.current = maxSpeed * (1 - dist / edgeSize);
+      } else if (mouseX > screenWidth - edgeSize) {
+        // Lado DIREITO: mouseX varia de (screenWidth - edgeSize) a screenWidth
+        const distFromRightEdge = screenWidth - mouseX;
+        scrollSpeed.current = maxSpeed * (1 - distFromRightEdge / edgeSize);
         startScrolling();
       } else {
         scrollSpeed.current = 0;
