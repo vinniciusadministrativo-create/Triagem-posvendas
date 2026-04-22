@@ -157,8 +157,8 @@ router.post("/:id/share", authMiddleware(["vendedor", "pos_vendas", "admin"]), a
   }
 });
 
-// GET /api/chamados — pos_vendas/admin lista com filtros
-router.get("/", authMiddleware(["pos_vendas", "admin"]), async (req, res) => {
+// GET /api/chamados — pos_vendas/admin/operacional lista com filtros
+router.get("/", authMiddleware(["pos_vendas", "admin", "operacional"]), async (req, res) => {
   try {
     const { status, tipo, vendedor_id, from, to, page = 1, limit = 20, exclude_old_encerrados } = req.query;
     const offset = (page - 1) * limit;
@@ -214,8 +214,8 @@ router.get("/:id", authMiddleware(), async (req, res) => {
   }
 });
 
-// PATCH /api/chamados/:id/status — pos_vendas atualiza etapa
-router.patch("/:id/status", authMiddleware(["pos_vendas", "admin"]), async (req, res) => {
+// PATCH /api/chamados/:id/status — pos_vendas/admin/operacional atualiza etapa
+router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"]), async (req, res) => {
   try {
     const { status } = req.body;
     if (!status) return res.status(400).json({ error: "Status obrigatório" });
