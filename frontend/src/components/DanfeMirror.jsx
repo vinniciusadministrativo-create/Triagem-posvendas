@@ -49,20 +49,33 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
   const [origProds, setOrigProds] = useState([]);
   const [saving, setSaving] = useState(false);
 
+  const upd = (field, val) => {
+    setLocalNF(prev => ({ ...prev, [field]: val }));
+  };
+
   useEffect(() => {
+    if (!nfRaw) return;
     let nf = nfRaw;
     if (typeof nf === "string") {
       try { nf = JSON.parse(nf); } catch(e) { nf = {}; }
     }
     const parsed = nf || {};
-    setLocalNF(parsed);
-    // Guarda originais para comparação de destaque
+    
+    // IMPORTANTE: Só sobrescreve se for um novo chamado ou se o estado local estiver vazio
+    // Isso evita que o estado seja resetado enquanto o usuário está digitando
+    setLocalNF(prev => {
+      if (prev.produtos && prev.produtos.length > 0 && chamado?.id === prev.chamado_id_ref) {
+         return prev;
+      }
+      return { ...parsed, chamado_id_ref: chamado?.id };
+    });
+
     if (Array.isArray(parsed.produtos)) {
       setOrigProds(parsed.produtos.map(p => ({ ...p })));
     }
-  }, [nfRaw]);
+  }, [nfRaw, chamado?.id]);
 
-  // Recalcula totais gerais da nota com base nos itens
+  // Recalcula totais gerais da nota com base nos itens (Mantido para compatibilidade se necessário)
   const recalcTotals = (allProds) => {
     let sum = 0;
     allProds.forEach(p => {
@@ -70,44 +83,60 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
     });
     
     const formattedSum = fmtBR(sum);
-    // Aqui poderíamos recalcular impostos proporcionalmente, 
-    // mas o usuário pediu apenas ajuste de valor de acordo com a qtde.
-    // Assim, atualizamos os totais principais.
     setLocalNF(prev => ({
       ...prev,
       produtos: allProds,
       valor_total_produtos: formattedSum,
-      valor_total_nota: formattedSum // Por padrão, nota total = prod total, usuário ajusta se tiver frete/etc.
+      valor_total_nota: formattedSum
     }));
   };
 
-  // Atualiza um campo de um produto e recalcula valor_total se quantidade ou valor_unitario mudou
-  const updProd = (i, field, val, allProds) => {
-    const newProds = [...allProds];
-    newProds[i] = { ...newProds[i], [field]: val };
+  // Atualiza um campo de um produto e recalcula totais se necessário
+  const updProd = (i, field, val) => {
+    setLocalNF(prev => {
+      const newProds = [...(prev.produtos || [])];
+      if (!newProds[i]) return prev;
 
-    if (field === "quantidade" || field === "valor_unitario") {
-      const qtde = parseNum(field === "quantidade" ? val : newProds[i].quantidade);
-      const unit = parseNum(field === "valor_unitario" ? val : newProds[i].valor_unitario);
-      if (qtde >= 0 && unit >= 0) {
+      newProds[i] = { ...newProds[i], [field]: val };
+
+      // Se mudar Qtde ou Preço, recalcula total do item
+      if (field === "quantidade" || field === "valor_unitario") {
+        const qtde = parseNum(field === "quantidade" ? val : newProds[i].quantidade);
+        const unit = parseNum(field === "valor_unitario" ? val : newProds[i].valor_unitario);
         newProds[i].valor_total = fmtBR(qtde * unit);
       }
-      recalcTotals(newProds);
-    } else {
-      upd("produtos", newProds);
-    }
+
+      // Recalcula totais da nota
+      let sum = 0;
+      newProds.forEach(p => { sum += parseNum(p.valor_total); });
+      const totalStr = fmtBR(sum);
+
+      return {
+        ...prev,
+        produtos: newProds,
+        valor_total_produtos: totalStr,
+        valor_total_nota: totalStr
+      };
+    });
   };
 
   const removeProd = (i) => {
-    const newProds = localNF.produtos.filter((_, idx) => idx !== i);
-    recalcTotals(newProds);
+    setLocalNF(prev => {
+      const newProds = (prev.produtos || []).filter((_, idx) => idx !== i);
+      let sum = 0;
+      newProds.forEach(p => { sum += parseNum(p.valor_total); });
+      const totalStr = fmtBR(sum);
+      return { ...prev, produtos: newProds, valor_total_produtos: totalStr, valor_total_nota: totalStr };
+    });
   };
 
   const addProd = () => {
-    const newProds = [...(localNF.produtos || []), {
-      codigo: "", descricao: "", ncm: "", cst: "", cfop: "5202", unidade: "UN", quantidade: "0", valor_unitario: "0,00", valor_total: "0,00"
-    }];
-    upd("produtos", newProds);
+    setLocalNF(prev => ({
+      ...prev,
+      produtos: [...(prev.produtos || []), {
+        codigo: "", descricao: "", ncm: "", cst: "", cfop: "5202", unidade: "UN", quantidade: "0", valor_unitario: "0,00", valor_total: "0,00"
+      }]
+    }));
   };
 
   const save = async () => {
@@ -340,7 +369,7 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
                               ) : (
                                 <input 
                                   value={p[f] || ""} 
-                                  onChange={e => updProd(i, f, e.target.value, prods)}
+                                  onChange={e => updProd(i, f, e.target.value)}
                                   style={{ 
                                     fontSize: "6.5px", width: "100%", border: "none", 
                                     background: ["quantidade","valor_unitario"].includes(f) ? "#fff9c4" : "#ffffff", 
