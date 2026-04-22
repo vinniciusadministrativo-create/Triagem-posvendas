@@ -305,7 +305,7 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
                 )}
                 {chamado.evidence_paths && chamado.evidence_paths.map((p, i) => (
                   <AttachmentCard key={i} filename={p} label={`Evidência ${i + 1}`} />
-                )}
+                ))}
               </div>
             </div>
           )}
