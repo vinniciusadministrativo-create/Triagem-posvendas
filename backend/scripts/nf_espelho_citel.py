@@ -142,8 +142,9 @@ def extrair_dados(texto, tabelas):
         _buscar(r"(?:NOME\s*/\s*RAZ[ÃA]O\s*SOCIAL|RAZ[ÃA]O\s*SOCIAL)[:\s]*\n?([^\n\d]{5,})", dt) or
         _buscar(r"(?:DESTINAT[ÁA]RIO|REMETENTE)[:\s]*\n?([^\n\d]{5,})", dt)
     )
-    dest_doc = _buscar(r"([\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}|\d{3}\.\d{3}\.\d{3}-\d{2}])", dt) or \
-               _buscar(r"(?:CNPJ\s*/?\s*CPF|CNPJ|CPF)[:\s]*\n?([\d./-]+)", dt)
+    # Procura CNPJ ou CPF puro no bloco
+    doc_match = re.search(r"(\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}|\d{3}\.\d{3}\.\d{3}-\d{2})", dt)
+    dest_doc = doc_match.group(1) if doc_match else _buscar(r"(?:CNPJ\s*/?\s*CPF|CNPJ|CPF)[:\s]*\n?([\d./-]+)", dt)
     
     dest_end = _buscar(r"(?:ENDERE[ÇC]O)[:\s]*\n?(.+?)(?:\n|BAIRRO|MUNIC|CEP)", dt)
     dest_bairro = _buscar(r"(?:BAIRRO\s*/?\s*DISTRITO|BAIRRO)[:\s]*\n?(.+?)(?:\n|CEP|MUNIC)", dt)
@@ -247,14 +248,18 @@ def _extrair_produtos(texto, tabelas):
             # Linha pode ser produto válido
             rows.append(cells)
 
-    # Fallback: regex no texto bruto
+    # Fallback: regex no texto bruto (mais flexível)
     if not rows:
-        linhas = re.findall(
-            r"^(\d{3,6})\s+(.+?)\s+(\d{8})\s+(\d{3})\s+(\d{4})\s+(\w{2,4})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)",
-            texto, re.MULTILINE
-        )
+        # Regex que procura: Codigo, Descrição (texto), NCM (8 dig), CST (3 dig), CFOP (4 dig), UN (2-4 letras), Qtd, ValorUnit, ValorTotal
+        # Usamos regex que aceita variações de espaços
+        p_regex = r"(\d{3,7})\s+([A-Z0-0\s\*.-]+?)\s+(\d{8})\s+(\d{3})\s+(\d{4})\s+([A-Z]{2,4})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)"
+        linhas = re.findall(p_regex, texto, re.MULTILINE)
         for l in linhas:
-            rows.append([l[0], l[1], l[2], l[3], l[4], l[5], l[6], l[7], "0,00", l[7], l[8], "0,00", "0,00", "0,00", "0,00", "0,00"])
+            # Força CFOP 5202 e organiza colunas
+            # l[0]=cod, l[1]=desc, l[2]=ncm, l[3]=cst, l[4]=cfop, l[5]=un, l[6]=qtd, l[7]=unit, l[8]=total
+            r = list(l)
+            r[4] = "5202" # Força CFOP
+            rows.append([r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], "0,00", r[7], r[8]])
 
     return {"rows": rows}
 
