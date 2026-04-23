@@ -82,12 +82,8 @@ const os = require("os");
 router.post("/extract-nf", authMiddleware(), async (req, res) => {
   const { fileB64, mime, isTest } = req.body;
 
-  if (isTest || !process.env.ANTHROPIC_API_KEY) {
-    return res.json({ numero_nf: "998877", razao_social_dest: "LOJA TESTE LTDA", produtos: [{ descricao: "PRODUTO TESTE", quantidade: "10" }], valor_total_nota: "1.000,00" });
-  }
-
-  // Tentar extração determinística se for PDF
-  if (mime === "application/pdf") {
+  // ── EXTRAÇÃO DETERMINÍSTICA via Python (sempre tenta primeiro para PDFs) ──
+  if (mime === "application/pdf" && fileB64) {
     try {
       const tempPath = path.join(os.tmpdir(), `nf_${Date.now()}.pdf`);
       fs.writeFileSync(tempPath, fileB64, "base64");
@@ -111,7 +107,7 @@ router.post("/extract-nf", authMiddleware(), async (req, res) => {
         peso_liquido: det.transporte?.peso_liquido || "0,00",
         quantidade_volumes: det.transporte?.quantidade || "0",
         especie_volumes: det.transporte?.especie || "",
-        cliente: det.destinatario?.nome || "", // Campo esperado pelo frontend
+        cliente: det.destinatario?.nome || "",
         razao_social_dest: det.destinatario?.nome || "",
         cnpj: det.destinatario?.cnpj_cpf || "",
         endereco_dest: det.destinatario?.endereco || "",
@@ -131,8 +127,13 @@ router.post("/extract-nf", authMiddleware(), async (req, res) => {
         isDeterministic: true
       });
     } catch (e) {
-      console.warn("Extração determinística falhou, tentando IA...", e.message);
+      console.warn("Extração determinística falhou, usando fallback...", e.message);
     }
+  }
+
+  // ── Fallback: dados de teste ou IA ──
+  if (isTest || !process.env.ANTHROPIC_API_KEY) {
+    return res.json({ numero_nf: "998877", razao_social_dest: "LOJA TESTE LTDA", produtos: [{ descricao: "PRODUTO TESTE", quantidade: "10" }], valor_total_nota: "1.000,00" });
   }
 
   try {
