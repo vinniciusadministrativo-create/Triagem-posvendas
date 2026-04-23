@@ -277,7 +277,7 @@ def _extrair_produtos(texto, tabelas):
 # ═══════════════════════════════════════════════════════════════
 
 W, H = A4
-MARGIN = 10 * mm
+MARGIN = 8 * mm
 UW = W - 2 * MARGIN
 
 def _s(name, font="Helvetica", sz=8, color=black, align=TA_LEFT, bold=False, leading=None):
@@ -285,20 +285,28 @@ def _s(name, font="Helvetica", sz=8, color=black, align=TA_LEFT, bold=False, lea
     return ParagraphStyle(name, fontName=fn, fontSize=sz, textColor=color, alignment=align, leading=leading or sz + 2.5)
 
 S_COMPANY = _s("company", sz=11, bold=True)
-S_ADDR = _s("addr", sz=8, align=TA_CENTER, leading=11)
-S_ESPELHO = _s("espelho", sz=20, bold=True, align=TA_RIGHT)
+S_ADDR = _s("addr", sz=7.5, align=TA_CENTER, leading=10)
+S_ESPELHO = _s("espelho", sz=18, bold=True, align=TA_RIGHT)
 S_VALUE = _s("value", sz=9, bold=True)
 S_VALUE_N = _s("value_n", sz=9)
 S_SECTION = _s("section", sz=8, bold=True)
-S_HPROD = _s("hprod", sz=5.5, bold=True, align=TA_CENTER, leading=7.5)
-S_CPROD = _s("cprod", sz=6.5, align=TA_CENTER)
-S_CPROD_L = _s("cprodl", sz=6.5, align=TA_LEFT)
+S_HPROD = _s("hprod", sz=6, bold=True, align=TA_CENTER, leading=8)
+S_CPROD = _s("cprod", sz=7, align=TA_CENTER)
+S_CPROD_L = _s("cprodl", sz=7, align=TA_LEFT)
+S_CPROD_R = _s("cprodr", sz=7, align=TA_RIGHT)
 S_INFO_LBL = _s("info_lbl", sz=7, bold=True)
 S_INFO = _s("info", sz=7, leading=10)
 S_FOOTER_L = _s("footer_l", sz=6, color=HexColor("#555555"))
 S_FOOTER_R = _s("footer_r", sz=6, color=HexColor("#555555"), align=TA_RIGHT)
 
-BASE = TableStyle([("GRID", (0, 0), (-1, -1), 0.4, black), ("VALIGN", (0, 0), (-1, -1), "TOP"), ("TOPPADDING", (0, 0), (-1, -1), 1.5), ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5), ("LEFTPADDING", (0, 0), (-1, -1), 3), ("RIGHTPADDING", (0, 0), (-1, -1), 3)])
+BASE = TableStyle([
+    ("GRID", (0, 0), (-1, -1), 0.4, black),
+    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ("TOPPADDING", (0, 0), (-1, -1), 1.5),
+    ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
+    ("LEFTPADDING", (0, 0), (-1, -1), 3),
+    ("RIGHTPADDING", (0, 0), (-1, -1), 3)
+])
 
 def cp(label, value, val_style=S_VALUE):
     txt = f'<font size="6" color="#333333">{label}</font><br/>{value if value else ""}'
@@ -308,23 +316,79 @@ def _sec(title):
     return (Spacer(1, 2.5 * mm), Paragraph(f"<u><b>{title}</b></u>", S_SECTION), Spacer(1, 0.5 * mm))
 
 def gerar_espelho(dados, output_path):
-    d = dados; emit = d["emitente"]; dest = d["destinatario"]; val = d["valores"]; transp = d.get("transporte", {}); prods = d.get("produtos", {}); dups = d.get("duplicatas", []); info = d.get("info_complementar", "")
+    d = dados; emit = d.get("emitente", {}); dest = d.get("destinatario", {}); val = d.get("valores", {}); transp = d.get("transporte", {}); prods = d.get("produtos", {}); dups = d.get("duplicatas", []); info = d.get("info_complementar", "")
     story = []
-    story.append(Table([[Paragraph(f"<b>{emit['nome']}</b>", S_COMPANY), Paragraph("<b>ESPELHO</b>", S_ESPELHO)]], colWidths=[UW * 0.65, UW * 0.35], rowHeights=[18]))
+    
+    # ── HEADER ──
+    story.append(Table([[Paragraph(f"<b>{emit.get('nome', 'MARIN LOGISTICA E COMERCIO LTDA')}</b>", S_COMPANY), Paragraph("<b>ESPELHO DANFE</b>", S_ESPELHO)]], colWidths=[UW * 0.7, UW * 0.3], rowHeights=[18]))
     story[-1].setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 0.4, black), ("LINEAFTER", (0, 0), (0, 0), 0.4, black), ("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
-    story.append(Table([[Paragraph(f'{emit.get("endereco", "")}<br/>CEP: {emit.get("cep", "")}', S_ADDR), Paragraph("Espelho Rascunho", _s("_sub", sz=9, align=TA_CENTER))]], colWidths=[UW * 0.65, UW * 0.35], rowHeights=[40]))
+    
+    story.append(Table([[
+        Paragraph(f'{emit.get("endereco", "RUA VALDO GERLACH, 07 - DISTRITO INDUSTRIAL - SAO JOSE - SC")}<br/>CEP: {emit.get("cep", "88104-743")}', S_ADDR), 
+        Paragraph("Documento Auxiliar de Conferência", _s("_sub", sz=8, align=TA_CENTER))
+    ]], colWidths=[UW * 0.7, UW * 0.3], rowHeights=[35]))
     story[-1].setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 0.4, black), ("LINEBEFORE", (1, 0), (1, 0), 0.4, black), ("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
-    story.append(Table([[cp("NATUREZA DA OPERAÇÃO", d.get("natureza_op", ""))]], colWidths=[UW])); story[-1].setStyle(BASE)
-    story.append(Table([[cp("INSCRIÇÃO ESTADUAL", emit.get("ie", "")), cp("CNPJ", emit.get("cnpj", ""))]], colWidths=[UW * 0.5, UW * 0.5])); story[-1].setStyle(BASE)
-    for el in _sec("DESTINATÁRIO"): story.append(el)
+    
+    story.append(Table([[cp("NATUREZA DA OPERAÇÃO", d.get("natureza_op", "5202 - DEVOLUÇÃO DE COMPRA PARA COMERCIALIZAÇÃO"))]], colWidths=[UW])); story[-1].setStyle(BASE)
+    story.append(Table([[cp("INSCRIÇÃO ESTADUAL", emit.get("ie", "261935348")), cp("CNPJ", emit.get("cnpj", "04.002.562/0004-78"))]], colWidths=[UW * 0.5, UW * 0.5])); story[-1].setStyle(BASE)
+    
+    # ── DESTINATÁRIO ──
+    for el in _sec("DESTINATÁRIO / REMETENTE"): story.append(el)
     story.append(Table([[cp("NOME / RAZÃO SOCIAL", dest.get("nome", "")), cp("CNPJ / CPF", dest.get("cnpj_cpf", ""))]], colWidths=[UW * 0.7, UW * 0.3])); story[-1].setStyle(BASE)
-    story.append(Table([[cp("ENDEREÇO", dest.get("endereco", "")), cp("MUNICIPIO", dest.get("municipio", "")), cp("UF", dest.get("uf", ""))]], colWidths=[UW * 0.6, UW * 0.3, UW * 0.1])); story[-1].setStyle(BASE)
+    story.append(Table([[cp("ENDEREÇO", dest.get("endereco", "")), cp("BAIRRO", dest.get("bairro", "")), cp("CEP", dest.get("cep", "")), cp("EMISSÃO", d.get("data_emissao", ""))]], colWidths=[UW * 0.45, UW * 0.25, UW * 0.15, UW * 0.15])); story[-1].setStyle(BASE)
+    story.append(Table([[cp("MUNICÍPIO", dest.get("municipio", "")), cp("UF", dest.get("uf", "")), cp("IE", dest.get("ie", ""))]], colWidths=[UW * 0.7, UW * 0.1, UW * 0.2])); story[-1].setStyle(BASE)
+    
+    # ── VALORES ──
     for el in _sec("CÁLCULO DO IMPOSTO"): story.append(el)
-    story.append(Table([[cp("VLR TOTAL PRODUTOS", val.get("total_produtos", "0,00")), cp("VLR TOTAL NOTA", val.get("total_nota", "0,00"))]], colWidths=[UW * 0.5, UW * 0.5])); story[-1].setStyle(BASE)
-    for el in _sec("DADOS DOS PRODUTOS"): story.append(el)
-    rows = [[Paragraph(h, S_HPROD) for h in ["COD", "DESCRIÇÃO", "NCM", "QTD", "UNIT", "TOTAL"]]]
-    for r in prods.get("rows", []): rows.append([Paragraph(str(c), S_CPROD) for c in (r[0], r[1], r[2], r[6], r[7], r[10])])
-    pt = Table(rows, colWidths=[UW*0.1]*6); pt.setStyle(BASE); story.append(pt)
+    story.append(Table([[
+        cp("BASE CÁLCULO ICMS", val.get("base_icms", "0,00")), 
+        cp("VALOR ICMS", val.get("valor_icms", "0,00")), 
+        cp("BASE ICMS ST", val.get("base_icms_st", "0,00")), 
+        cp("VALOR ICMS ST", val.get("valor_icms_st", "0,00")), 
+        cp("VLR TOTAL PROD", val.get("total_produtos", "0,00"))
+    ]], colWidths=[UW * 0.2]*5)); story[-1].setStyle(BASE)
+    story.append(Table([[
+        cp("VALOR FRETE", val.get("frete", "0,00")), 
+        cp("VALOR SEGURO", val.get("seguro", "0,00")), 
+        cp("DESCONTO", val.get("desconto", "0,00")), 
+        cp("OUTRAS DESP", val.get("outras_despesas", "0,00")), 
+        cp("VALOR IPI", val.get("valor_ipi", "0,00")),
+        cp("VLR TOTAL NOTA", val.get("total_nota", "0,00"))
+    ]], colWidths=[UW * 0.166]*6)); story[-1].setStyle(BASE)
+    
+    # ── PRODUTOS ──
+    for el in _sec("DADOS DOS PRODUTOS / SERVIÇOS"): story.append(el)
+    p_header = [Paragraph(h, S_HPROD) for h in ["CÓD.", "DESCRIÇÃO DOS PRODUTOS", "NCM/SH", "CFOP", "UN", "QTD", "V.UNIT", "V.TOTAL"]]
+    rows = [p_header]
+    
+    # Larguras das colunas: Cod(10%), Desc(38%), NCM(10%), CFOP(8%), UN(6%), Qtd(8%), Unit(10%), Total(10%) = 100%
+    p_cols = [UW*0.1, UW*0.38, UW*0.1, UW*0.08, UW*0.06, UW*0.08, UW*0.1, UW*0.1]
+    
+    for r in prods.get("rows", []):
+        # r[0]=cod, r[1]=desc, r[2]=ncm, r[3]=cst, r[4]=cfop, r[5]=un, r[6]=qtd, l[7]=unit, l[8]=base, l[9]=unit, l[10]=total
+        rows.append([
+            Paragraph(str(r[0]), S_CPROD), 
+            Paragraph(str(r[1]), S_CPROD_L), 
+            Paragraph(str(r[2]), S_CPROD),
+            Paragraph(str(r[4]), S_CPROD),
+            Paragraph(str(r[5]), S_CPROD),
+            Paragraph(str(r[6]), S_CPROD_R),
+            Paragraph(str(r[7]), S_CPROD_R),
+            Paragraph(str(r[10]), S_CPROD_R)
+        ])
+    
+    if len(rows) > 1:
+        pt = Table(rows, colWidths=p_cols, repeatRows=1)
+        pt.setStyle(BASE)
+        story.append(pt)
+    else:
+        story.append(Paragraph("<i>Nenhum item encontrado</i>", S_CPROD))
+
+    # ── FOOTER ──
+    for el in _sec("DADOS ADICIONAIS"): story.append(el)
+    info_text = f"INFORMAÇÕES COMPLEMENTARES:<br/>{info if info else 'ESPELHO NFD - OPERAÇÃO DE DEVOLUÇÃO'}"
+    story.append(Table([[Paragraph(info_text, S_INFO)]], colWidths=[UW], rowHeights=[60]))
+    story[-1].setStyle(BASE)
 
     def watermark(c, doc):
         c.saveState(); c.setFont("Helvetica-Bold", 50); c.setFillColor(HexColor("#e0e0e0"))
