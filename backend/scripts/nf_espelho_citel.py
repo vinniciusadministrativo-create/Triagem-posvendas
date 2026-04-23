@@ -138,26 +138,29 @@ def extrair_dados(texto, tabelas):
     dt = dest_block.group(1) if dest_block else texto
 
     # Patterns mais flexíveis para o destinatário
-    dest_nome = _buscar(r"(?:NOME\s*/\s*RAZ[ÃA]O\s*SOCIAL|RAZ[ÃA]O\s*SOCIAL)[:\s]*\n?([^\n\d]+)", dt)
-    dest_doc = _buscar(r"(?:CNPJ\s*/?\s*CPF|CNPJ|CPF)[:\s]*\n?([\d./-]+)", dt)
+    dest_nome = (
+        _buscar(r"(?:NOME\s*/\s*RAZ[ÃA]O\s*SOCIAL|RAZ[ÃA]O\s*SOCIAL)[:\s]*\n?([^\n\d]{5,})", dt) or
+        _buscar(r"(?:DESTINAT[ÁA]RIO|REMETENTE)[:\s]*\n?([^\n\d]{5,})", dt)
+    )
+    dest_doc = _buscar(r"([\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}|\d{3}\.\d{3}\.\d{3}-\d{2}])", dt) or \
+               _buscar(r"(?:CNPJ\s*/?\s*CPF|CNPJ|CPF)[:\s]*\n?([\d./-]+)", dt)
+    
     dest_end = _buscar(r"(?:ENDERE[ÇC]O)[:\s]*\n?(.+?)(?:\n|BAIRRO|MUNIC|CEP)", dt)
     dest_bairro = _buscar(r"(?:BAIRRO\s*/?\s*DISTRITO|BAIRRO)[:\s]*\n?(.+?)(?:\n|CEP|MUNIC)", dt)
     dest_cep = _buscar(r"CEP[:\s]*\n?([\d.-]+)", dt)
     dest_mun = _buscar(r"(?:MUNIC[ÍI]PIO)[:\s]*\n?(.+?)(?:\n|UF|FONE)", dt)
     dest_uf = _buscar(r"(?:\bUF\b)[:\s]*\n?([A-Z]{2})", dt)
-    dest_fone = _buscar(r"(?:TELEFONE|FONE|FONE/FAX)[:\s]*\n?([\d\s().-]+)", dt)
-    dest_ie = _buscar(r"(?:INSCRI[ÇC][ÃA]O\s*ESTADUAL|INSC\.?\s*EST\.?)[:\s]*\n?([\d.]+)", dt)
 
     d["destinatario"] = {
         "nome": dest_nome,
         "cnpj_cpf": dest_doc,
-        "ie": dest_ie,
+        "ie": _buscar(r"(?:INSCRI[ÇC][ÃA]O\s*ESTADUAL|INSC\.?\s*EST\.?)[:\s]*\n?([\d.]+)", dt),
         "endereco": dest_end,
         "bairro": dest_bairro,
         "cep": dest_cep,
         "municipio": dest_mun,
         "uf": dest_uf,
-        "telefone": dest_fone,
+        "telefone": _buscar(r"(?:TELEFONE|FONE|FONE/FAX)[:\s]*\n?([\d\s().-]+)", dt),
     }
 
     # ── DUPLICATAS ──
