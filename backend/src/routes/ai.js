@@ -115,12 +115,16 @@ router.post("/extract-nf", authMiddleware(), async (req, res) => {
       const totalNota = parseBR(det.valores?.total_nota) || totalProd; // fallback: total da nota = total dos produtos
 
       // Detectar strings inválidas do PDF (quando o regex pega o cabeçalho em vez do valor)
-      const INVALIDOS = ["bairro", "distrito", "cnpj", "cpf", "protocolo", "data da", "endereço", "inscrição", "município", "fone", "telefone"];
+      const INVALIDOS = ["bairro", "distrito", "cnpj", "cpf", "protocolo", "data da", "endereço", "inscrição", "município", "fone", "telefone", "emissão", "saída", "entrada"];
       const isValido = (v) => {
         if (!v) return false;
         const val = v.toLowerCase().trim();
-        // Só é inválido se for EXATAMENTE um dos cabeçalhos ou se for muito curto
-        if (INVALIDOS.some(inv => val === inv || val === inv + ":")) return false;
+        // Se a string contiver muitos termos de cabeçalho ou for muito curta, é provável que seja lixo do PDF
+        if (INVALIDOS.some(inv => val.includes(inv))) {
+          // Exceção: se for um endereço legítimo que contém "Bairro" mas também tem números, pode ser válido
+          // Mas aqui os exemplos mostrados ("BAIRRO / DISTRITO") são puramente cabeçalhos
+          if (val.length < 30 && INVALIDOS.filter(inv => val.includes(inv)).length >= 1) return false;
+        }
         if (val.length < 2) return false;
         return true;
       };

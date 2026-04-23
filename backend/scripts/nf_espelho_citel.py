@@ -51,9 +51,17 @@ def extrair_texto_nf(pdf_path):
 
 
 def _buscar(padrao, texto, grupo=1, default=""):
-    """Helper: busca regex no texto."""
+    """Helper: busca regex no texto e evita retornar labels conhecidos."""
+    LABELS_COMO_DADO = ["NOME", "RAZÃO", "SOCIAL", "CNPJ", "CPF", "ENDEREÇO", "BAIRRO", "CEP", "MUNICÍPIO", "UF", "DATA", "EMISSÃO", "VALOR", "CÓDIGO", "QUANTIDADE"]
     m = re.search(padrao, texto, re.IGNORECASE | re.MULTILINE)
-    return m.group(grupo).strip() if m else default
+    if not m: return default
+    val = m.group(grupo).strip()
+    # Se o valor capturado for muito parecido com um label (curto e em caixa alta / contendo palavras chave)
+    if len(val) < 30 and any(lbl in val.upper() for lbl in LABELS_COMO_DADO):
+        # Se for APENAS o label (ou label + pontuação), descarta
+        if any(val.upper().strip(" :/.-") == lbl for lbl in LABELS_COMO_DADO):
+            return default
+    return val
 
 
 def _buscar_valor(label, texto):
