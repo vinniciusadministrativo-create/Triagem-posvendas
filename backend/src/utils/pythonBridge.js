@@ -11,7 +11,7 @@ async function extractNFDeterministic(pdfPath) {
   return new Promise((resolve, reject) => {
     const scriptPath = path.join(__dirname, "../../scripts/nf_espelho_citel.py");
     
-    // Tenta usar 'python' ou 'python3' ou 'py'
+    // No Linux (Render/produção): usa python3. No Windows (dev local): usa python.
     const pythonCmd = process.platform === "win32" ? "python" : "python3";
     
     const child = spawn(pythonCmd, [scriptPath, pdfPath, "--json"]);
