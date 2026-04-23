@@ -209,18 +209,48 @@ def extrair_dados(texto, tabelas):
 
 def _extrair_produtos(texto, tabelas):
     rows = []
+
+    # Palavras-chave que indicam que uma linha NÃO é um produto
+    LINHAS_INVALIDAS = [
+        "identificacao", "assinatura", "recebedor", "valor do frete",
+        "valor do seguro", "desconto", "outras despesas", "valor do ipi",
+        "informacoes", "reservado", "dados adicionais", "transportador",
+        "emitente", "destinatario", "duplicata", "fatura", "protocolo",
+    ]
+
     for tabela in tabelas:
         if not tabela or len(tabela) < 2: continue
-        header = [str(c).lower() if c else "" for c in tabela[0]]
+        header = [str(c).lower().strip() if c else "" for c in tabela[0]]
+        # A tabela de produtos deve ter coluna de descrição E de valores
         tem_prod = any(k in h for h in header for k in ["descri", "produto", "servi"])
-        if tem_prod:
-            for row in tabela[1:]:
-                if row and any(cell and str(cell).strip() for cell in row):
-                    rows.append([str(c).strip() if c else "" for c in row])
+        tem_val  = any(k in h for h in header for k in ["valor", "total", "unit", "quant"])
+        # Deve ter ao menos 6 colunas (cod, desc, ncm, cst, cfop, un...)
+        if not (tem_prod and tem_val and len(header) >= 6): continue
+
+        for row in tabela[1:]:
+            if not row or len(row) < 3: continue
+            cells = [str(c).strip() if c else "" for c in row]
+
+            # A primeira célula deve ser um código numérico (ex: "43568")
+            cod = cells[0].replace(".", "").strip()
+            if not cod.isdigit(): continue
+
+            # Filtra linhas que contenham palavras de seções inválidas
+            linha_texto = " ".join(cells).lower()
+            if any(inv in linha_texto for inv in LINHAS_INVALIDAS): continue
+
+            # Linha pode ser produto válido
+            rows.append(cells)
+
+    # Fallback: regex no texto bruto
     if not rows:
-        linhas = re.findall(r"(\d{3,6})\s+(.+?)\s+(\d{8})\s+(\d{3})\s+(\d{4})\s+(\w{2,4})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)", texto)
+        linhas = re.findall(
+            r"^(\d{3,6})\s+(.+?)\s+(\d{8})\s+(\d{3})\s+(\d{4})\s+(\w{2,4})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)",
+            texto, re.MULTILINE
+        )
         for l in linhas:
-            rows.append([l[0], l[1], l[2], l[3], l[4], l[5], l[6], l[7], "0,00", l[7], l[8], l[9], l[10], l[11], l[12], l[13]])
+            rows.append([l[0], l[1], l[2], l[3], l[4], l[5], l[6], l[7], "0,00", l[7], l[8], "0,00", "0,00", "0,00", "0,00", "0,00"])
+
     return {"rows": rows}
 
 

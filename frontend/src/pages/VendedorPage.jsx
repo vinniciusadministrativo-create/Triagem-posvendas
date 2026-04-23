@@ -151,7 +151,7 @@ export default function VendedorPage({ defaultTab = "novo" }) {
       let docRes = null;
       if (triageRes.precisa_espelho_nfd && nfB64) {
         setAgentStatus(p => ({ ...p, doc: "running" }));
-        docRes = await api.extractNF(nfB64, nfMime, isTest);
+        docRes = await api.extractNF(nfB64, nfMime, isTest, form);
         if (docRes && !docRes.error) setNfData(docRes);
         setAgentStatus(p => ({ ...p, doc: "done" }));
       } else {

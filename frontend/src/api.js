@@ -73,8 +73,8 @@ export const api = {
   // Triagem e Processamento (Antiga IA)
   triage: (form, isTest) => 
     request("/api/ai/triage", { method: "POST", body: JSON.stringify({ form, isTest }) }),
-  extractNF: (fileB64, mime, isTest) => 
-    request("/api/ai/extract-nf", { method: "POST", body: JSON.stringify({ fileB64, mime, isTest }) }),
+  extractNF: (fileB64, mime, isTest, formData) => 
+    request("/api/ai/extract-nf", { method: "POST", body: JSON.stringify({ fileB64, mime, isTest, formData }) }),
   analyzeEvidence: (images, isTest) => 
     request("/api/ai/analyze-evidence", { method: "POST", body: JSON.stringify({ images, isTest }) }),
 
