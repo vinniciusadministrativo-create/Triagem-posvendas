@@ -49,9 +49,6 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
   const [origProds, setOrigProds] = useState([]);
   const [saving, setSaving] = useState(false);
 
-  const upd = (field, val) => {
-    setLocalNF(prev => ({ ...prev, [field]: val }));
-  };
 
   useEffect(() => {
     if (!nfRaw) return;
@@ -75,20 +72,42 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
     }
   }, [nfRaw, chamado?.id]);
 
-  // Recalcula totais gerais da nota com base nos itens (Mantido para compatibilidade se necessário)
-  const recalcTotals = (allProds) => {
-    let sum = 0;
-    allProds.forEach(p => {
-      sum += parseNum(p.valor_total);
-    });
+  // Função centralizada para calcular totais
+  const getRecalculatedState = (currentState, prods = null) => {
+    const pList = prods || currentState.produtos || [];
     
-    const formattedSum = fmtBR(sum);
-    setLocalNF(prev => ({
-      ...prev,
-      produtos: allProds,
-      valor_total_produtos: formattedSum,
-      valor_total_nota: formattedSum
-    }));
+    // 1. Soma dos produtos
+    let sumProds = 0;
+    pList.forEach(p => { sumProds += parseNum(p.valor_total); });
+    
+    // 2. Outros valores
+    const frete = parseNum(currentState.valor_frete);
+    const seguro = parseNum(currentState.valor_seguro);
+    const desc = parseNum(currentState.desconto);
+    const outras = parseNum(currentState.outras_despesas);
+    const ipi = parseNum(currentState.valor_ipi);
+    
+    // 3. Total da Nota: Prod + Frete + Seguro + Outras + IPI - Desconto
+    const totalNota = sumProds + frete + seguro + outras + ipi - desc;
+    
+    return {
+      ...currentState,
+      produtos: pList,
+      valor_total_produtos: fmtBR(sumProds),
+      valor_total_nota: fmtBR(totalNota)
+    };
+  };
+
+  const upd = (field, val) => {
+    setLocalNF(prev => {
+      const next = { ...prev, [field]: val };
+      // Se for um campo que afeta o cálculo do total, recalcula
+      const fieldsThatAffectTotal = ["valor_frete", "valor_seguro", "desconto", "outras_despesas", "valor_ipi"];
+      if (fieldsThatAffectTotal.includes(field)) {
+        return getRecalculatedState(next);
+      }
+      return next;
+    });
   };
 
   // Atualiza um campo de um produto e recalcula totais se necessário
@@ -106,37 +125,24 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
         newProds[i].valor_total = fmtBR(qtde * unit);
       }
 
-      // Recalcula totais da nota
-      let sum = 0;
-      newProds.forEach(p => { sum += parseNum(p.valor_total); });
-      const totalStr = fmtBR(sum);
-
-      return {
-        ...prev,
-        produtos: newProds,
-        valor_total_produtos: totalStr,
-        valor_total_nota: totalStr
-      };
+      return getRecalculatedState(prev, newProds);
     });
   };
 
   const removeProd = (i) => {
     setLocalNF(prev => {
       const newProds = (prev.produtos || []).filter((_, idx) => idx !== i);
-      let sum = 0;
-      newProds.forEach(p => { sum += parseNum(p.valor_total); });
-      const totalStr = fmtBR(sum);
-      return { ...prev, produtos: newProds, valor_total_produtos: totalStr, valor_total_nota: totalStr };
+      return getRecalculatedState(prev, newProds);
     });
   };
 
   const addProd = () => {
-    setLocalNF(prev => ({
-      ...prev,
-      produtos: [...(prev.produtos || []), {
+    setLocalNF(prev => {
+      const newProds = [...(prev.produtos || []), {
         codigo: "", descricao: "", ncm: "", cst: "", cfop: "5202", unidade: "UN", quantidade: "0", valor_unitario: "0,00", valor_total: "0,00"
-      }]
-    }));
+      }];
+      return getRecalculatedState(prev, newProds);
+    });
   };
 
   const save = async () => {
