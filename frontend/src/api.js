@@ -56,6 +56,20 @@ export const api = {
   deleteMultipleChamados: (ids) => request("/api/chamados/batch-delete", { method: "POST", body: JSON.stringify({ ids }) }),
   updateRessalva: (id, data) => request(`/api/chamados/${id}/ressalva`, { method: "PATCH", body: data }),
   updateNFData: (id, nf_data) => request(`/api/chamados/${id}/nf-data`, { method: "PATCH", body: JSON.stringify({ nf_data }) }),
+  downloadDanfePDF: async (id) => {
+    const res = await fetch(`${API_BASE}/api/chamados/${id}/danfe-pdf`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+    });
+    if (!res.ok) throw new Error("Erro ao baixar PDF");
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ESPELHO_NF_${id}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  },
   getHistory: (id) => request(`/api/chamados/${id}/history`),
 
   // Chat

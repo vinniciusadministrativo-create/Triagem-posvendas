@@ -183,6 +183,13 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
           <>
             <button onClick={() => setIsEditing(true)} style={{ padding: "8px 20px", background: "#fff", border: `1px solid ${M.brdN}`, borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>✏️ Editar Rascunho</button>
             <button onClick={() => window.print()} style={{ padding: "8px 24px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>🖨️ Imprimir Espelho (A4)</button>
+            <button 
+              onClick={() => api.downloadDanfePDF(chamado.id)} 
+              title="Gera um PDF profissional usando o motor Python"
+              style={{ padding: "8px 24px", background: "#2563eb", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}
+            >
+              📥 Baixar PDF Citel
+            </button>
           </>
         )}
       </div>

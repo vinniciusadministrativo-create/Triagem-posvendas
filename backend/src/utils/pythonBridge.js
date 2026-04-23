@@ -42,4 +42,30 @@ async function extractNFDeterministic(pdfPath) {
   });
 }
 
-module.exports = { extractNFDeterministic };
+/**
+ * Gera um PDF de espelho a partir de dados JSON.
+ * @param {object} data Objeto JSON com os dados da NF.
+ * @param {string} outputPath Caminho onde o PDF será salvo.
+ */
+async function generatePDFFromJSON(data, outputPath) {
+  return new Promise((resolve, reject) => {
+    const scriptPath = path.join(__dirname, "../../scripts/nf_espelho_citel.py");
+    const jsonPath = path.join(os.tmpdir(), `data_${Date.now()}.json`);
+    
+    fs.writeFileSync(jsonPath, JSON.stringify(data));
+
+    const pythonCmd = process.platform === "win32" ? "python" : "python3";
+    const child = spawn(pythonCmd, [scriptPath, "--generate", jsonPath, outputPath]);
+
+    let stderr = "";
+    child.stderr.on("data", (d) => { stderr += d.toString(); });
+
+    child.on("close", (code) => {
+      if (fs.existsSync(jsonPath)) fs.unlinkSync(jsonPath);
+      if (code !== 0) return reject(new Error(`Erro ao gerar PDF: ${stderr}`));
+      resolve(outputPath);
+    });
+  });
+}
+
+module.exports = { extractNFDeterministic, generatePDFFromJSON };

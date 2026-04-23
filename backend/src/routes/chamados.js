@@ -2,8 +2,10 @@ const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
 const pool = require("../db");
 const authMiddleware = require("../middleware/auth");
+const { generatePDFFromJSON } = require("../utils/pythonBridge");
 
 const router = express.Router();
 
@@ -294,6 +296,30 @@ router.patch("/:id/nf-data", authMiddleware(["admin", "pos_vendas"]), async (req
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Erro ao salvar rascunho da NF" });
+  }
+});
+
+// GET /api/chamados/:id/danfe-pdf — gera e baixa o espelho profissional PDF
+router.get("/:id/danfe-pdf", authMiddleware(["admin", "pos_vendas"]), async (req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT nf_data FROM chamados WHERE id = $1", [req.params.id]);
+    if (!rows[0]) return res.status(404).json({ error: "Chamado não encontrado" });
+    
+    let nfData = rows[0].nf_data;
+    if (typeof nfData === "string") nfData = JSON.parse(nfData);
+    
+    if (!nfData) return res.status(400).json({ error: "Dados da NF não encontrados para este chamado" });
+
+    const outputPath = path.join(os.tmpdir(), `danfe_${req.params.id}_${Date.now()}.pdf`);
+    await generatePDFFromJSON(nfData, outputPath);
+
+    res.download(outputPath, `ESPELHO_NF_${req.params.id}.pdf`, (err) => {
+      // Limpa após envio ou erro
+      if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Erro ao gerar PDF profissional" });
   }
 });
 

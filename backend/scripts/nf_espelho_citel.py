@@ -332,6 +332,20 @@ def processar(pdf_input, pdf_output=None, json_output=False):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2: sys.exit(1)
+    
+    # Modo Geração: python script.py --generate dados.json saida.pdf
+    if "--generate" in sys.argv:
+        try:
+            with open(sys.argv[2], 'r', encoding='utf-8') as f:
+                dados = json.load(f)
+            gerar_espelho(dados, sys.argv[3])
+            print(f"OK: {sys.argv[3]}")
+        except Exception as e:
+            print(f"ERRO: {str(e)}")
+            sys.exit(1)
+        sys.exit(0)
+
+    # Modo Extração (Padrão)
     out_json = "--json" in sys.argv
     pdf_in = sys.argv[1]
     processar(pdf_in, json_output=out_json)
