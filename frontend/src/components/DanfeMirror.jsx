@@ -189,18 +189,30 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
           <>
             <button onClick={() => setIsEditing(true)} style={{ padding: "8px 20px", background: "#fff", border: `1px solid ${M.brdN}`, borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>✏️ Editar Rascunho</button>
             <button onClick={() => window.print()} style={{ padding: "8px 24px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>🖨️ Imprimir Espelho (A4)</button>
-            <button 
-              onClick={() => api.downloadDanfePDF(chamado.id)} 
-              title="Gera um PDF profissional usando o motor Python"
-              style={{ padding: "8px 24px", background: "#2563eb", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}
-            >
-              📥 Baixar PDF Citel
-            </button>
           </>
         )}
       </div>
 
-      <div id="danfe-print" style={{ background: "#fff", padding: "10mm", color: "#000", fontFamily: "Arial, sans-serif", position: "relative", width: "210mm", minHeight: "297mm", boxSizing: "border-box", margin: "0 auto", border: "1px solid #eee", maxWidth: "100%", overflowX: "auto" }}>
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #danfe-print, #danfe-print * { visibility: visible; }
+          #danfe-print { 
+            position: absolute !important; 
+            left: 0 !important; 
+            top: 0 !important; 
+            width: 210mm !important; 
+            margin: 0 !important; 
+            padding: 5mm !important; 
+            border: none !important;
+            box-shadow: none !important;
+          }
+          @page { size: auto; margin: 0; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
+
+      <div id="danfe-print" style={{ background: "#fff", padding: "10mm", color: "#000", fontFamily: "Arial, sans-serif", position: "relative", width: "210mm", minHeight: "297mm", boxSizing: "border-box", margin: "0 auto", border: "1px solid #000", maxWidth: "100%", overflowX: "auto" }}>
         
         <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%) rotate(-35deg)", fontSize: "60px", fontWeight: "900", color: "rgba(0,0,0,0.03)", pointerEvents: "none", zIndex: 0, textAlign: "center", width: "100%" }}>
           NÃO TEM VALOR FISCAL<br/>DOCUMENTO PARA CONFERÊNCIA
