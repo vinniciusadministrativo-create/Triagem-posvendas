@@ -172,7 +172,7 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
 
   const renderMessageText = (txt) => {
     return txt.split(/(@\w+)/g).map((part, i) => {
-       if (part.startsWith("@")) return <span key={i} style={{ color: part.includes(user.name?.split(" ")[0]) ? M.warn : M.blue, fontWeight: 800 }}>{part}</span>;
+       if (part.startsWith("@")) return <span key={i} style={{ textDecoration: "underline", fontWeight: 800 }}>{part}</span>;
        return <span key={i}>{part}</span>;
     });
   };
