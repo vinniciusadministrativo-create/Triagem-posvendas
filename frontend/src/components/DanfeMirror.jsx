@@ -195,19 +195,28 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
 
       <style>{`
         @media print {
-          body * { visibility: hidden; }
-          #danfe-print, #danfe-print * { visibility: visible; }
+          @page { 
+            size: A4 portrait; 
+            margin: 0 !important; 
+          }
+          body { 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            background: #fff !important;
+          }
           #danfe-print { 
             position: absolute !important; 
             left: 0 !important; 
             top: 0 !important; 
             width: 210mm !important; 
+            height: 297mm !important;
             margin: 0 !important; 
-            padding: 5mm !important; 
+            padding: 10mm !important; 
             border: none !important;
             box-shadow: none !important;
+            visibility: visible !important;
           }
-          @page { size: auto; margin: 0; }
+          body > #root > *:not(.danfe-container) { display: none !important; }
           .no-print { display: none !important; }
         }
       `}</style>
