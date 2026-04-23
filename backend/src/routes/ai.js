@@ -99,7 +99,7 @@ router.post("/extract-nf", authMiddleware(), async (req, res) => {
         descricao:      r[1]  || "",
         ncm:            r[2]  || "",
         cst:            r[3]  || "",
-        cfop:           r[4]  || "5202",
+        cfop:           "5202", // FORÇADO AUTOMATICAMENTE conforme pedido
         unidade:        r[5]  || "UN",
         quantidade:     r[6]  || "0",
         valor_unitario: r[7]  || "0,00",

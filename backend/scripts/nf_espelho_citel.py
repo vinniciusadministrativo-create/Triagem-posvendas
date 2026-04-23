@@ -130,21 +130,23 @@ def extrair_dados(texto, tabelas):
         d["emitente"]["uf"] = mun_uf.group(2).strip()
 
     # ── DESTINATÁRIO ──
+    # Tenta encontrar o bloco do destinatário
     dest_block = re.search(
-        r"DESTINAT[ÁA]RIO\s*/\s*REMETENTE(.*?)(?:FATURA|DUPLICATA|C[ÁA]LCULO\s*DO\s*IMPOSTO)",
+        r"(?:DESTINAT[ÁA]RIO\s*/\s*REMETENTE|DADOS\s+DO\s+DESTINAT[ÁA]RIO)(.*?)(?:FATURA|DUPLICATA|C[ÁA]LCULO\s*DO\s*IMPOSTO|DADOS\s+DO\s+TRANSPORTE)",
         texto, re.IGNORECASE | re.DOTALL
     )
     dt = dest_block.group(1) if dest_block else texto
 
-    dest_nome = _buscar(r"(?:NOME\s*/\s*RAZ[ÃA]O\s*SOCIAL|RAZ[ÃA]O\s*SOCIAL)\s*\n?\s*(.+?)(?:\n|CNPJ|CPF)", dt)
-    dest_doc = _buscar(r"(?:CNPJ\s*/?\s*CPF|CNPJ|CPF)\s*\n?\s*([\d./-]+)", dt)
-    dest_end = _buscar(r"(?:ENDERE[ÇC]O)\s*\n?\s*(.+?)(?:\n|BAIRRO|MUNIC)", dt)
-    dest_bairro = _buscar(r"(?:BAIRRO\s*/?\s*DISTRITO|BAIRRO)\s*\n?\s*(.+?)(?:\n|CEP)", dt)
-    dest_cep = _buscar(r"CEP\s*\n?\s*([\d.-]+)", dt)
-    dest_mun = _buscar(r"(?:MUNIC[ÍI]PIO)\s*\n?\s*(.+?)(?:\n|UF|FONE)", dt)
-    dest_uf = _buscar(r"(?:\bUF\b)\s*\n?\s*([A-Z]{2})", dt)
-    dest_fone = _buscar(r"(?:TELEFONE|FONE)\s*/?\s*(?:FAX)?\s*\n?\s*([\d\s().-]+)", dt)
-    dest_ie = _buscar(r"INSCRI[ÇC][ÃA]O\s*ESTADUAL\s*\n?\s*([\d.]+)", dt)
+    # Patterns mais flexíveis para o destinatário
+    dest_nome = _buscar(r"(?:NOME\s*/\s*RAZ[ÃA]O\s*SOCIAL|RAZ[ÃA]O\s*SOCIAL)[:\s]*\n?([^\n\d]+)", dt)
+    dest_doc = _buscar(r"(?:CNPJ\s*/?\s*CPF|CNPJ|CPF)[:\s]*\n?([\d./-]+)", dt)
+    dest_end = _buscar(r"(?:ENDERE[ÇC]O)[:\s]*\n?(.+?)(?:\n|BAIRRO|MUNIC|CEP)", dt)
+    dest_bairro = _buscar(r"(?:BAIRRO\s*/?\s*DISTRITO|BAIRRO)[:\s]*\n?(.+?)(?:\n|CEP|MUNIC)", dt)
+    dest_cep = _buscar(r"CEP[:\s]*\n?([\d.-]+)", dt)
+    dest_mun = _buscar(r"(?:MUNIC[ÍI]PIO)[:\s]*\n?(.+?)(?:\n|UF|FONE)", dt)
+    dest_uf = _buscar(r"(?:\bUF\b)[:\s]*\n?([A-Z]{2})", dt)
+    dest_fone = _buscar(r"(?:TELEFONE|FONE|FONE/FAX)[:\s]*\n?([\d\s().-]+)", dt)
+    dest_ie = _buscar(r"(?:INSCRI[ÇC][ÃA]O\s*ESTADUAL|INSC\.?\s*EST\.?)[:\s]*\n?([\d.]+)", dt)
 
     d["destinatario"] = {
         "nome": dest_nome,
