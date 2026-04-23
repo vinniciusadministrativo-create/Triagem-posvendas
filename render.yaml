@@ -3,7 +3,7 @@ services:
     name: triagem-posvendas
     env: node
     rootDir: backend
-    buildCommand: pip3 install -r requirements.txt && npm install && cd ../frontend && npm install && npm run build
+    buildCommand: pip3 install -r backend/requirements.txt && cd backend && npm install && cd ../frontend && npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
