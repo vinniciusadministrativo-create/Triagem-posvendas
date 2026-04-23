@@ -73,12 +73,66 @@ router.post("/triage", authMiddleware(), async (req, res) => {
   }
 });
 
+const { extractNFDeterministic } = require("../utils/pythonBridge");
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
+
 // ── POST /api/ai/extract-nf ──
 router.post("/extract-nf", authMiddleware(), async (req, res) => {
   const { fileB64, mime, isTest } = req.body;
 
   if (isTest || !process.env.ANTHROPIC_API_KEY) {
     return res.json({ numero_nf: "998877", razao_social_dest: "LOJA TESTE LTDA", produtos: [{ descricao: "PRODUTO TESTE", quantidade: "10" }], valor_total_nota: "1.000,00" });
+  }
+
+  // Tentar extração determinística se for PDF
+  if (mime === "application/pdf") {
+    try {
+      const tempPath = path.join(os.tmpdir(), `nf_${Date.now()}.pdf`);
+      fs.writeFileSync(tempPath, fileB64, "base64");
+      const det = await extractNFDeterministic(tempPath);
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+
+      return res.json({
+        numero_nf: det.numero,
+        data_emissao: det.data_emissao,
+        natureza_operacao: det.natureza_op,
+        valor_total_nota: det.valores?.total_nota || "0,00",
+        valor_total_produtos: det.valores?.total_produtos || "0,00",
+        base_icms: det.valores?.base_icms || "0,00",
+        valor_icms: det.valores?.valor_icms || "0,00",
+        base_icms_st: det.valores?.base_icms_st || "0,00",
+        valor_icms_st: det.valores?.valor_icms_st || "0,00",
+        valor_frete: det.valores?.frete || "0,00",
+        valor_seguro: det.valores?.seguro || "0,00",
+        valor_ipi: det.valores?.valor_ipi || "0,00",
+        peso_bruto: det.transporte?.peso_bruto || "0,00",
+        peso_liquido: det.transporte?.peso_liquido || "0,00",
+        quantidade_volumes: det.transporte?.quantidade || "0",
+        especie_volumes: det.transporte?.especie || "",
+        cliente: det.destinatario?.nome || "", // Campo esperado pelo frontend
+        razao_social_dest: det.destinatario?.nome || "",
+        cnpj: det.destinatario?.cnpj_cpf || "",
+        endereco_dest: det.destinatario?.endereco || "",
+        bairro_dest: det.destinatario?.bairro || "",
+        cep_dest: det.destinatario?.cep || "",
+        produtos: (det.produtos?.rows || []).map(r => ({
+          codigo: r[0],
+          descricao: r[1],
+          ncm: r[2],
+          cst: r[3],
+          cfop: r[4],
+          unidade: r[5],
+          quantidade: r[6],
+          valor_unitario: r[7],
+          valor_total: r[10]
+        })),
+        isDeterministic: true
+      });
+    } catch (e) {
+      console.warn("Extração determinística falhou, tentando IA...", e.message);
+    }
   }
 
   try {
