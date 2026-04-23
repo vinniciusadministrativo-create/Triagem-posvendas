@@ -197,26 +197,29 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
         @media print {
           @page { 
             size: A4 portrait; 
-            margin: 0 !important; 
+            margin: 0; 
           }
-          body { 
-            margin: 0 !important; 
-            padding: 0 !important; 
-            background: #fff !important;
+          body {
+            visibility: hidden;
+            background: white !important;
           }
-          #danfe-print { 
-            position: absolute !important; 
-            left: 0 !important; 
-            top: 0 !important; 
-            width: 210mm !important; 
+          #danfe-print {
+            visibility: visible !important;
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 210mm !important;
             height: 297mm !important;
-            margin: 0 !important; 
-            padding: 10mm !important; 
+            margin: 0 !important;
+            padding: 10mm !important;
+            background: white !important;
+            z-index: 10000 !important;
             border: none !important;
-            box-shadow: none !important;
+          }
+          /* Garante que o que está dentro do danfe-print seja visível */
+          #danfe-print * {
             visibility: visible !important;
           }
-          body > #root > *:not(.danfe-container) { display: none !important; }
           .no-print { display: none !important; }
         }
       `}</style>
