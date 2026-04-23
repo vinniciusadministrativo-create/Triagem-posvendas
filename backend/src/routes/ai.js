@@ -114,16 +114,23 @@ router.post("/extract-nf", authMiddleware(), async (req, res) => {
       const totalProd = parseBR(det.valores?.total_produtos) || calcTotalProd;
       const totalNota = parseBR(det.valores?.total_nota) || totalProd; // fallback: total da nota = total dos produtos
 
-      // Detectar strings inválidas do PDF (cabeçalhos que vazaram)
-      const INVALIDOS = ["bairro", "distrito", "cnpj", "cpf", "protocolo", "data da", "endereço", "inscr", "munic"];
-      const isValido = (v) => !v || !INVALIDOS.some(inv => v.toLowerCase().includes(inv));
+      // Detectar strings inválidas do PDF (quando o regex pega o cabeçalho em vez do valor)
+      const INVALIDOS = ["bairro", "distrito", "cnpj", "cpf", "protocolo", "data da", "endereço", "inscrição", "município", "fone", "telefone"];
+      const isValido = (v) => {
+        if (!v) return false;
+        const val = v.toLowerCase().trim();
+        // Só é inválido se for EXATAMENTE um dos cabeçalhos ou se for muito curto
+        if (INVALIDOS.some(inv => val === inv || val === inv + ":")) return false;
+        if (val.length < 2) return false;
+        return true;
+      };
 
       // Natureza: validar que não é um cabeçalho
-      const natureza = (det.natureza_op && isValido(det.natureza_op) && det.natureza_op.length < 80)
+      const natureza = (det.natureza_op && isValido(det.natureza_op) && det.natureza_op.length < 100)
         ? det.natureza_op
-        : "5202 - DEVOLUÇÃO DE COMPRA PARA COMERCIALIZAÇÃO";
+        : (fd.naturezaOperacao || "5202 - DEVOLUÇÃO DE COMPRA PARA COMERCIALIZAÇÃO");
 
-      // Destinatário: SEMPRE usa formulário pois o PDF raramente extrai corretamente
+      // Retornar JSON com prioridade para dados extraídos do PDF
       return res.json({
         numero_nf:            det.numero            || fd.nfOriginal  || "",
         data_emissao:         det.data_emissao       || "",
@@ -141,16 +148,18 @@ router.post("/extract-nf", authMiddleware(), async (req, res) => {
         peso_liquido:         det.transporte?.peso_liquido|| "0,00",
         quantidade_volumes:   det.transporte?.quantidade  || "0",
         especie_volumes:      det.transporte?.especie     || "",
-        // Destinatário: usa SEMPRE o formulário (mais confiável que o PDF para esses campos)
-        cliente:              fd.razaoSocial || det.destinatario?.nome || "",
-        razao_social_dest:    fd.razaoSocial || det.destinatario?.nome || "",
-        cnpj:                 fd.cnpj        || det.destinatario?.cnpj_cpf || "",
-        cnpj_dest:            fd.cnpj        || det.destinatario?.cnpj_cpf || "",
-        endereco_dest:        isValido(det.destinatario?.endereco) ? (det.destinatario?.endereco || "") : "",
-        bairro_dest:          isValido(det.destinatario?.bairro)   ? (det.destinatario?.bairro   || "") : "",
-        cep_dest:             det.destinatario?.cep      || "",
-        municipio_dest:       det.destinatario?.municipio || "",
-        uf_dest:              det.destinatario?.uf        || "",
+        
+        // Destinatário: PDF primeiro, Form segundo
+        cliente:              (det.destinatario?.nome && isValido(det.destinatario.nome)) ? det.destinatario.nome : (fd.razaoSocial || ""),
+        razao_social_dest:    (det.destinatario?.nome && isValido(det.destinatario.nome)) ? det.destinatario.nome : (fd.razaoSocial || ""),
+        cnpj:                 (det.destinatario?.cnpj_cpf && isValido(det.destinatario.cnpj_cpf)) ? det.destinatario.cnpj_cpf : (fd.cnpj || ""),
+        cnpj_dest:            (det.destinatario?.cnpj_cpf && isValido(det.destinatario.cnpj_cpf)) ? det.destinatario.cnpj_cpf : (fd.cnpj || ""),
+        endereco_dest:        isValido(det.destinatario?.endereco) ? det.destinatario.endereco : "",
+        bairro_dest:          isValido(det.destinatario?.bairro)   ? det.destinatario.bairro   : "",
+        cep_dest:             isValido(det.destinatario?.cep)      ? det.destinatario.cep      : "",
+        municipio_dest:       isValido(det.destinatario?.municipio) ? det.destinatario.municipio : "",
+        uf_dest:              isValido(det.destinatario?.uf)        ? det.destinatario.uf        : "",
+        
         produtos,
         isDeterministic: true
       });
