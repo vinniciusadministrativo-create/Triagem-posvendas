@@ -19,9 +19,9 @@
 }
 
 /* Melhorando a visibilidade de parágrafos e textos de apoio */
-p, span, div {
+p, .text-base {
   color: var(--text);
-  font-weight: 500; /* Texto com mais corpo */
+  font-weight: 500;
 }
 
 /* Efeito de fluidez extrema nos ícones do menu */
@@ -41,6 +41,10 @@ p, span, div {
   background: var(--pri) !important;
   color: #fff !important;
   box-shadow: 0 8px 20px var(--pri-glow);
+}
+
+.nav-item.active span {
+  color: #fff !important;
 }
 
 * {
@@ -162,6 +166,10 @@ main, .card, .v-container {
 }
 .chat-bubble.left {
   transform-origin: bottom left;
+}
+
+.chat-bubble:not(.left) span, .chat-bubble:not(.left) div {
+  color: #fff !important;
 }
 
 @keyframes messagePop {
