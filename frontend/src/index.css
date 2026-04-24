@@ -354,7 +354,7 @@ main, .card, .v-container {
     position: static !important;
     margin: 0 !important;
     padding: 0 !important;
-    width: 210mm !important;
+    width: 100% !important;
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
@@ -363,6 +363,12 @@ main, .card, .v-container {
     background: #fff !important;
     box-shadow: none !important;
     border: none !important;
+  }
+  
+  body {
+    display: flex !important;
+    justify-content: center !important;
+    background: #fff !important;
   }
 
   body {
@@ -394,7 +400,7 @@ main, .card, .v-container {
   #danfe-print {
     display: block !important;
     position: relative !important;
-    margin: 0 !important;
+    margin: 0 auto !important;
     width: 210mm !important;
     min-height: 297mm !important;
     height: auto !important;
