@@ -347,29 +347,36 @@ main, .card, .v-container {
     margin: 0; 
   }
   
-  /* Esconde o conteúdo sem quebrar a hierarquia do DOM */
-  body {
-    visibility: hidden !important;
+  /* Reset radical para garantir que a origem (0,0) seja o topo da folha */
+  html, body, #root, .modal-wrapper, .modal-content, .split-view, .split-left, .page-container, main {
+    visibility: visible !important;
+    display: block !important;
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    transform: none !important; /* Remove qualquer escala ou deslocamento */
+    filter: none !important;
+    perspective: none !important;
     background: #fff !important;
+    box-shadow: none !important;
   }
 
-  /* Mostra apenas o DANFE e seus descendentes */
-  #danfe-print, #danfe-print * {
-    visibility: visible !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+  body {
+    visibility: hidden !important; /* Esconde o conteúdo geral */
   }
-  
-  /* Posicionamento fixo para ignorar containers pais que possam estar espremendo o layout */
+
+  /* Container do Espelho */
   #danfe-print {
+    visibility: visible !important;
     display: block !important;
-    position: fixed !important;
+    position: absolute !important; /* Absolute em relação ao body que agora é 210x297 */
     left: 0 !important;
     top: 0 !important;
     width: 210mm !important;
     height: 297mm !important;
-    margin: 0 !important;
-    padding: 10mm !important;
+    padding: 8mm !important; /* Reduzido para maior segurança */
     background: #fff !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
@@ -377,15 +384,12 @@ main, .card, .v-container {
     border: none !important;
   }
 
-  /* Garante que o fundo branco seja impresso */
-  html, body {
-    background: #fff !important;
-    width: 210mm !important;
-    height: 297mm !important;
+  #danfe-print * {
+    visibility: visible !important;
   }
 
-  /* Remove especificamente elementos que podem causar confusão */
-  .no-print, button, select, nav, .sidebar {
+  /* Remove especificamente elementos de UI */
+  .no-print, button, select, nav, .sidebar, .no-print-container {
     display: none !important;
   }
 }
