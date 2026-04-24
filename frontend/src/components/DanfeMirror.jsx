@@ -8,14 +8,43 @@ const M = {
   txM: "#6b6560",
   txD: "#9a948d",
   brdN: "#e5e0db",
-  blue: "#2563eb",
-  blueS: "rgba(37,99,235,0.08)",
-  blueB: "rgba(37,99,235,0.2)",
 };
 
-// Componente de Input estável para evitar perda de foco
+// --- HELPERS ---
+
+function parseNum(val) {
+  if (val === null || val === undefined || val === "") return 0;
+  if (typeof val === "number") return val;
+  let s = String(val).replace(/[^\d.,-]/g, "").trim();
+  if (!s) return 0;
+
+  // Se houver vírgula, ela é o decimal. Pontos são milhares.
+  if (s.includes(",")) {
+    return parseFloat(s.replace(/\./g, "").replace(",", "."));
+  }
+  
+  // Se só houver ponto:
+  // Se tiver exatamente 3 dígitos após o ponto (ex: 1.000), tratamos como milhar.
+  if (s.includes(".")) {
+    const parts = s.split(".");
+    if (parts[parts.length - 1].length === 3 && parts[0].length >= 1) {
+      return parseFloat(s.replace(/\./g, ""));
+    }
+    return parseFloat(s);
+  }
+
+  return parseFloat(s);
+}
+
+function fmtBR(num) {
+  if (isNaN(num) || num === null || num === undefined) return "0,00";
+  const parts = Number(num).toFixed(2).split(".");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return parts.join(",");
+}
+
 const BxInput = ({ label, value, onChange, style = {} }) => (
-  <div style={{ border: "1px solid #000", padding: "2px 4px", fontSize: "7px", minHeight: "22px", display: "flex", flexDirection: "column", boxSizing: "border-box", ...style }}>
+  <div style={{ border: "1px solid #000", padding: "2px 4px", fontSize: "7.5px", minHeight: "22px", display: "flex", flexDirection: "column", boxSizing: "border-box", ...style }}>
     <div style={{ fontSize: "6px", fontWeight: "700", textTransform: "uppercase", marginBottom: "1px" }}>{label}</div>
     <input 
       value={value || ""} 
@@ -26,55 +55,19 @@ const BxInput = ({ label, value, onChange, style = {} }) => (
 );
 
 const BxView = ({ label, value, style = {} }) => (
-  <div style={{ border: "1px solid #000", padding: "2px 4px", fontSize: "7px", minHeight: "22px", display: "flex", flexDirection: "column", boxSizing: "border-box", ...style }}>
+  <div style={{ border: "1px solid #000", padding: "2px 4px", fontSize: "7.5px", minHeight: "22px", display: "flex", flexDirection: "column", boxSizing: "border-box", ...style }}>
     <div style={{ fontSize: "6px", fontWeight: "700", textTransform: "uppercase", marginBottom: "1px" }}>{label}</div>
     <div style={{ fontSize: "9px", fontWeight: "500", fontFamily: "monospace", flex: 1, display: "flex", alignItems: "center" }}>{value || "—"}</div>
   </div>
 );
 
-// Helpers para cálculo
-function parseNum(val) {
-  if (val === null || val === undefined || val === "") return 0;
-  if (typeof val === "number") return val;
-  
-  // Limpa tudo que não for dígito, ponto ou vírgula
-  let s = String(val).replace(/[^\d.,-]/g, "").trim();
-  if (!s) return 0;
-
-  // Se houver mais de um separador (ex: 1.234,56), assume formato BR
-  const hasComma = s.includes(",");
-  const hasDot = s.includes(".");
-
-  if (hasComma && hasDot) {
-    // Remove todos os pontos (milhar) e troca vírgula por ponto (decimal)
-    s = s.replace(/\./g, "").replace(",", ".");
-  } else if (hasComma) {
-    // Apenas vírgula: troca por ponto
-    s = s.replace(",", ".");
-  } else if (hasDot) {
-    // Apenas ponto: assume decimal (formato US) 
-    // a menos que seja algo como "1.000" sem decimais. 
-    // Para simplificar e evitar erros de escala, tratamos ponto como decimal se for único.
-  }
-
-  const n = parseFloat(s);
-  return isNaN(n) ? 0 : n;
-}
-
-function fmtBR(num) {
-  if (isNaN(num) || num === null || num === undefined) return "0,00";
-  // Formatador manual para garantir consistência total
-  const parts = Number(num).toFixed(2).split(".");
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return parts.join(",");
-}
+// --- COMPONENT ---
 
 export default function DanfeMirror({ nf: nfRaw, chamado }) {
   const [isEditing, setIsEditing] = useState(false);
   const [localNF, setLocalNF] = useState({});
   const [origProds, setOrigProds] = useState([]);
   const [saving, setSaving] = useState(false);
-
 
   useEffect(() => {
     if (!nfRaw) return;
@@ -84,12 +77,8 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
     }
     const parsed = nf || {};
     
-    // IMPORTANTE: Só sobrescreve se for um novo chamado ou se o estado local estiver vazio
-    // Isso evita que o estado seja resetado enquanto o usuário está digitando
     setLocalNF(prev => {
-      if (prev.produtos && prev.produtos.length > 0 && chamado?.id === prev.chamado_id_ref) {
-         return prev;
-      }
+      if (prev.produtos && prev.produtos.length > 0 && chamado?.id === prev.chamado_id_ref) return prev;
       return { ...parsed, chamado_id_ref: chamado?.id };
     });
 
@@ -98,77 +87,70 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
     }
   }, [nfRaw, chamado?.id]);
 
-  // Função centralizada para calcular totais
-  const getRecalculatedState = (currentState, prods = null) => {
-    const pList = prods || currentState.produtos || [];
+  // RECALCULADOR CENTRAL
+  const recalc = (state, updatedProds = null) => {
+    const products = updatedProds || state.produtos || [];
     
-    // 1. Soma dos produtos
+    // 1. Totais dos Itens
     let sumProds = 0;
-    pList.forEach(p => { sumProds += parseNum(p.valor_total); });
+    const nextProds = products.map(p => {
+      const q = parseNum(p.quantidade);
+      const u = parseNum(p.valor_unitario);
+      const total = q * u;
+      sumProds += total;
+      return { ...p, valor_total: fmtBR(total) };
+    });
+
+    // 2. Base e Valor ICMS (padrão 12%)
+    const baseIcms = sumProds;
+    const valorIcms = baseIcms * 0.12;
+
+    // 3. Total da Nota
+    const st = parseNum(state.valor_icms_st);
+    const frete = parseNum(state.valor_frete);
+    const seguro = parseNum(state.valor_seguro);
+    const ipi = parseNum(state.valor_ipi);
+    const outras = parseNum(state.outras_despesas);
+    const desc = parseNum(state.desconto);
     
-    // 2. Outros valores
-    const frete = parseNum(currentState.valor_frete);
-    const seguro = parseNum(currentState.valor_seguro);
-    const desc = parseNum(currentState.desconto);
-    const outras = parseNum(currentState.outras_despesas);
-    const ipi = parseNum(currentState.valor_ipi);
-    const icmsST = parseNum(currentState.valor_icms_st); // Novo: ICMS ST soma no total
-    
-    // 3. Total da Nota: Prod + ICMS_ST + Frete + Seguro + Outras + IPI - Desconto
-    const totalNota = sumProds + icmsST + frete + seguro + outras + ipi - desc;
-    
+    const totalNota = sumProds + st + frete + seguro + ipi + outras - desc;
+
     return {
-      ...currentState,
-      produtos: pList,
+      ...state,
+      produtos: nextProds,
       valor_total_produtos: fmtBR(sumProds),
+      base_icms: fmtBR(baseIcms),
+      valor_icms: fmtBR(valorIcms),
       valor_total_nota: fmtBR(totalNota)
     };
   };
 
-  const upd = (field, val) => {
-    setLocalNF(prev => {
-      const next = { ...prev, [field]: val };
-      // Se for um campo que afeta o cálculo do total, recalcula
-      const fieldsThatAffectTotal = ["valor_frete", "valor_seguro", "desconto", "outras_despesas", "valor_ipi", "valor_icms_st"];
-      if (fieldsThatAffectTotal.includes(field)) {
-        return getRecalculatedState(next);
-      }
-      return next;
-    });
+  const upd = (f, v) => {
+    setLocalNF(prev => recalc({ ...prev, [f]: v }));
   };
 
-  // Atualiza um campo de um produto e recalcula totais se necessário
-  const updProd = (i, field, val) => {
+  const updProd = (i, f, v) => {
     setLocalNF(prev => {
-      const newProds = [...(prev.produtos || [])];
-      if (!newProds[i]) return prev;
-
-      newProds[i] = { ...newProds[i], [field]: val };
-
-      // Se mudar Qtde ou Preço, recalcula total do item
-      if (field === "quantidade" || field === "valor_unitario") {
-        const qtde = parseNum(field === "quantidade" ? val : newProds[i].quantidade);
-        const unit = parseNum(field === "valor_unitario" ? val : newProds[i].valor_unitario);
-        newProds[i].valor_total = fmtBR(qtde * unit);
-      }
-
-      return getRecalculatedState(prev, newProds);
+      const ps = [...(prev.produtos || [])];
+      if (!ps[i]) return prev;
+      ps[i] = { ...ps[i], [f]: v };
+      return recalc(prev, ps);
     });
   };
 
   const removeProd = (i) => {
     setLocalNF(prev => {
-      const newProds = (prev.produtos || []).filter((_, idx) => idx !== i);
-      return getRecalculatedState(prev, newProds);
+      const ps = (prev.produtos || []).filter((_, idx) => idx !== i);
+      return recalc(prev, ps);
     });
   };
 
   const addProd = () => {
     setLocalNF(prev => {
-      const newProds = [...(prev.produtos || []), {
-        codigo: "", descricao: "", ncm: "", cst: "", cfop: "5202", unidade: "UN", quantidade: "0", valor_unitario: "0,00", valor_total: "0,00"
+      const ps = [...(prev.produtos || []), {
+        codigo: "", descricao: "", ncm: "", cst: "000", cfop: "5202", unidade: "UN", quantidade: "0", valor_unitario: "0,00", valor_total: "0,00"
       }];
-      return getRecalculatedState(prev, newProds);
+      return recalc(prev, ps);
     });
   };
 
@@ -176,50 +158,40 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
     setSaving(true);
     try {
       await api.updateNFData(chamado.id, localNF);
-      alert("Espelho atualizado com sucesso!");
+      alert("Sucesso!");
       setIsEditing(false);
-      // Atualiza referência dos originais após salvar
       setOrigProds((localNF.produtos || []).map(p => ({ ...p })));
     } catch (e) {
-      alert("Erro ao salvar: " + e.message);
-    } finally {
-      setSaving(false);
-    }
+      alert("Erro: " + e.message);
+    } finally { setSaving(false); }
   };
 
   const d = {
     ...localNF,
     razao_social_dest: localNF.razao_social_dest || localNF.cliente || chamado?.razao_social || "",
     cnpj_dest: localNF.cnpj_dest || localNF.cnpj || chamado?.cnpj || "",
-    natureza_operacao: localNF.natureza_operacao || "5202 - DEVOLUÇÃO DE COMPRA PARA COMERCIALIZAÇÃO",
-    produtos: Array.isArray(localNF.produtos) ? localNF.produtos : []
+    natureza_operacao: localNF.natureza_operacao || "5202 - DEVOLUÇÃO",
+    produtos: localNF.produtos || [{}]
   };
 
-  // Usa todos os produtos — sem filtrar por devolvidos
-  const prods = d.produtos.length > 0 ? d.produtos : [{}];
   const now = new Date();
-  const footerMsg = `ESPELHO NFD REF.NF-${chamado?.nf_original || ""} - CFOP CORRETO 5202`;
-
-  // Estilos compartilhados
-  const sectionTitle = { fontSize: "7px", fontWeight: "800", textTransform: "uppercase", padding: "4px 0 2px 2px" };
+  const footerMsg = `ESPELHO NFD REF.NF-${chamado?.nf_original || ""} - CFOP 5202`;
 
   return (
     <div className="danfe-container" style={{ marginTop: 20 }}>
-      {/* CONTROLES */}
       <div className="no-print" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12, gap: 10 }}>
         {isEditing ? (
           <>
             <button onClick={() => setIsEditing(false)} style={{ padding: "8px 20px", background: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>Cancelar</button>
-            <button onClick={save} disabled={saving} style={{ padding: "8px 24px", background: M.pri, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>{saving ? "Salvando..." : "💾 Salvar Alterações"}</button>
+            <button onClick={save} disabled={saving} style={{ padding: "8px 24px", background: M.pri, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>{saving ? "Salvando..." : "💾 Salvar"}</button>
           </>
         ) : (
           <>
-            <button onClick={() => setIsEditing(true)} style={{ padding: "8px 20px", background: "#fff", border: `1px solid ${M.brdN}`, borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>✏️ Editar Rascunho</button>
-            <button onClick={() => window.print()} style={{ padding: "8px 24px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>🖨️ Imprimir Espelho (A4)</button>
+            <button onClick={() => setIsEditing(true)} style={{ padding: "8px 20px", background: "#fff", border: `1px solid #ddd`, borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>✏️ Editar</button>
+            <button onClick={() => window.print()} style={{ padding: "8px 24px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>🖨️ Imprimir (A4)</button>
           </>
         )}
       </div>
-
 
       <div id="danfe-print" style={{ background: "#fff", padding: "8mm", color: "#000", fontFamily: "Arial, sans-serif", position: "relative", width: "210mm", height: "297mm", minHeight: "297mm", boxSizing: "border-box", margin: "0 auto", border: "1px solid #000" }}>
         
@@ -228,237 +200,109 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
         </div>
 
         <div style={{ position: "relative", zIndex: 1 }}>
-          {/* HEADER */}
           <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", border: "1px solid #000", marginBottom: "4px" }}>
             <div style={{ padding: "10px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", borderRight: "1px solid #000" }}>
               <div style={{ fontSize: "12px", fontWeight: "900", textAlign: "center" }}>MARIN LOGISTICA E COMERCIO LTDA</div>
             </div>
             <div style={{ padding: "6px", fontSize: "7px", textAlign: "center", borderRight: "1px solid #000", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-              R VALDO GERLACH, 07<br/>BAIRRO: DISTRITO INDUSTRIAL<br/>CEP: 88104-743<br/>CIDADE: SÃO JOSÉ
+              R VALDO GERLACH, 07<br/>CEP: 88104-743 - SÃO JOSÉ - SC
             </div>
             <div style={{ padding: "10px", textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center" }}>
               <div style={{ fontSize: "14px", fontWeight: "900" }}>ESPELHO</div>
-              <div style={{ fontSize: "7px", marginTop: "4px" }}>Espelho Rascunho da<br/>DANFE</div>
+              <div style={{ fontSize: "7px", marginTop: "4px" }}>DANFE</div>
             </div>
           </div>
 
           <div style={{ border: "1px solid #000", borderTop: "none", marginBottom: "4px" }}>
-            {isEditing ? (
-              <BxInput label="Natureza da Operação" value={d.natureza_operacao} onChange={v => upd("natureza_operacao", v)} />
-            ) : (
-              <BxView label="Natureza da Operação" value={d.natureza_operacao} />
-            )}
+            {isEditing ? <BxInput label="Natureza da Operação" value={d.natureza_operacao} onChange={v => upd("natureza_operacao", v)} /> : <BxView label="Natureza da Operação" value={d.natureza_operacao} />}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr" }}>
-              <BxView label="Inscrição Estadual" value="261935348" style={{ borderTop: "none", borderLeft: "none" }} />
-              <BxView label="Inscrição Estadual Subst." value="-" style={{ borderTop: "none" }} />
+              <BxView label="I.E." value="261935348" style={{ borderTop: "none", borderLeft: "none" }} />
+              <BxView label="I.E. ST" value="-" style={{ borderTop: "none" }} />
               <BxView label="CNPJ" value="04.002.562/0004-78" style={{ borderTop: "none", borderRight: "none" }} />
             </div>
           </div>
 
-          <div style={sectionTitle}>Destinatário / Remetente</div>
+          <div style={{ fontSize: "7px", fontWeight: "800", padding: "4px 0 2px 2px" }}>DESTINATÁRIO / REMETENTE</div>
           <div style={{ border: "1px solid #000", marginBottom: "4px" }}>
             <div style={{ display: "grid", gridTemplateColumns: "2.5fr 1.5fr" }}>
               {isEditing ? (
-                <>
-                  <BxInput label="Nome / Razão Social" value={d.razao_social_dest} onChange={v => upd("razao_social_dest", v)} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxInput label="CNPJ / CPF" value={d.cnpj_dest} onChange={v => upd("cnpj_dest", v)} style={{ border: "none" }} />
-                </>
+                <><BxInput label="Razão Social" value={d.razao_social_dest} onChange={v => upd("razao_social_dest", v)} style={{ border: "none", borderRight: "1px solid #000" }} /><BxInput label="CNPJ" value={d.cnpj_dest} onChange={v => upd("cnpj_dest", v)} style={{ border: "none" }} /></>
               ) : (
-                <>
-                  <BxView label="Nome / Razão Social" value={d.razao_social_dest} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="CNPJ / CPF" value={d.cnpj_dest} style={{ border: "none" }} />
-                </>
+                <><BxView label="Razão Social" value={d.razao_social_dest} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="CNPJ" value={d.cnpj_dest} style={{ border: "none" }} /></>
               )}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "2.5fr 1fr 0.5fr 0.5fr", borderTop: "1px solid #000" }}>
               {isEditing ? (
-                <>
-                  <BxInput label="Endereço" value={d.endereco_dest} onChange={v => upd("endereco_dest", v)} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxInput label="Bairro" value={d.bairro_dest} onChange={v => upd("bairro_dest", v)} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxInput label="CEP" value={d.cep_dest} onChange={v => upd("cep_dest", v)} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Data Emissão" value={d.data_emissao || now.toLocaleDateString("pt-BR")} style={{ border: "none" }} />
-                </>
+                <><BxInput label="Endereço" value={d.endereco_dest} onChange={v => upd("endereco_dest", v)} style={{ border: "none", borderRight: "1px solid #000" }} /><BxInput label="Bairro" value={d.bairro_dest} onChange={v => upd("bairro_dest", v)} style={{ border: "none", borderRight: "1px solid #000" }} /><BxInput label="CEP" value={d.cep_dest} onChange={v => upd("cep_dest", v)} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Emissão" value={d.data_emissao || now.toLocaleDateString("pt-BR")} style={{ border: "none" }} /></>
               ) : (
-                <>
-                  <BxView label="Endereço" value={d.endereco_dest} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Bairro" value={d.bairro_dest} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="CEP" value={d.cep_dest} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Data Emissão" value={d.data_emissao || now.toLocaleDateString("pt-BR")} style={{ border: "none" }} />
-                </>
+                <><BxView label="Endereço" value={d.endereco_dest} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Bairro" value={d.bairro_dest} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="CEP" value={d.cep_dest} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Emissão" value={d.data_emissao || now.toLocaleDateString("pt-BR")} style={{ border: "none" }} /></>
               )}
             </div>
           </div>
 
-          <div style={sectionTitle}>Cálculo do Imposto</div>
+          <div style={{ fontSize: "7px", fontWeight: "800", padding: "4px 0 2px 2px" }}>CÁLCULO DO IMPOSTO</div>
           <div style={{ border: "1px solid #000", marginBottom: "4px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.5fr 1fr 1fr" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr" }}>
               {isEditing ? (
-                <>
-                  <BxInput label="Base ICMS" value={d.base_icms} onChange={v => upd("base_icms", v)} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxInput label="Valor ICMS" value={d.valor_icms} onChange={v => upd("valor_icms", v)} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxInput label="Base ICMS ST" value={d.base_icms_st} onChange={v => upd("base_icms_st", v)} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxInput label="Valor ICMS ST" value={d.valor_icms_st} onChange={v => upd("valor_icms_st", v)} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxInput label="Vlr Total Prod" value={d.valor_total_produtos} onChange={v => upd("valor_total_produtos", v)} style={{ border: "none" }} />
-                </>
+                <><BxInput label="Base ICMS" value={d.base_icms} onChange={v => upd("base_icms", v)} style={{ border: "none", borderRight: "1px solid #000" }} /><BxInput label="Valor ICMS" value={d.valor_icms} onChange={v => upd("valor_icms", v)} style={{ border: "none", borderRight: "1px solid #000" }} /><BxInput label="Base ICMS ST" value={d.base_icms_st} onChange={v => upd("base_icms_st", v)} style={{ border: "none", borderRight: "1px solid #000" }} /><BxInput label="Valor ICMS ST" value={d.valor_icms_st} onChange={v => upd("valor_icms_st", v)} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Total Prod" value={d.valor_total_produtos} style={{ border: "none" }} /></>
               ) : (
-                <>
-                  <BxView label="Base ICMS" value={d.base_icms} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Valor ICMS" value={d.valor_icms} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Base ICMS ST" value={d.base_icms_st} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Valor ICMS ST" value={d.valor_icms_st} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Vlr Total Prod" value={d.valor_total_produtos} style={{ border: "none" }} />
-                </>
+                <><BxView label="Base ICMS" value={d.base_icms} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Valor ICMS" value={d.valor_icms} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Base ICMS ST" value={d.base_icms_st} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Valor ICMS ST" value={d.valor_icms_st} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Total Prod" value={d.valor_total_produtos} style={{ border: "none" }} /></>
               )}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr 1fr", borderTop: "1px solid #000" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr", borderTop: "1px solid #000" }}>
               {isEditing ? (
-                <>
-                  <BxInput label="Frete" value={d.valor_frete} onChange={v => upd("valor_frete", v)} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxInput label="Seguro" value={d.valor_seguro} onChange={v => upd("valor_seguro", v)} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxInput label="Desconto" value={d.desconto} onChange={v => upd("desconto", v)} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxInput label="Outras Desp." value={d.outras_despesas} onChange={v => upd("outras_despesas", v)} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxInput label="IPI" value={d.valor_ipi} onChange={v => upd("valor_ipi", v)} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="IPI Devol." value="0,00" style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxInput label="Total Nota" value={d.valor_total_nota} onChange={v => upd("valor_total_nota", v)} style={{ border: "none" }} />
-                </>
+                <><BxInput label="Frete" value={d.valor_frete} onChange={v => upd("valor_frete", v)} style={{ border: "none", borderRight: "1px solid #000" }} /><BxInput label="Seguro" value={d.valor_seguro} onChange={v => upd("valor_seguro", v)} style={{ border: "none", borderRight: "1px solid #000" }} /><BxInput label="Desconto" value={d.desconto} onChange={v => upd("desconto", v)} style={{ border: "none", borderRight: "1px solid #000" }} /><BxInput label="Outras" value={d.outras_despesas} onChange={v => upd("outras_despesas", v)} style={{ border: "none", borderRight: "1px solid #000" }} /><BxInput label="IPI" value={d.valor_ipi} onChange={v => upd("valor_ipi", v)} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Total Nota" value={d.valor_total_nota} style={{ border: "none" }} /></>
               ) : (
-                <>
-                  <BxView label="Frete" value={d.valor_frete} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Seguro" value={d.valor_seguro} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Desconto" value={d.desconto} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Outras Desp." value={d.outras_despesas} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="IPI" value={d.valor_ipi} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="IPI Devol." value="0,00" style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Total Nota" value={d.valor_total_nota} style={{ border: "none" }} />
-                </>
+                <><BxView label="Frete" value={d.valor_frete} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Seguro" value={d.valor_seguro} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Desconto" value={d.desconto} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Outras" value={d.outras_despesas} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="IPI" value={d.valor_ipi} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Total Nota" value={d.valor_total_nota} style={{ border: "none" }} /></>
               )}
             </div>
           </div>
 
-          <div style={sectionTitle}>Transportador / Volumes Transportados</div>
-          <div style={{ border: "1px solid #000", marginBottom: "4px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "2.5fr 1.5fr 1fr" }}>
-              <BxView label="Transportadora" value="MARIN LOGISTICA E COMERCIO LTDA" style={{ border: "none", borderRight: "1px solid #000" }} />
-              <BxView label="Frete" value="1 - Emitente (CIF)" style={{ border: "none", borderRight: "1px solid #000" }} />
-              <BxView label="CNPJ" value="04.002.562/0004-78" style={{ border: "none" }} />
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "0.5fr 1fr 1fr 1fr 1fr 1.2fr", borderTop: "1px solid #000" }}>
-              {isEditing ? (
-                <>
-                  <BxInput label="Qtde" value={d.quantidade_volumes} onChange={v => upd("quantidade_volumes", v)} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxInput label="Espécie" value={d.especie_volumes} onChange={v => upd("especie_volumes", v)} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Marca" value="-" style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Num." value="-" style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxInput label="Peso Bruto" value={d.peso_bruto} onChange={v => upd("peso_bruto", v)} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxInput label="Peso Líquido" value={d.peso_liquido} onChange={v => upd("peso_liquido", v)} style={{ border: "none" }} />
-                </>
-              ) : (
-                <>
-                  <BxView label="Qtde" value={d.quantidade_volumes} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Espécie" value={d.especie_volumes} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Marca" value="-" style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Num." value="-" style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Peso Bruto" value={d.peso_bruto} style={{ border: "none", borderRight: "1px solid #000" }} />
-                  <BxView label="Peso Líquido" value={d.peso_liquido} style={{ border: "none" }} />
-                </>
-              )}
-            </div>
-          </div>
-
-          <div style={sectionTitle}>Dados dos Produtos / Serviços</div>
+          <div style={{ fontSize: "7px", fontWeight: "800", padding: "4px 0 2px 2px" }}>DADOS DOS PRODUTOS</div>
           <div style={{ border: "1px solid #000", borderBottom: "none" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
               <thead>
-                <tr style={{ height: "14px", borderBottom: "1px solid #000" }}>
-                  {isEditing && <th style={{ width: "20px", background: "#fee2e2" }}></th>}
-                  {["CÓD.","DESCRIÇÃO","NCM/SH","CST","CFOP","UNID.","QTDE.","VLR. UNIT.","VLR. TOTAL"].map(h => (
-                    <th key={h} style={{ fontSize: "5px", fontWeight: "700", borderRight: "1px solid #000", padding: "1px", background: "#f5f5f5", textAlign: "center" }}>{h}</th>
+                <tr style={{ height: "14px", borderBottom: "1px solid #000", background: "#f5f5f5" }}>
+                  {isEditing && <th style={{ width: "20px" }}></th>}
+                  {[
+                    {h:"CÓD.", w:"10%"}, {h:"DESCRIÇÃO", w:"36%"}, {h:"NCM", w:"9%"}, {h:"CST", w:"5%"}, {h:"CFOP", w:"6%"}, {h:"UN", w:"5%"}, {h:"QTDE", w:"8%"}, {h:"UNIT", w:"10%"}, {h:"TOTAL", w:"11%"}
+                  ].map(c => (
+                    <th key={c.h} style={{ fontSize: "6px", fontWeight: "700", borderRight: "1px solid #000", padding: "1px", textAlign: "center", width: c.w }}>{c.h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {prods.map((p, i) => {
-                  // Verifica se a quantidade foi alterada em relação ao original
-                  const origQtde = origProds[i]?.quantidade;
-                  const wasEdited = origQtde !== undefined && String(p.quantidade) !== String(origQtde);
-
-                  return (
-                    <tr key={i} style={{ minHeight: "14px", borderBottom: "1px solid #000", background: wasEdited ? "#fffde7" : "transparent" }}>
-                      {isEditing && (
-                        <td style={{ textAlign: "center", borderRight: "1px solid #000", padding: "1px" }}>
-                          <button onClick={() => removeProd(i)} style={{ border: "none", background: "none", cursor: "pointer", fontSize: "8px", color: "#dc2626", padding: 0 }}>❌</button>
-                        </td>
-                      )}
-                      {["codigo","descricao","ncm","cst","cfop","unidade","quantidade","valor_unitario","valor_total"].map(f => {
-                        const isNumericField = ["quantidade","valor_unitario","valor_total"].includes(f);
-                        const isReadonlyInEdit = f === "valor_total"; // valor_total é calculado automaticamente
-                        return (
-                          <td key={f} style={{ fontSize: "6.5px", padding: "2px", borderRight: "1px solid #000", textAlign: isNumericField ? "right" : "left" }}>
-                            {isEditing ? (
-                              isReadonlyInEdit ? (
-                                // Valor total: somente leitura, calculado automaticamente
-                                <span style={{ fontSize: "6.5px", fontWeight: "700", color: wasEdited ? "#b45309" : "#222" }}>
-                                  {p.valor_total || "0,00"}
-                                </span>
-                              ) : (
-                                <input 
-                                  value={p[f] || ""} 
-                                  onChange={e => updProd(i, f, e.target.value)}
-                                  style={{ 
-                                    fontSize: "6.5px", width: "100%", border: "none", 
-                                    background: ["quantidade","valor_unitario"].includes(f) ? "#fff9c4" : "#ffffff", 
-                                    padding: 0,
-                                    fontWeight: f === "quantidade" && wasEdited ? "700" : "normal"
-                                  }} 
-                                />
-                              )
-                            ) : (
-                              <span style={{ fontWeight: wasEdited && isNumericField ? "700" : "normal", color: wasEdited && isNumericField ? "#b45309" : "inherit" }}>
-                                {p[f] || (f === "valor_total" ? (p.valor_liquido || "0,00") : "-")}
-                              </span>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
+                {d.produtos.map((p, i) => (
+                  <tr key={i} style={{ minHeight: "14px", borderBottom: "1px solid #000" }}>
+                    {isEditing && <td style={{ textAlign: "center", borderRight: "1px solid #000" }}><button onClick={() => removeProd(i)} style={{ border: "none", background: "none", cursor: "pointer", fontSize: "8px" }}>❌</button></td>}
+                    {["codigo","descricao","ncm","cst","cfop","unidade","quantidade","valor_unitario","valor_total"].map(f => (
+                      <td key={f} style={{ fontSize: "7.5px", padding: "2px", borderRight: "1px solid #000", textAlign: ["quantidade","valor_unitario","valor_total"].includes(f) ? "right" : "left" }}>
+                        {isEditing && f !== "valor_total" ? (
+                          <input value={p[f] || ""} onChange={e => updProd(i, f, e.target.value)} style={{ fontSize: "7.5px", width: "100%", border: "none", background: ["quantidade","valor_unitario"].includes(f) ? "#fff9c4" : "transparent", padding: 0 }} />
+                        ) : (
+                          <span>{p[f] || (f === "valor_total" ? "0,00" : "-")}</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
               </tbody>
             </table>
-            {isEditing && (
-              <div style={{ padding: "4px", borderTop: "1px solid #000" }}>
-                <button onClick={addProd} style={{ fontSize: "8px", background: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "4px", padding: "2px 8px", cursor: "pointer", fontWeight: "700" }}>➕ Adicionar Item</button>
-              </div>
-            )}
+            {isEditing && <button onClick={addProd} style={{ fontSize: "8px", margin: "4px", cursor: "pointer" }}>➕ Item</button>}
           </div>
 
-          <div style={sectionTitle}>Dados Adicionais</div>
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", border: "1px solid #000", minHeight: "60px" }}>
-            <div style={{ padding: "4px", fontSize: "7px", borderRight: "1px solid #000" }}>
-              <div style={{ fontSize: "6px", fontWeight: "700", textTransform: "uppercase", marginBottom: "1px" }}>Informações Complementares</div>
-              {isEditing ? (
-                <textarea 
-                  value={d.info_complementares || footerMsg} 
-                  onChange={e => upd("info_complementares", e.target.value)} 
-                  style={{ width: "100%", border: "none", background: "#fff9c4", fontFamily: "inherit", resize: "none", height: "40px", fontSize: "7px" }} 
-                />
-              ) : (
-                <div style={{ fontSize: "7px", lineHeight: "1.3" }}>
-                  {d.info_complementares || footerMsg}<br/>
-                  Vendedor: {chamado?.vendedor_nome || chamado?.nome_vendedor}<br/>
-                  DEVOLUÇÃO REF. NF {chamado?.nf_original}
-                </div>
-              )}
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", border: "1px solid #000", marginTop: "10px", minHeight: "60px" }}>
+            <div style={{ padding: "4px", borderRight: "1px solid #000" }}>
+              <div style={{ fontSize: "6px", fontWeight: "700" }}>INFORMAÇÕES COMPLEMENTARES</div>
+              <div style={{ fontSize: "7.5px" }}>{d.info_complementares || footerMsg}<br/>DEVOLUÇÃO REF. NF {chamado?.nf_original}</div>
             </div>
             <div style={{ padding: "4px", fontSize: "7px" }}>
-              <div style={{ fontSize: "6px", fontWeight: "700", textTransform: "uppercase", marginBottom: "1px" }}>Data/Hora</div>
-              <div style={{ fontSize: "6px", color: "#888" }}>{now.toLocaleString("pt-BR")}</div>
-              <div style={{ fontSize: "6px", color: "#aaa", marginTop: "2px" }}>Triagem Automática Marin</div>
+              <div style={{ fontSize: "6px", fontWeight: "700" }}>DATA/HORA</div>
+              <div>{now.toLocaleString("pt-BR")}</div>
             </div>
           </div>
         </div>
       </div>
-
     </div>
   );
 }
