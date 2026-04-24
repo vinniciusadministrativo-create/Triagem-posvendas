@@ -35,9 +35,24 @@ const BxView = ({ label, value, style = {} }) => (
 // Helpers para cálculo
 function parseNum(val) {
   if (!val && val !== 0) return 0;
-  // Suporte a formato brasileiro (1.234,56) e americano (1234.56)
-  const s = String(val).replace(/\./g, "").replace(",", ".");
-  return parseFloat(s) || 0;
+  let s = String(val).trim();
+  if (!s) return 0;
+
+  // Se tem vírgula e ponto, assume que o ponto é milhar e a vírgula é decimal (BR)
+  if (s.includes(",") && s.includes(".")) {
+    s = s.replace(/\./g, "").replace(",", ".");
+  } 
+  // Se só tem vírgula, assume que é decimal (BR)
+  else if (s.includes(",")) {
+    s = s.replace(",", ".");
+  }
+  // Se só tem ponto, mas parece separador de milhar (ex: 1.000), e não tem decimal
+  // No entanto, na maioria dos casos de input, se o usuário digita 1.50, ele quer 1.50
+  // Então, se só tem ponto, vamos assumir que é o formato americano (decimal) 
+  // a menos que queiramos ser muito específicos. Para este app, US format é seguro se não houver vírgula.
+  
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
 }
 function fmtBR(num) {
   return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -86,9 +101,10 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
     const desc = parseNum(currentState.desconto);
     const outras = parseNum(currentState.outras_despesas);
     const ipi = parseNum(currentState.valor_ipi);
+    const icmsST = parseNum(currentState.valor_icms_st); // Novo: ICMS ST soma no total
     
-    // 3. Total da Nota: Prod + Frete + Seguro + Outras + IPI - Desconto
-    const totalNota = sumProds + frete + seguro + outras + ipi - desc;
+    // 3. Total da Nota: Prod + ICMS_ST + Frete + Seguro + Outras + IPI - Desconto
+    const totalNota = sumProds + icmsST + frete + seguro + outras + ipi - desc;
     
     return {
       ...currentState,
@@ -102,7 +118,7 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
     setLocalNF(prev => {
       const next = { ...prev, [field]: val };
       // Se for um campo que afeta o cálculo do total, recalcula
-      const fieldsThatAffectTotal = ["valor_frete", "valor_seguro", "desconto", "outras_despesas", "valor_ipi"];
+      const fieldsThatAffectTotal = ["valor_frete", "valor_seguro", "desconto", "outras_despesas", "valor_ipi", "valor_icms_st"];
       if (fieldsThatAffectTotal.includes(field)) {
         return getRecalculatedState(next);
       }
