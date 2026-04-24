@@ -94,17 +94,25 @@ router.post("/extract-nf", authMiddleware(), async (req, res) => {
       if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
 
       // ── Pós-processamento: limpar e validar valores ──
-      const produtos = (det.produtos?.rows || []).map(r => ({
-        codigo:         r[0]  || "",
-        descricao:      r[1]  || "",
-        ncm:            r[2]  || "",
-        cst:            r[3]  || "",
-        cfop:           "5202", // FORÇADO AUTOMATICAMENTE conforme pedido
-        unidade:        r[5]  || "UN",
-        quantidade:     r[6]  || "0",
-        valor_unitario: r[7]  || "0,00",
-        valor_total:    r[10] || "0,00"
-      }));
+      const produtos = (det.produtos?.rows || []).map(r => {
+        const len = r.length;
+        // Se a linha tem ~9 colunas (como no print do usuário), o total costuma ser a última ou penúltima.
+        // Índice 10 pode estar fora do range ou ser imposto em tabelas menores.
+        const totalIdx = len >= 11 ? 10 : (len >= 9 ? 8 : len - 1);
+        const unitIdx  = len >= 11 ? 7  : (len >= 9 ? 7 : len - 2);
+        
+        return {
+          codigo:         r[0]  || "",
+          descricao:      r[1]  || "",
+          ncm:            r[2]  || "",
+          cst:            r[3]  || "",
+          cfop:           "5202",
+          unidade:        r[5]  || "UN",
+          quantidade:     r[6]  || "0",
+          valor_unitario: r[unitIdx]  || "0,00",
+          valor_total:    r[totalIdx] || "0,00"
+        };
+      });
 
       // Calcular total dos produtos a partir dos itens quando valor não extraído
       const parseBR = v => parseFloat((v || "0").replace(/\./g,"").replace(",",".")) || 0;

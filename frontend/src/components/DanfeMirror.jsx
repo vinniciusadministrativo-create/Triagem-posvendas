@@ -34,28 +34,39 @@ const BxView = ({ label, value, style = {} }) => (
 
 // Helpers para cálculo
 function parseNum(val) {
-  if (!val && val !== 0) return 0;
-  let s = String(val).trim();
+  if (val === null || val === undefined || val === "") return 0;
+  if (typeof val === "number") return val;
+  
+  // Limpa tudo que não for dígito, ponto ou vírgula
+  let s = String(val).replace(/[^\d.,-]/g, "").trim();
   if (!s) return 0;
 
-  // Se tem vírgula e ponto, assume que o ponto é milhar e a vírgula é decimal (BR)
-  if (s.includes(",") && s.includes(".")) {
+  // Se houver mais de um separador (ex: 1.234,56), assume formato BR
+  const hasComma = s.includes(",");
+  const hasDot = s.includes(".");
+
+  if (hasComma && hasDot) {
+    // Remove todos os pontos (milhar) e troca vírgula por ponto (decimal)
     s = s.replace(/\./g, "").replace(",", ".");
-  } 
-  // Se só tem vírgula, assume que é decimal (BR)
-  else if (s.includes(",")) {
+  } else if (hasComma) {
+    // Apenas vírgula: troca por ponto
     s = s.replace(",", ".");
+  } else if (hasDot) {
+    // Apenas ponto: assume decimal (formato US) 
+    // a menos que seja algo como "1.000" sem decimais. 
+    // Para simplificar e evitar erros de escala, tratamos ponto como decimal se for único.
   }
-  // Se só tem ponto, mas parece separador de milhar (ex: 1.000), e não tem decimal
-  // No entanto, na maioria dos casos de input, se o usuário digita 1.50, ele quer 1.50
-  // Então, se só tem ponto, vamos assumir que é o formato americano (decimal) 
-  // a menos que queiramos ser muito específicos. Para este app, US format é seguro se não houver vírgula.
-  
+
   const n = parseFloat(s);
   return isNaN(n) ? 0 : n;
 }
+
 function fmtBR(num) {
-  return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (isNaN(num) || num === null || num === undefined) return "0,00";
+  // Formatador manual para garantir consistência total
+  const parts = Number(num).toFixed(2).split(".");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return parts.join(",");
 }
 
 export default function DanfeMirror({ nf: nfRaw, chamado }) {
