@@ -44,20 +44,20 @@ function fmtBR(num) {
 }
 
 const BxInput = ({ label, value, onChange, style = {} }) => (
-  <div style={{ border: "1px solid #000", padding: "2px 4px", fontSize: "7.5px", minHeight: "22px", display: "flex", flexDirection: "column", boxSizing: "border-box", ...style }}>
-    <div style={{ fontSize: "6px", fontWeight: "700", textTransform: "uppercase", marginBottom: "1px" }}>{label}</div>
+  <div style={{ border: "1px solid #000", padding: "6px 8px", minHeight: "36px", display: "flex", flexDirection: "column", boxSizing: "border-box", ...style }}>
+    <div style={{ fontSize: "7px", fontWeight: "800", textTransform: "uppercase", marginBottom: "2px" }}>{label}</div>
     <input 
       value={value || ""} 
       onChange={(e) => onChange(e.target.value)}
-      style={{ fontSize: "9px", fontWeight: "500", fontFamily: "monospace", border: "none", outline: "none", background: "#fff9c4", width: "100%", padding: 0 }}
+      style={{ fontSize: "11px", fontWeight: "700", border: "none", outline: "none", background: "#fff9c4", width: "100%", padding: 0 }}
     />
   </div>
 );
 
 const BxView = ({ label, value, style = {} }) => (
-  <div style={{ border: "1px solid #000", padding: "2px 4px", fontSize: "7.5px", minHeight: "22px", display: "flex", flexDirection: "column", boxSizing: "border-box", ...style }}>
-    <div style={{ fontSize: "6px", fontWeight: "700", textTransform: "uppercase", marginBottom: "1px" }}>{label}</div>
-    <div style={{ fontSize: "9px", fontWeight: "500", fontFamily: "monospace", flex: 1, display: "flex", alignItems: "center" }}>{value || "—"}</div>
+  <div style={{ border: "1px solid #000", padding: "6px 8px", minHeight: "36px", display: "flex", flexDirection: "column", boxSizing: "border-box", ...style }}>
+    <div style={{ fontSize: "7px", fontWeight: "800", textTransform: "uppercase", marginBottom: "2px" }}>{label}</div>
+    <div style={{ fontSize: "11px", fontWeight: "700", flex: 1, display: "flex", alignItems: "center" }}>{value || "—"}</div>
   </div>
 );
 
@@ -183,7 +183,7 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
 
   const now = new Date();
   const footerMsg = `ESPELHO NFD REF.NF-${chamado?.nf_original || ""} - CFOP 5202`;
-  const sectionTitle = { fontSize: "7px", fontWeight: "800", textTransform: "uppercase", padding: "4px 0 2px 2px" };
+  const sectionTitle = { fontSize: "9px", fontWeight: "800", textTransform: "uppercase", padding: "8px 0 4px 4px", borderTop: "1px solid #000", marginTop: "4px" };
 
   return (
     <div className="danfe-container" style={{ marginTop: 20 }}>
@@ -297,18 +297,18 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
                   {[
                     {h:"CÓD.", w:"10%"}, {h:"DESCRIÇÃO", w:"36%"}, {h:"NCM", w:"9%"}, {h:"CST", w:"5%"}, {h:"CFOP", w:"6%"}, {h:"UN", w:"5%"}, {h:"QTDE", w:"8%"}, {h:"UNIT", w:"10%"}, {h:"TOTAL", w:"11%"}
                   ].map(c => (
-                    <th key={c.h} style={{ fontSize: "6px", fontWeight: "700", borderRight: "1px solid #000", padding: "1px", textAlign: "center", width: c.w }}>{c.h}</th>
+                    <th key={c.h} style={{ fontSize: "8px", fontWeight: "800", borderRight: "1px solid #000", padding: "4px 1px", textAlign: "center", width: c.w }}>{c.h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {d.produtos.map((p, i) => (
-                  <tr key={i} style={{ minHeight: "14px", borderBottom: "1px solid #000" }}>
-                    {isEditing && <td style={{ textAlign: "center", borderRight: "1px solid #000" }}><button onClick={() => removeProd(i)} style={{ border: "none", background: "none", cursor: "pointer", fontSize: "8px" }}>❌</button></td>}
+                  <tr key={i} style={{ minHeight: "24px", borderBottom: "1px solid #000" }}>
+                    {isEditing && <td style={{ textAlign: "center", borderRight: "1px solid #000" }}><button onClick={() => removeProd(i)} style={{ border: "none", background: "none", cursor: "pointer", fontSize: "10px" }}>❌</button></td>}
                     {["codigo","descricao","ncm","cst","cfop","unidade","quantidade","valor_unitario","valor_total"].map(f => (
-                      <td key={f} style={{ fontSize: "7.5px", padding: "2px", borderRight: "1px solid #000", textAlign: ["quantidade","valor_unitario","valor_total"].includes(f) ? "right" : "left" }}>
+                      <td key={f} style={{ fontSize: "9.5px", padding: "6px 4px", borderRight: "1px solid #000", textAlign: ["quantidade","valor_unitario","valor_total"].includes(f) ? "right" : "left" }}>
                         {isEditing && f !== "valor_total" ? (
-                          <input value={p[f] || ""} onChange={e => updProd(i, f, e.target.value)} style={{ fontSize: "7.5px", width: "100%", border: "none", background: ["quantidade","valor_unitario"].includes(f) ? "#fff9c4" : "transparent", padding: 0 }} />
+                          <input value={p[f] || ""} onChange={e => updProd(i, f, e.target.value)} style={{ fontSize: "9.5px", width: "100%", border: "none", background: ["quantidade","valor_unitario"].includes(f) ? "#fff9c4" : "transparent", padding: 0 }} />
                         ) : (
                           <span>{p[f] || (f === "valor_total" ? "0,00" : "-")}</span>
                         )}
