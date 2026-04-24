@@ -356,42 +356,58 @@ main, .card, .v-container {
     padding: 0 !important;
     width: 210mm !important;
     height: 297mm !important;
-    transform: none !important; /* Remove qualquer escala ou deslocamento */
-    filter: none !important;
-    perspective: none !important;
+    max-height: 297mm !important; /* Trava a altura para evitar 2ª página */
+    overflow: hidden !important; /* Corta qualquer conteúdo extra */
+    transform: none !important;
     background: #fff !important;
     box-shadow: none !important;
+    border: none !important;
   }
 
   body {
-    visibility: hidden !important; /* Esconde o conteúdo geral */
+    visibility: hidden !important;
   }
 
-  /* Container do Espelho */
-  #danfe-print {
+  /* --- ESCONDER ELEMENTOS ESPECÍFICOS DO DASHBOARD --- */
+  .page-container > header, 
+  .page-container > div:not(.modal-wrapper),
+  .sidebar-container, nav, .sidebar {
+    display: none !important;
+  }
+
+  /* --- ESCONDER ELEMENTOS DO MODAL EXCETO O ESPELHO --- */
+  .modal-content > div:not(.split-view) { display: none !important; }
+  .split-view > .split-right { display: none !important; }
+  .split-left > div:not(.danfe-container), 
+  .split-left > section, 
+  .split-left > p, 
+  .split-left > h3 { 
+    display: none !important; 
+  }
+
+  /* --- MOSTRAR APENAS O CONTAINER DO ESPELHO --- */
+  #danfe-print, #danfe-print * {
     visibility: visible !important;
     display: block !important;
-    position: absolute !important; /* Absolute em relação ao body que agora é 210x297 */
+  }
+  
+  #danfe-print table { display: table !important; }
+  #danfe-print tr { display: table-row !important; }
+  #danfe-print td, #danfe-print th { display: table-cell !important; }
+
+  #danfe-print {
+    position: absolute !important;
     left: 0 !important;
     top: 0 !important;
     width: 210mm !important;
     height: 297mm !important;
-    padding: 8mm !important; /* Reduzido para maior segurança */
+    padding: 8mm !important;
     background: #fff !important;
     box-sizing: border-box !important;
-    overflow: hidden !important;
     z-index: 99999 !important;
-    border: none !important;
   }
 
-  #danfe-print * {
-    visibility: visible !important;
-  }
-
-  /* Remove especificamente elementos de UI */
-  .no-print, button, select, nav, .sidebar, .no-print-container {
-    display: none !important;
-  }
+  .no-print { display: none !important; }
 }
 
 /* -------------------------------
