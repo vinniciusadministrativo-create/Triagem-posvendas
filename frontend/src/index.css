@@ -348,7 +348,7 @@ main, .card, .v-container {
   }
   
   /* Reset radical para os containers pais */
-  html, body, #root, .page-container, .modal-wrapper, .modal-content, .split-view, .split-left {
+  html, body, #root, .page-container, .modal-wrapper, .modal-content, .split-view, .split-left, .danfe-container {
     visibility: visible !important;
     display: block !important;
     position: static !important;
@@ -356,6 +356,7 @@ main, .card, .v-container {
     padding: 0 !important;
     width: 210mm !important;
     height: auto !important;
+    min-height: 0 !important;
     max-height: none !important;
     overflow: visible !important;
     transform: none !important;
@@ -393,13 +394,14 @@ main, .card, .v-container {
   #danfe-print {
     display: block !important;
     position: relative !important;
-    margin: 0 auto !important;
+    margin: 0 !important;
     width: 210mm !important;
     min-height: 297mm !important;
     height: auto !important;
-    padding: 8mm !important;
+    padding: 10mm !important;
     background: #fff !important;
     box-sizing: border-box !important;
+    border: none !important;
     z-index: 99999 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
