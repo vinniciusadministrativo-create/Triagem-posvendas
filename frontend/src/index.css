@@ -348,7 +348,7 @@ main, .card, .v-container {
   }
   
   /* Reset radical para os containers pais */
-  html, body, #root, .page-container, .modal-wrapper, .modal-content, .split-view, .split-left, .danfe-container {
+  html, body, #root, .page-container, .modal-wrapper, .modal-content, .split-view, .split-left, .danfe-container, main {
     visibility: visible !important;
     display: block !important;
     position: static !important;
