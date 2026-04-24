@@ -79,7 +79,8 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
     
     setLocalNF(prev => {
       if (prev.produtos && prev.produtos.length > 0 && chamado?.id === prev.chamado_id_ref) return prev;
-      return { ...parsed, chamado_id_ref: chamado?.id };
+      const initial = { ...parsed, chamado_id_ref: chamado?.id };
+      return recalc(initial);
     });
 
     if (Array.isArray(parsed.produtos)) {
