@@ -57,6 +57,7 @@ export default function Sidebar({ user, onLogout, onSwitchUser, isOpen, onToggle
     <>
       {/* HAMBURGER BUTTON */}
       <button 
+        className="no-print"
         onClick={onToggle}
         style={{
           position: "fixed",
@@ -106,7 +107,7 @@ export default function Sidebar({ user, onLogout, onSwitchUser, isOpen, onToggle
         <div style={{ padding: "20px 0", borderTop: `1px solid ${M.brdN}`, opacity: isOpen ? 1 : 0 }}>
           <button 
             onClick={onLogout}
-            className="nav-item"
+            className="nav-item no-print"
             style={{ width: "calc(100% - 15px)", padding: "12px 22px", textAlign: "left", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "#dc2626" }}
           >
             <span style={{ fontSize: 18, minWidth: 30 }}>🚪</span>

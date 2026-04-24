@@ -408,6 +408,7 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
 
             {canDelete && (
               <button 
+                className="no-print"
                 onClick={() => { if(window.confirm("Tem certeza que deseja excluir?")) onDelete(chamado.id); }} 
                 style={{ marginTop: 30, width: "100%", padding: 12, background: "transparent", color: M.err, border: `1px solid ${M.err}`, borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13 }}
               >
