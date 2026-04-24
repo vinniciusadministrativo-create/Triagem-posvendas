@@ -344,42 +344,47 @@ main, .card, .v-container {
 @media print {
   @page { 
     size: A4 portrait; 
-    margin: 0; 
+    margin: 5mm; /* Margem mínima para evitar cortes e escalas agressivas do navegador */
   }
   
-  /* Esconde tudo */
+  /* Esconde tudo exceto o DANFE */
   body * {
     visibility: hidden !important;
   }
   
-  /* Garante que o container de impressão e seus filhos sejam visíveis */
   #danfe-print, #danfe-print * {
     visibility: visible !important;
   }
 
-  /* Posiciona o DANFE no topo da página */
+  /* Container principal do DANFE na impressão */
   #danfe-print {
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
-    width: 210mm !important;
-    height: 297mm !important; /* Altura exata do A4 */
-    margin: 0 !important;
-    padding: 10mm !important;
+    width: 100% !important;
+    max-width: 210mm;
+    height: auto !important;
+    min-height: 285mm !important; /* Quase o total do A4 menos as margens */
+    margin: 0 auto !important;
+    padding: 8mm !important;
     background: #fff !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     box-sizing: border-box !important;
-    overflow: hidden !important; /* Evita quebra para segunda página se houver overflow mínimo */
+    overflow: hidden !important; /* Evita vazamentos para a 2ª página */
+    border: 1px solid #000 !important;
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
+    display: block !important;
   }
 
-  /* Força ocultação de elementos indesejáveis */
-  .no-print, .no-print *, button, select, .modal-wrapper::before {
+  /* Força ocultação de elementos de UI */
+  .no-print, .no-print *, button, select, .modal-wrapper::before, .no-print-container {
     display: none !important;
     visibility: hidden !important;
   }
 
-  /* Reseta containers pais para não quebrarem o fluxo da impressão */
+  /* Limpa containers pais para não interferirem na posição absoluta do DANFE */
   html, body, #root, .modal-wrapper, .modal-content, .split-view, .split-left {
     display: block !important;
     overflow: visible !important;
@@ -391,6 +396,7 @@ main, .card, .v-container {
     width: auto !important;
     height: auto !important;
     transform: none !important;
+    background: transparent !important;
   }
 }
 
