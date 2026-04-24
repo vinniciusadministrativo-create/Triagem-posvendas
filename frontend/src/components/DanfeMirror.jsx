@@ -88,33 +88,39 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
     }
   }, [nfRaw, chamado?.id]);
 
-  // RECALCULADOR CENTRAL
+  // RECALCULADOR CENTRAL - Rigoroso e Reativo
   const recalc = (state, updatedProds = null) => {
     const products = updatedProds || state.produtos || [];
     
-    // 1. Totais dos Itens
+    // 1. Totais dos Itens (Qtde * Unitário) com arredondamento de 2 casas
     let sumProds = 0;
     const nextProds = products.map(p => {
       const q = parseNum(p.quantidade);
       const u = parseNum(p.valor_unitario);
-      const total = q * u;
-      sumProds += total;
-      return { ...p, valor_total: fmtBR(total) };
+      const rowTotal = Number((q * u).toFixed(2));
+      sumProds += rowTotal;
+      return { ...p, valor_total: fmtBR(rowTotal) };
     });
 
-    // 2. Base e Valor ICMS (padrão 12%)
-    const baseIcms = sumProds;
-    const valorIcms = baseIcms * 0.12;
+    // 2. Base e Valor ICMS (Geralmente igual ao total dos produtos em devoluções 12%)
+    const baseIcms = Number(sumProds.toFixed(2));
+    const valorIcms = Number((baseIcms * 0.12).toFixed(2));
 
-    // 3. Total da Nota
+    // 3. Componentes do Total da Nota
+    // Impostos Aditivos (ST e IPI)
     const st = parseNum(state.valor_icms_st);
+    const ipi = parseNum(state.valor_ipi);
+    
+    // Despesas Aditivas
     const frete = parseNum(state.valor_frete);
     const seguro = parseNum(state.valor_seguro);
-    const ipi = parseNum(state.valor_ipi);
     const outras = parseNum(state.outras_despesas);
+    
+    // Redutores
     const desc = parseNum(state.desconto);
     
-    const totalNota = sumProds + st + frete + seguro + ipi + outras - desc;
+    // 4. FÓRMULA FINAL: PROD + ST + IPI + FRETE + SEGURO + OUTRAS - DESCONTO
+    const totalNota = Number((sumProds + st + ipi + frete + seguro + outras - desc).toFixed(2));
 
     return {
       ...state,
