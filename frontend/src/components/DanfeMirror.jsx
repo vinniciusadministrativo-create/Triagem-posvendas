@@ -183,6 +183,7 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
 
   const now = new Date();
   const footerMsg = `ESPELHO NFD REF.NF-${chamado?.nf_original || ""} - CFOP 5202`;
+  const sectionTitle = { fontSize: "7px", fontWeight: "800", textTransform: "uppercase", padding: "4px 0 2px 2px" };
 
   return (
     <div className="danfe-container" style={{ marginTop: 20 }}>
@@ -207,6 +208,7 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
         </div>
 
         <div style={{ position: "relative", zIndex: 1 }}>
+          {/* HEADER */}
           <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", border: "1px solid #000", marginBottom: "4px" }}>
             <div style={{ padding: "10px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", borderRight: "1px solid #000" }}>
               <div style={{ fontSize: "12px", fontWeight: "900", textAlign: "center" }}>MARIN LOGISTICA E COMERCIO LTDA</div>
@@ -220,6 +222,7 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
             </div>
           </div>
 
+          {/* NATUREZA */}
           <div style={{ border: "1px solid #000", borderTop: "none", marginBottom: "4px" }}>
             {isEditing ? <BxInput label="Natureza da Operação" value={d.natureza_operacao} onChange={v => upd("natureza_operacao", v)} /> : <BxView label="Natureza da Operação" value={d.natureza_operacao} />}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr" }}>
@@ -229,7 +232,8 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
             </div>
           </div>
 
-          <div style={{ fontSize: "7px", fontWeight: "800", padding: "4px 0 2px 2px" }}>DESTINATÁRIO / REMETENTE</div>
+          {/* DESTINATARIO */}
+          <div style={sectionTitle}>DESTINATÁRIO / REMETENTE</div>
           <div style={{ border: "1px solid #000", marginBottom: "4px" }}>
             <div style={{ display: "grid", gridTemplateColumns: "2.5fr 1.5fr" }}>
               {isEditing ? (
@@ -247,7 +251,8 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
             </div>
           </div>
 
-          <div style={{ fontSize: "7px", fontWeight: "800", padding: "4px 0 2px 2px" }}>CÁLCULO DO IMPOSTO</div>
+          {/* IMPOSTOS */}
+          <div style={sectionTitle}>CÁLCULO DO IMPOSTO</div>
           <div style={{ border: "1px solid #000", marginBottom: "4px" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr" }}>
               {isEditing ? (
@@ -265,7 +270,25 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
             </div>
           </div>
 
-          <div style={{ fontSize: "7px", fontWeight: "800", padding: "4px 0 2px 2px" }}>DADOS DOS PRODUTOS</div>
+          {/* TRANSPORTADOR (RESTORED) */}
+          <div style={sectionTitle}>TRANSPORTADOR / VOLUMES TRANSPORTADOS</div>
+          <div style={{ border: "1px solid #000", marginBottom: "4px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "2.5fr 1.5fr 1fr" }}>
+              <BxView label="Transportadora" value="MARIN LOGISTICA E COMERCIO LTDA" style={{ border: "none", borderRight: "1px solid #000" }} />
+              <BxView label="Frete" value="1 - Emitente (CIF)" style={{ border: "none", borderRight: "1px solid #000" }} />
+              <BxView label="CNPJ" value="04.002.562/0004-78" style={{ border: "none" }} />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "0.5fr 1fr 1fr 1fr 1fr 1.2fr", borderTop: "1px solid #000" }}>
+              {isEditing ? (
+                <><BxInput label="Qtde" value={d.quantidade_volumes} onChange={v => upd("quantidade_volumes", v)} style={{ border: "none", borderRight: "1px solid #000" }} /><BxInput label="Espécie" value={d.especie_volumes} onChange={v => upd("especie_volumes", v)} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Marca" value="-" style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Num." value="-" style={{ border: "none", borderRight: "1px solid #000" }} /><BxInput label="Peso B." value={d.peso_bruto} onChange={v => upd("peso_bruto", v)} style={{ border: "none", borderRight: "1px solid #000" }} /><BxInput label="Peso L." value={d.peso_liquido} onChange={v => upd("peso_liquido", v)} style={{ border: "none" }} /></>
+              ) : (
+                <><BxView label="Qtde" value={d.quantidade_volumes} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Espécie" value={d.especie_volumes} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Marca" value="-" style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Num." value="-" style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Peso B." value={d.peso_bruto} style={{ border: "none", borderRight: "1px solid #000" }} /><BxView label="Peso L." value={d.peso_liquido} style={{ border: "none" }} /></>
+              )}
+            </div>
+          </div>
+
+          {/* PRODUTOS */}
+          <div style={sectionTitle}>DADOS DOS PRODUTOS / SERVIÇOS</div>
           <div style={{ border: "1px solid #000", borderBottom: "none" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
               <thead>
@@ -298,14 +321,17 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
             {isEditing && <button onClick={addProd} style={{ fontSize: "8px", margin: "4px", cursor: "pointer" }}>➕ Item</button>}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", border: "1px solid #000", marginTop: "10px", minHeight: "60px" }}>
+          {/* DADOS ADICIONAIS */}
+          <div style={sectionTitle}>DADOS ADICIONAIS</div>
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", border: "1px solid #000", minHeight: "60px" }}>
             <div style={{ padding: "4px", borderRight: "1px solid #000" }}>
-              <div style={{ fontSize: "6px", fontWeight: "700" }}>INFORMAÇÕES COMPLEMENTARES</div>
+              <div style={{ fontSize: "6px", fontWeight: "700", marginBottom: "2px" }}>INFORMAÇÕES COMPLEMENTARES</div>
               <div style={{ fontSize: "7.5px" }}>{d.info_complementares || footerMsg}<br/>DEVOLUÇÃO REF. NF {chamado?.nf_original}</div>
             </div>
             <div style={{ padding: "4px", fontSize: "7px" }}>
-              <div style={{ fontSize: "6px", fontWeight: "700" }}>DATA/HORA</div>
-              <div>{now.toLocaleString("pt-BR")}</div>
+              <div style={{ fontSize: "6px", fontWeight: "700", marginBottom: "2px" }}>DATA/HORA</div>
+              <div style={{ fontSize: "7.5px" }}>{now.toLocaleString("pt-BR")}</div>
+              <div style={{ fontSize: "6px", color: "#aaa", marginTop: "4px" }}>Triagem Automática Marin</div>
             </div>
           </div>
         </div>
