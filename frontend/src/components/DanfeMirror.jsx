@@ -194,9 +194,9 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
       </div>
 
 
-      <div id="danfe-print" style={{ background: "#fff", padding: "8mm", color: "#000", fontFamily: "Arial, sans-serif", position: "relative", width: "100%", maxWidth: "210mm", minHeight: "285mm", boxSizing: "border-box", margin: "0 auto", border: "1px solid #000" }}>
+      <div id="danfe-print" style={{ background: "#fff", padding: "10mm", color: "#000", fontFamily: "Arial, sans-serif", position: "relative", width: "210mm", height: "297mm", minHeight: "297mm", boxSizing: "border-box", margin: "0 auto", border: "1px solid #000" }}>
         
-        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%) rotate(-35deg)", fontSize: "60px", fontWeight: "900", color: "rgba(0,0,0,0.03)", pointerEvents: "none", zIndex: 0, textAlign: "center", width: "100%" }}>
+        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%) rotate(-35deg)", fontSize: "60px", fontWeight: "900", color: "rgba(0,0,0,0.02)", pointerEvents: "none", zIndex: 0, textAlign: "center", width: "100%" }}>
           NÃO TEM VALOR FISCAL<br/>DOCUMENTO PARA CONFERÊNCIA
         </div>
 
