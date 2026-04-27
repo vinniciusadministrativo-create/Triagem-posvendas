@@ -107,6 +107,7 @@ router.post(
       const evFiles = req.files?.evidence_files || [];
 
       const triageObj = triage_result ? JSON.parse(triage_result) : {};
+      const cleanCnpj = cnpj ? cnpj.toString().replace(/\D/g, '') : null;
 
       const { rows } = await pool.query(
         `INSERT INTO chamados (
@@ -120,7 +121,7 @@ router.post(
           req.user.id,
           codigo_cliente || codigo,
           razao_social || razaoSocial,
-          cnpj,
+          cleanCnpj,
           nome_vendedor || nomeVendedor,
           telefone,
           email_vendedor || emailVendedor,
