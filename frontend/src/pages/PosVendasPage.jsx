@@ -290,7 +290,7 @@ export default function PosVendasPage(){
                 if(!id) return;
                 const ch = chamados.find(c => c.id == id);
                 if(ch && ch.status !== column.id) {
-                  if (column.id === "recolhido") {
+                  if (isOperacional && column.id === "recolhido") {
                     setPendingRecolhimento({ chamadoId: id, columnId: column.id, ch });
                     setRecolhimentoData({ tipo_frete: "proprio", nome_transportadora: "", valor_frete: "", despesas: "", observacoes: "" });
                     return;

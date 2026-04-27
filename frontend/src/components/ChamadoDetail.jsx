@@ -195,7 +195,7 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
   const canShare = isOwner || isAdmin;
 
   const save = async () => {
-    if (newStatus === "recolhido" && chamado.status !== "recolhido") {
+    if (isOperacional && newStatus === "recolhido" && chamado.status !== "recolhido") {
       setPendingRecolhimento(true);
       return;
     }
