@@ -213,9 +213,9 @@ export default function PosVendasPage(){
                     />
                   </div>
                   <div>
-                    <label style={{display:"block",fontSize:13,fontWeight:700,color:M.txM,marginBottom:5}}>Valor do Frete (R$)</label>
+                    <label style={{display:"block",fontSize:13,fontWeight:700,color:M.txM,marginBottom:5}}>Valor do Frete (R$) *</label>
                     <input 
-                      type="number" step="0.01"
+                      type="number" step="0.01" required
                       value={recolhimentoData.valor_frete}
                       onChange={e => setRecolhimentoData({...recolhimentoData, valor_frete: e.target.value})}
                       style={{width:"100%",padding:10,borderRadius:8,border:`1px solid ${M.brdL}`,background:M.bg,outline:"none"}}
@@ -225,9 +225,9 @@ export default function PosVendasPage(){
               )}
 
               <div>
-                <label style={{display:"block",fontSize:13,fontWeight:700,color:M.txM,marginBottom:5}}>Outras Despesas (R$)</label>
+                <label style={{display:"block",fontSize:13,fontWeight:700,color:M.txM,marginBottom:5}}>Outras Despesas (R$) *</label>
                 <input 
-                  type="number" step="0.01"
+                  type="number" step="0.01" required
                   value={recolhimentoData.despesas}
                   onChange={e => setRecolhimentoData({...recolhimentoData, despesas: e.target.value})}
                   style={{width:"100%",padding:10,borderRadius:8,border:`1px solid ${M.brdL}`,background:M.bg,outline:"none"}}
@@ -290,7 +290,7 @@ export default function PosVendasPage(){
                 if(!id) return;
                 const ch = chamados.find(c => c.id == id);
                 if(ch && ch.status !== column.id) {
-                  if (isOperacional && ch.status === "aguardando_recolhimento" && column.id === "recolhido") {
+                  if (column.id === "recolhido") {
                     setPendingRecolhimento({ chamadoId: id, columnId: column.id, ch });
                     setRecolhimentoData({ tipo_frete: "proprio", nome_transportadora: "", valor_frete: "", despesas: "", observacoes: "" });
                     return;
