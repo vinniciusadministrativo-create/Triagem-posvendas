@@ -82,5 +82,9 @@ export const api = {
   shareChamado: (id, user_id) =>
     request(`/api/chamados/${id}/share`, { method: "POST", body: JSON.stringify({ user_id }) }),
 
-  fileUrl: (filename) => `${API_BASE}/uploads/${filename}`,
+  fileUrl: (filename) => {
+    if (!filename) return "";
+    if (filename.startsWith("http")) return filename;
+    return `${API_BASE}/uploads/${filename}`;
+  },
 };

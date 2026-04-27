@@ -6,18 +6,30 @@ const os = require("os");
 const pool = require("../db");
 const authMiddleware = require("../middleware/auth");
 const { generatePDFFromJSON } = require("../utils/pythonBridge");
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 const router = express.Router();
 
-// File upload config
-const uploadDir = path.join(__dirname, "../../uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+// Configuração do Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "dvrcqfo4o",
+  api_key: process.env.CLOUDINARY_API_KEY || "192681423577212",
+  api_secret: process.env.CLOUDINARY_API_SECRET || "oZfa9N7J9KZt7us-sCNwkbKE2BI",
+});
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    let resource_type = "auto";
+    if (file.mimetype === "application/pdf") {
+      resource_type = "raw"; // Para PDFs, raw ou auto funcionam, mas raw evita transformações indesejadas
+    }
+    return {
+      folder: "triagem_posvendas",
+      resource_type: resource_type,
+      public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    };
   },
 });
 const upload = multer({
@@ -120,8 +132,8 @@ router.post(
           evidence_result ? JSON.parse(evidence_result) : null,
           triageObj.etapa_destino || "novo",
           triageObj.etapa_destino || "novo",
-          nfFile ? nfFile.filename : null,
-          evFiles.length ? evFiles.map(f => f.filename) : null,
+          nfFile ? nfFile.path : null,
+          evFiles.length ? evFiles.map(f => f.path) : null,
           ressalva_vendedor || null,
         ]
       );
@@ -262,7 +274,7 @@ router.patch("/:id/ressalva", authMiddleware(), upload.array("ressalva_arquivos"
     const { ressalva_vendedor } = req.body;
     let newFiles = [];
     if (req.files && req.files.length > 0) {
-      newFiles = req.files.map(f => f.filename);
+      newFiles = req.files.map(f => f.path);
     }
     
     // Verifica proprietário
@@ -394,12 +406,12 @@ router.post("/:id/messages", authMiddleware(), upload.single("anexo"), async (re
        if (!sh[0]) return res.status(403).json({ error: "Acesso negado para postar chat" });
     }
 
-    const filename = req.file ? req.file.filename : null;
+    const filepath = req.file ? req.file.path : null;
 
     const { rows } = await pool.query(
       `INSERT INTO chamado_mensagens (chamado_id, user_id, mensagem, anexo) 
        VALUES ($1, $2, $3, $4) RETURNING *`,
-      [req.params.id, req.user.id, (mensagem || "").trim(), filename]
+      [req.params.id, req.user.id, (mensagem || "").trim(), filepath]
     );
 
     // Retorna mensagem com detalhes de quem mandou para injetar na interface
