@@ -57,7 +57,7 @@ function VInput({ label, value, onChange, placeholder, maxLength, type = "text",
 export default function VendedorPage({ defaultTab = "novo" }) {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState({ codigo: "", razaoSocial: "", cnpj: "", responsavel: "", nomeVendedor: user.name || "", telefone: "+55 ( )", emailVendedor: user.email || "", tipoSolicitacao: "", descricao: "", nfOriginal: "" });
+  const [form, setForm] = useState({ codigo: "", razaoSocial: "", cnpj: "", responsavel: "", nomeVendedor: user.name || "", telefone: "", emailVendedor: user.email || "", tipoSolicitacao: "", descricao: "", nfOriginal: "" });
   const [nfFile, setNfFile] = useState(null); const [nfB64, setNfB64] = useState(null); const [nfMime, setNfMime] = useState(null);
   const [evidenceFiles, setEvidenceFiles] = useState([]);
   const [nfData, setNfData] = useState(null); const [evidenceResult, setEvidenceResult] = useState(null);
@@ -100,11 +100,44 @@ export default function VendedorPage({ defaultTab = "novo" }) {
 
   const upd = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
+  const maskPhone = (val) => {
+    if (!val) return "";
+    let v = val.toString().replace(/\D/g, '');
+    if (v.length === 0) return "";
+    if (v.length > 11) v = v.slice(0, 11);
+    if (v.length > 10) return v.replace(/^(\d\d)(\d{5})(\d{4}).*/, '($1) $2-$3');
+    if (v.length > 5) return v.replace(/^(\d\d)(\d{4})(\d{0,4}).*/, '($1) $2-$3');
+    if (v.length > 2) return v.replace(/^(\d\d)(\d{0,5})/, '($1) $2');
+    return v;
+  };
+
+  const maskCpfCnpj = (val) => {
+    if (!val) return "";
+    let v = val.toString().replace(/\D/g, '');
+    if (v.length === 0) return "";
+    if (v.length <= 11) {
+      v = v.replace(/(\d{3})(\d)/, '$1.$2');
+      v = v.replace(/(\d{3})(\d)/, '$1.$2');
+      v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+      return v;
+    } else {
+      v = v.slice(0, 14);
+      v = v.replace(/^(\d{2})(\d)/, '$1.$2');
+      v = v.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+      v = v.replace(/\.(\d{3})(\d)/, '.$1/$2');
+      v = v.replace(/(\d{4})(\d)/, '$1-$2');
+      return v;
+    }
+  };
+
   const validate = () => {
     const e = {};
     if (!form.codigo) e.codigo = "Obrigatório";
     if (!form.razaoSocial || form.razaoSocial.length < 3) e.razaoSocial = "Mín. 3 caracteres";
-    if (!form.cnpj || !(form.cnpj.length === 11 || form.cnpj.length === 14)) e.cnpj = "CPF (11) ou CNPJ (14 dígitos)";
+    
+    const plainCnpj = form.cnpj ? form.cnpj.replace(/\D/g, '') : '';
+    if (!plainCnpj || !(plainCnpj.length === 11 || plainCnpj.length === 14)) e.cnpj = "CPF (11) ou CNPJ (14 dígitos)";
+    
     if (!form.tipoSolicitacao) e.tipoSolicitacao = "Selecione";
     if (!form.nfOriginal) e.nfOriginal = "Obrigatório";
     if (!form.descricao || form.descricao.length < 20) e.descricao = "Mín. 20 caracteres";
@@ -209,7 +242,7 @@ export default function VendedorPage({ defaultTab = "novo" }) {
 
       {/* HEADER */}
       <div style={{ maxWidth: 900, margin: "0 auto", marginBottom: 30 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: M.tx }}>{activeTab === "meus" ? "Lista de Chamados Pessoais" : "Nova Solicitação de Pós-Vendas"}</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: M.tx }}>{activeTab === "meus" ? "Lista de Chamados Pessoais" : "Nova Solicitação de Pós-Vendas"} <span style={{fontSize: 10, color: M.txM, fontWeight: 400}}>v3</span></h1>
         <p style={{ color: M.txM }}>{activeTab === "meus" ? "Acompanhe o status dos chamados criados por você ou compartilhados com seu perfil." : "Preencha os dados e anexe a NF para triagem automática."}</p>
       </div>
 
@@ -278,9 +311,9 @@ export default function VendedorPage({ defaultTab = "novo" }) {
         />
         <VInput 
           label="Telefone de Contato" 
-          placeholder="+55 ( )"
+          placeholder="(11) 99999-9999"
           value={form.telefone} 
-          onChange={v => upd("telefone", v)} 
+          onChange={v => upd("telefone", maskPhone(v))} 
         />
         <VInput 
           label="E-mail para Retorno" 
@@ -289,7 +322,12 @@ export default function VendedorPage({ defaultTab = "novo" }) {
           onChange={v => upd("emailVendedor", v)} 
           readOnly={user.role !== "vendedor"}
         />
-        <VInput label="CNPJ / CPF do Cliente" value={form.cnpj} onChange={v => upd("cnpj", v)} />
+        <VInput 
+          label="CNPJ / CPF do Cliente" 
+          placeholder="00.000.000/0000-00 ou 000.000.000-00"
+          value={form.cnpj} 
+          onChange={v => upd("cnpj", maskCpfCnpj(v))} 
+        />
         <VInput label="NF Original" value={form.nfOriginal} onChange={v => upd("nfOriginal", v)} />
         <div className="responsive-grid-full"><VInput label="Razão Social" value={form.razaoSocial} onChange={v => upd("razaoSocial", v)} /></div>
         <div>
