@@ -21,6 +21,7 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
+    const ext = path.extname(file.originalname);
     let resource_type = "auto";
     if (file.mimetype === "application/pdf") {
       resource_type = "raw"; // Para PDFs, raw ou auto funcionam, mas raw evita transformações indesejadas
@@ -28,7 +29,7 @@ const storage = new CloudinaryStorage({
     return {
       folder: "triagem_posvendas",
       resource_type: resource_type,
-      public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`,
     };
   },
 });
