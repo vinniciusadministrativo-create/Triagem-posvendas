@@ -12,4 +12,7 @@ pool.on("error", (err) => {
   console.error("PostgreSQL pool error:", err);
 });
 
+pool.query("ALTER TABLE chamados ADD COLUMN IF NOT EXISTS recolhimento_data JSONB;")
+  .catch(err => console.error("Error adding recolhimento_data column:", err));
+
 module.exports = pool;

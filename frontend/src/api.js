@@ -49,8 +49,8 @@ export const api = {
 
   getChamado: (id) => request(`/api/chamados/${id}`),
 
-  updateStatus: (id, status) =>
-    request(`/api/chamados/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  updateStatus: (id, status, recolhimento_data) =>
+    request(`/api/chamados/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, recolhimento_data }) }),
 
   deleteChamado: (id) => request(`/api/chamados/${id}`, { method: "DELETE" }),
   deleteMultipleChamados: (ids) => request("/api/chamados/batch-delete", { method: "POST", body: JSON.stringify({ ids }) }),

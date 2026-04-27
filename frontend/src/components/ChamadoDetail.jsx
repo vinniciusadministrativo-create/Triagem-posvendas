@@ -81,6 +81,14 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
   const [saving, setSaving] = useState(false);
   const [savingRessalva, setSavingRessalva] = useState(false);
   const [history, setHistory] = useState([]);
+  const [pendingRecolhimento, setPendingRecolhimento] = useState(false);
+  const [recolhimentoData, setRecolhimentoData] = useState({
+    tipo_frete: "proprio",
+    nome_transportadora: "",
+    valor_frete: "",
+    despesas: "",
+    observacoes: ""
+  });
 
   // MENTIONS
   const [contacts, setContacts] = useState([]);
@@ -187,17 +195,35 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
   const canShare = isOwner || isAdmin;
 
   const save = async () => {
+    if (isOperacional && chamado.status === "aguardando_recolhimento" && newStatus === "recolhido") {
+      setPendingRecolhimento(true);
+      return;
+    }
+    await executeSave();
+  };
+
+  const executeSave = async (data = undefined) => {
     setSaving(true);
     try {
-      await api.updateStatus(chamado.id, newStatus);
+      await api.updateStatus(chamado.id, newStatus, data);
       if (onStatusChange) onStatusChange(chamado.id, newStatus);
       if (isAdmin || isPosVendas) loadHistory();
       alert("Status atualizado!");
+      setPendingRecolhimento(false);
     } catch (e) {
       alert(e.message);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleRecolhimentoSubmit = async (e) => {
+    e.preventDefault();
+    if (recolhimentoData.tipo_frete === "transportadora" && !recolhimentoData.nome_transportadora.trim()) {
+      alert("Por favor, informe o nome da transportadora.");
+      return;
+    }
+    await executeSave(recolhimentoData);
   };
 
   const handleSaveRessalva = async () => {
@@ -219,7 +245,84 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
 
   return (
     <div className="modal-wrapper">
-      <div className="modal-content">
+      <div className="modal-content" style={{ position: "relative" }}>
+        
+        {pendingRecolhimento && (
+          <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"rgba(255,255,255,0.9)",display:"flex",justifyContent:"center",alignItems:"center",zIndex:999,borderRadius:12}}>
+            <div style={{background:M.card || "#fff",padding:25,borderRadius:12,width:400,maxWidth:"90%",boxShadow:"0 10px 25px rgba(0,0,0,0.2)",border:`1px solid ${M.brdN}`}}>
+              <h2 style={{fontSize:18,fontWeight:800,color:M.tx,marginBottom:15}}>Detalhes do Recolhimento</h2>
+              <form onSubmit={handleRecolhimentoSubmit} style={{display:"flex",flexDirection:"column",gap:15}}>
+                
+                <div>
+                  <label style={{display:"block",fontSize:13,fontWeight:700,color:M.txM,marginBottom:5}}>Tipo de Frete</label>
+                  <select 
+                    value={recolhimentoData.tipo_frete} 
+                    onChange={e => setRecolhimentoData({...recolhimentoData, tipo_frete: e.target.value})}
+                    style={{width:"100%",padding:10,borderRadius:8,border:`1px solid ${M.brdL}`,background:M.bg,outline:"none"}}
+                  >
+                    <option value="proprio">Frete Próprio</option>
+                    <option value="transportadora">Transportadora</option>
+                  </select>
+                </div>
+
+                {recolhimentoData.tipo_frete === "transportadora" && (
+                  <>
+                    <div>
+                      <label style={{display:"block",fontSize:13,fontWeight:700,color:M.txM,marginBottom:5}}>Nome da Transportadora *</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={recolhimentoData.nome_transportadora}
+                        onChange={e => setRecolhimentoData({...recolhimentoData, nome_transportadora: e.target.value})}
+                        style={{width:"100%",padding:10,borderRadius:8,border:`1px solid ${M.brdL}`,background:M.bg,outline:"none"}}
+                      />
+                    </div>
+                    <div>
+                      <label style={{display:"block",fontSize:13,fontWeight:700,color:M.txM,marginBottom:5}}>Valor do Frete (R$)</label>
+                      <input 
+                        type="number" step="0.01"
+                        value={recolhimentoData.valor_frete}
+                        onChange={e => setRecolhimentoData({...recolhimentoData, valor_frete: e.target.value})}
+                        style={{width:"100%",padding:10,borderRadius:8,border:`1px solid ${M.brdL}`,background:M.bg,outline:"none"}}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <label style={{display:"block",fontSize:13,fontWeight:700,color:M.txM,marginBottom:5}}>Outras Despesas (R$)</label>
+                  <input 
+                    type="number" step="0.01"
+                    value={recolhimentoData.despesas}
+                    onChange={e => setRecolhimentoData({...recolhimentoData, despesas: e.target.value})}
+                    style={{width:"100%",padding:10,borderRadius:8,border:`1px solid ${M.brdL}`,background:M.bg,outline:"none"}}
+                  />
+                </div>
+
+                <div>
+                  <label style={{display:"block",fontSize:13,fontWeight:700,color:M.txM,marginBottom:5}}>Observações</label>
+                  <textarea 
+                    rows={3}
+                    value={recolhimentoData.observacoes}
+                    onChange={e => setRecolhimentoData({...recolhimentoData, observacoes: e.target.value})}
+                    style={{width:"100%",padding:10,borderRadius:8,border:`1px solid ${M.brdL}`,background:M.bg,outline:"none",resize:"none"}}
+                  />
+                </div>
+
+                <div style={{display:"flex",gap:10,marginTop:10}}>
+                  <button type="button" onClick={() => setPendingRecolhimento(false)} style={{flex:1,padding:10,borderRadius:8,border:`1px solid ${M.brdL}`,background:M.bg,color:M.txM,fontWeight:700,cursor:"pointer"}}>
+                    Cancelar
+                  </button>
+                  <button type="submit" style={{flex:1,padding:10,borderRadius:8,border:"none",background:M.ok || "#16a34a",color:"#fff",fontWeight:700,cursor:"pointer"}}>
+                    Confirmar
+                  </button>
+                </div>
+
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* HEADER */}
         <div style={{ padding: 20, borderBottom: `1px solid ${M.brdN}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <div>
@@ -263,6 +366,20 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* DADOS DO RECOLHIMENTO SE EXISTIR */}
+          {chamado.recolhimento_data && (
+            <div style={{ background: "#f8f9fa", padding: 20, borderRadius: 12, marginBottom: 20, border: `1px solid ${M.brdN}` }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: M.txM, textTransform: "uppercase", marginBottom: 12 }}>🚚 Detalhes do Recolhimento</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 13, color: M.tx }}>
+                <div><b>Tipo de Frete:</b> {chamado.recolhimento_data.tipo_frete === "transportadora" ? "Transportadora" : "Frete Próprio"}</div>
+                {chamado.recolhimento_data.tipo_frete === "transportadora" && <div><b>Transportadora:</b> {chamado.recolhimento_data.nome_transportadora}</div>}
+                {chamado.recolhimento_data.valor_frete && <div><b>Valor do Frete:</b> R$ {Number(chamado.recolhimento_data.valor_frete).toFixed(2).replace('.', ',')}</div>}
+                {chamado.recolhimento_data.despesas && <div><b>Despesas Extras:</b> R$ {Number(chamado.recolhimento_data.despesas).toFixed(2).replace('.', ',')}</div>}
+                {chamado.recolhimento_data.observacoes && <div style={{ gridColumn: "1 / -1", marginTop: 5 }}><b>Observações:</b> {chamado.recolhimento_data.observacoes}</div>}
               </div>
             </div>
           )}

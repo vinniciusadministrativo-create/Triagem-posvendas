@@ -219,19 +219,26 @@ router.get("/:id", authMiddleware(), async (req, res) => {
 // PATCH /api/chamados/:id/status — pos_vendas/admin/operacional atualiza etapa
 router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"]), async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, recolhimento_data } = req.body;
     if (!status) return res.status(400).json({ error: "Status obrigatório" });
 
     // Busca status atual para o histórico
     const oldRes = await pool.query("SELECT status FROM chamados WHERE id = $1", [req.params.id]);
     const oldStatus = oldRes.rows[0]?.status;
 
-    const { rows } = await pool.query(
-      `UPDATE chamados SET status = $1, etapa_destino = $1, updated_at = NOW()
-       WHERE id = $2 RETURNING *`,
-      [status, req.params.id]
-    );
+    let query = `UPDATE chamados SET status = $1, etapa_destino = $1, updated_at = NOW()`;
+    let params = [status, req.params.id];
+
+    if (recolhimento_data !== undefined) {
+      query += `, recolhimento_data = $3`;
+      params.push(recolhimento_data);
+    }
+
+    query += ` WHERE id = $2 RETURNING *`;
+
+    const { rows } = await pool.query(query, params);
     if (!rows[0]) return res.status(404).json({ error: "Chamado não encontrado" });
+
 
     // Grava no histórico se mudou
     if (oldStatus !== status) {
