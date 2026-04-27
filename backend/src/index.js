@@ -41,7 +41,15 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // Serve Built Frontend (Production Monolith)
 const frontendPath = path.join(__dirname, "../../frontend/dist");
-app.use(express.static(frontendPath));
+app.use(express.static(frontendPath, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith("index.html")) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+    }
+  }
+}));
 
 // Web App SPA fallback (Must be after all other routes)
 app.get(/.*/, (req, res) => {
@@ -49,6 +57,7 @@ app.get(/.*/, (req, res) => {
   if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) {
     return res.status(404).json({ error: "Recurso não encontrado" });
   }
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
