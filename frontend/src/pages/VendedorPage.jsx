@@ -242,7 +242,7 @@ export default function VendedorPage({ defaultTab = "novo" }) {
 
       {/* HEADER */}
       <div style={{ maxWidth: 900, margin: "0 auto", marginBottom: 30 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: M.tx }}>{activeTab === "meus" ? "Lista de Chamados Pessoais" : "Nova Solicitação de Pós-Vendas"} <span style={{fontSize: 10, color: M.txM, fontWeight: 400}}>v3</span></h1>
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: M.tx }}>{activeTab === "meus" ? "Lista de Chamados Pessoais" : "Nova Solicitação de Pós-Vendas"}</h1>
         <p style={{ color: M.txM }}>{activeTab === "meus" ? "Acompanhe o status dos chamados criados por você ou compartilhados com seu perfil." : "Preencha os dados e anexe a NF para triagem automática."}</p>
       </div>
 
