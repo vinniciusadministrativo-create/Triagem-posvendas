@@ -233,7 +233,7 @@ router.get("/:id", authMiddleware(), async (req, res) => {
 // PATCH /api/chamados/:id/status — pos_vendas/admin/operacional atualiza etapa
 router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"]), async (req, res) => {
   try {
-    const { status, recolhimento_data } = req.body;
+    const { status, recolhimento_data, data_previsao_recolhimento, data_real_recolhimento } = req.body;
     if (!status) return res.status(400).json({ error: "Status obrigatório" });
 
     // Busca status atual para o histórico
@@ -242,10 +242,21 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
 
     let query = `UPDATE chamados SET status = $1, etapa_destino = $1, updated_at = NOW()`;
     let params = [status, req.params.id];
+    let nextParamIndex = 3;
 
     if (recolhimento_data !== undefined) {
-      query += `, recolhimento_data = $3`;
+      query += `, recolhimento_data = $${nextParamIndex++}`;
       params.push(recolhimento_data);
+    }
+
+    if (data_previsao_recolhimento !== undefined) {
+      query += `, data_previsao_recolhimento = $${nextParamIndex++}`;
+      params.push(data_previsao_recolhimento || null);
+    }
+
+    if (data_real_recolhimento !== undefined) {
+      query += `, data_real_recolhimento = $${nextParamIndex++}`;
+      params.push(data_real_recolhimento || null);
     }
 
     query += ` WHERE id = $2 RETURNING *`;

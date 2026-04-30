@@ -89,6 +89,8 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
     despesas: "",
     observacoes: ""
   });
+  const [dataPrevisao, setDataPrevisao] = useState(chamado.data_previsao_recolhimento ? chamado.data_previsao_recolhimento.split('T')[0] : "");
+  const [dataReal, setDataReal] = useState(chamado.data_real_recolhimento ? chamado.data_real_recolhimento.split('T')[0] : "");
 
   // MENTIONS
   const [contacts, setContacts] = useState([]);
@@ -205,7 +207,11 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
   const executeSave = async (data = undefined) => {
     setSaving(true);
     try {
-      await api.updateStatus(chamado.id, newStatus, data);
+      await api.updateStatus(chamado.id, newStatus, {
+        recolhimento_data: data,
+        data_previsao_recolhimento: dataPrevisao,
+        data_real_recolhimento: dataReal
+      });
       if (onStatusChange) onStatusChange(chamado.id, newStatus);
       if (isAdmin || isPosVendas) loadHistory();
       alert("Status atualizado!");
@@ -263,6 +269,27 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
                     <option value="proprio">Frete Próprio</option>
                     <option value="transportadora">Transportadora</option>
                   </select>
+                </div>
+
+                <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
+                  <div>
+                    <label style={{display:"block",fontSize:13,fontWeight:700,color:M.txM,marginBottom:5}}>Data Previsão</label>
+                    <input 
+                      type="date"
+                      value={dataPrevisao}
+                      onChange={e => setDataPrevisao(e.target.value)}
+                      style={{width:"100%",padding:10,borderRadius:8,border:`1px solid ${M.brdL}`,background:M.bg,outline:"none"}}
+                    />
+                  </div>
+                  <div>
+                    <label style={{display:"block",fontSize:13,fontWeight:700,color:M.txM,marginBottom:5}}>Data Real</label>
+                    <input 
+                      type="date"
+                      value={dataReal}
+                      onChange={e => setDataReal(e.target.value)}
+                      style={{width:"100%",padding:10,borderRadius:8,border:`1px solid ${M.brdL}`,background:M.bg,outline:"none"}}
+                    />
+                  </div>
                 </div>
 
                 {recolhimentoData.tipo_frete === "transportadora" && (
@@ -371,15 +398,31 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
           )}
 
           {/* DADOS DO RECOLHIMENTO SE EXISTIR */}
-          {chamado.recolhimento_data && (
+          {(chamado.recolhimento_data || chamado.data_previsao_recolhimento || chamado.data_real_recolhimento) && (
             <div style={{ background: "#f8f9fa", padding: 20, borderRadius: 12, marginBottom: 20, border: `1px solid ${M.brdN}` }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: M.txM, textTransform: "uppercase", marginBottom: 12 }}>🚚 Detalhes do Recolhimento</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 13, color: M.tx }}>
-                <div><b>Tipo de Frete:</b> {chamado.recolhimento_data.tipo_frete === "transportadora" ? "Transportadora" : "Frete Próprio"}</div>
-                {chamado.recolhimento_data.tipo_frete === "transportadora" && <div><b>Transportadora:</b> {chamado.recolhimento_data.nome_transportadora}</div>}
-                {chamado.recolhimento_data.valor_frete && <div><b>Valor do Frete:</b> R$ {Number(chamado.recolhimento_data.valor_frete).toFixed(2).replace('.', ',')}</div>}
-                {chamado.recolhimento_data.despesas && <div><b>Despesas Extras:</b> R$ {Number(chamado.recolhimento_data.despesas).toFixed(2).replace('.', ',')}</div>}
-                {chamado.recolhimento_data.observacoes && <div style={{ gridColumn: "1 / -1", marginTop: 5 }}><b>Observações:</b> {chamado.recolhimento_data.observacoes}</div>}
+                {chamado.data_previsao_recolhimento && (
+                  <div style={{ color: M.pri, fontWeight: 700 }}>
+                    📅 Previsão: {new Date(chamado.data_previsao_recolhimento + 'T12:00:00').toLocaleDateString('pt-BR')}
+                  </div>
+                )}
+                {chamado.data_real_recolhimento && (
+                  <div style={{ color: "#059669", fontWeight: 700 }}>
+                    ✅ Data Real: {new Date(chamado.data_real_recolhimento + 'T12:00:00').toLocaleDateString('pt-BR')}
+                  </div>
+                )}
+                
+                {chamado.recolhimento_data && (
+                  <>
+                    <div style={{ gridColumn: "1 / -1", height: 1, background: M.brdN, margin: "5px 0" }} />
+                    <div><b>Tipo de Frete:</b> {chamado.recolhimento_data.tipo_frete === "transportadora" ? "Transportadora" : "Frete Próprio"}</div>
+                    {chamado.recolhimento_data.tipo_frete === "transportadora" && <div><b>Transportadora:</b> {chamado.recolhimento_data.nome_transportadora}</div>}
+                    {chamado.recolhimento_data.valor_frete && <div><b>Valor do Frete:</b> R$ {Number(chamado.recolhimento_data.valor_frete).toFixed(2).replace('.', ',')}</div>}
+                    {chamado.recolhimento_data.despesas && <div><b>Despesas Extras:</b> R$ {Number(chamado.recolhimento_data.despesas).toFixed(2).replace('.', ',')}</div>}
+                    {chamado.recolhimento_data.observacoes && <div style={{ gridColumn: "1 / -1", marginTop: 5 }}><b>Observações:</b> {chamado.recolhimento_data.observacoes}</div>}
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -499,6 +542,28 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
           {/* ÁREA DE EDIÇÃO (APENAS ADMIN/POS-VENDAS) */}
           {canEdit ? (
             <div style={{ borderTop: `1px solid ${M.brdN}`, paddingTop: 20 }}>
+              
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 15 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 800, marginBottom: 5 }}>DATA PREVISÃO:</label>
+                  <input 
+                    type="date" 
+                    value={dataPrevisao} 
+                    onChange={e => setDataPrevisao(e.target.value)} 
+                    style={{ width: "100%", padding: "10px", borderRadius: 8, border: `1px solid ${M.brdN}`, fontSize: 13 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 800, marginBottom: 5 }}>DATA REAL:</label>
+                  <input 
+                    type="date" 
+                    value={dataReal} 
+                    onChange={e => setDataReal(e.target.value)} 
+                    style={{ width: "100%", padding: "10px", borderRadius: 8, border: `1px solid ${M.brdN}`, fontSize: 13 }}
+                  />
+                </div>
+              </div>
+
               <label style={{ display: "block", fontSize: 12, fontWeight: 800, marginBottom: 10 }}>ALTERAR TRIAGEM (ETAPA):</label>
               <div style={{ display: "flex", gap: 10 }}>
                 <select 
