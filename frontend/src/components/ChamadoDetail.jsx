@@ -569,69 +569,120 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
             );
           })()}
 
-          {/* FORMULÁRIO DE PREENCHIMENTO MANUAL DA NF */}
+          {/* MODAL DE PREENCHIMENTO MANUAL DA NF */}
           {showManualForm && (
-            <div style={{ background: "#fff", border: `1px solid ${M.pri}`, borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: "0 4px 20px rgba(155,27,48,0.1)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15 }}>
-                <h3 style={{ margin: 0, fontSize: 16, color: M.pri }}>✍️ Transcrição Manual de Nota Fiscal</h3>
-                <button onClick={() => setShowManualForm(false)} style={{ border: "none", background: "none", fontSize: 24, cursor: "pointer", color: M.txM }}>×</button>
-              </div>
-              
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20, fontSize: 12 }}>
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={{ fontWeight: 800 }}>Natureza da Operação</label>
-                  <input value={manualNfData.natureza_operacao} onChange={e => setManualNfData({...manualNfData, natureza_operacao: e.target.value})} style={{ width: "100%", padding: 8, borderRadius: 6, border: `1px solid ${M.brdN}` }} />
-                </div>
-                <div>
-                  <label style={{ fontWeight: 800 }}>Total dos Produtos (R$)</label>
-                  <input value={manualNfData.valor_total_produtos} onChange={e => setManualNfData({...manualNfData, valor_total_produtos: e.target.value})} style={{ width: "100%", padding: 8, borderRadius: 6, border: `1px solid ${M.brdN}` }} />
-                </div>
-                <div>
-                  <label style={{ fontWeight: 800 }}>Total da Nota (R$)</label>
-                  <input value={manualNfData.valor_total_nota} onChange={e => setManualNfData({...manualNfData, valor_total_nota: e.target.value})} style={{ width: "100%", padding: 8, borderRadius: 6, border: `1px solid ${M.brdN}` }} />
-                </div>
-                <div>
-                  <label style={{ fontWeight: 800 }}>Base ICMS</label>
-                  <input value={manualNfData.base_icms} onChange={e => setManualNfData({...manualNfData, base_icms: e.target.value})} style={{ width: "100%", padding: 8, borderRadius: 6, border: `1px solid ${M.brdN}` }} />
-                </div>
-                <div>
-                  <label style={{ fontWeight: 800 }}>Valor ICMS</label>
-                  <input value={manualNfData.valor_icms} onChange={e => setManualNfData({...manualNfData, valor_icms: e.target.value})} style={{ width: "100%", padding: 8, borderRadius: 6, border: `1px solid ${M.brdN}` }} />
-                </div>
-                <div>
-                  <label style={{ fontWeight: 800 }}>Base ICMS ST</label>
-                  <input value={manualNfData.base_icms_st} onChange={e => setManualNfData({...manualNfData, base_icms_st: e.target.value})} style={{ width: "100%", padding: 8, borderRadius: 6, border: `1px solid ${M.brdN}` }} />
-                </div>
-                <div>
-                  <label style={{ fontWeight: 800 }}>Valor ICMS ST</label>
-                  <input value={manualNfData.valor_icms_st} onChange={e => setManualNfData({...manualNfData, valor_icms_st: e.target.value})} style={{ width: "100%", padding: 8, borderRadius: 6, border: `1px solid ${M.brdN}` }} />
-                </div>
-              </div>
-
-              <div style={{ marginBottom: 15 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <label style={{ fontWeight: 800, fontSize: 12 }}>Tabela de Produtos</label>
-                  <button onClick={addManualProd} style={{ background: M.pri, color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>+ Adicionar Produto</button>
-                </div>
+            <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.7)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+              <div style={{ background: "#fff", borderRadius: 12, width: "100%", maxWidth: 1400, height: "100%", maxHeight: 900, display: "flex", overflow: "hidden", boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>
                 
-                {manualNfData.produtos.map((p, i) => (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 3fr 1fr 1fr 1fr 1fr 1fr 1fr 30px", gap: 5, marginBottom: 5, alignItems: "center" }}>
-                    <input placeholder="Cód" value={p.codigo} onChange={e => updateManualProd(i, 'codigo', e.target.value)} style={{ padding: 6, fontSize: 11, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
-                    <input placeholder="Descrição do Produto" value={p.descricao} onChange={e => updateManualProd(i, 'descricao', e.target.value)} style={{ padding: 6, fontSize: 11, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
-                    <input placeholder="NCM" value={p.ncm} onChange={e => updateManualProd(i, 'ncm', e.target.value)} style={{ padding: 6, fontSize: 11, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
-                    <input placeholder="CST" value={p.cst} onChange={e => updateManualProd(i, 'cst', e.target.value)} style={{ padding: 6, fontSize: 11, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
-                    <input placeholder="CFOP" value={p.cfop} onChange={e => updateManualProd(i, 'cfop', e.target.value)} style={{ padding: 6, fontSize: 11, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
-                    <input placeholder="Qtd" value={p.quantidade} onChange={e => updateManualProd(i, 'quantidade', e.target.value)} style={{ padding: 6, fontSize: 11, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
-                    <input placeholder="V. Unit" value={p.valor_unitario} onChange={e => updateManualProd(i, 'valor_unitario', e.target.value)} style={{ padding: 6, fontSize: 11, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
-                    <input placeholder="V. Total" value={p.valor_total} onChange={e => updateManualProd(i, 'valor_total', e.target.value)} style={{ padding: 6, fontSize: 11, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
-                    <button onClick={() => removeManualProd(i)} style={{ background: "none", border: "none", color: M.err, cursor: "pointer", fontSize: 14 }}>×</button>
+                {/* LADO ESQUERDO: Visualizador do Documento */}
+                <div style={{ flex: 1, background: M.bg, borderRight: `1px solid ${M.brdN}`, display: "flex", flexDirection: "column" }}>
+                  <div style={{ padding: 15, borderBottom: `1px solid ${M.brdN}`, fontWeight: 800, color: M.txM, fontSize: 13 }}>
+                    📄 Documento Original
                   </div>
-                ))}
-              </div>
+                  <div style={{ flex: 1, overflow: "hidden" }}>
+                    {chamado.nf_file_path ? (
+                      <iframe 
+                        src={api.fileUrl(chamado.nf_file_path)} 
+                        style={{ width: "100%", height: "100%", border: "none" }} 
+                        title="Documento Original"
+                      />
+                    ) : (
+                      <div style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center", color: M.txM, fontSize: 13 }}>Nenhum anexo disponível</div>
+                    )}
+                  </div>
+                </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-                <button onClick={() => setShowManualForm(false)} style={{ padding: "10px 15px", background: "transparent", color: M.txM, border: `1px solid ${M.brdN}`, borderRadius: 8, cursor: "pointer" }}>Cancelar</button>
-                <button onClick={saveManualNfData} style={{ padding: "10px 20px", background: M.pri, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>Salvar e Gerar Espelho</button>
+                {/* LADO DIREITO: Formulário */}
+                <div style={{ width: 600, display: "flex", flexDirection: "column", background: "#fff" }}>
+                  <div style={{ padding: "15px 20px", borderBottom: `1px solid ${M.brdN}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <h3 style={{ margin: 0, fontSize: 16, color: M.pri }}>✍️ Transcrição Manual</h3>
+                    <button onClick={() => setShowManualForm(false)} style={{ border: "none", background: "none", fontSize: 24, cursor: "pointer", color: M.txM }}>×</button>
+                  </div>
+                  
+                  <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20, fontSize: 12 }}>
+                      <div style={{ gridColumn: "1 / -1" }}>
+                        <label style={{ fontWeight: 800 }}>Natureza da Operação</label>
+                        <input value={manualNfData.natureza_operacao} onChange={e => setManualNfData({...manualNfData, natureza_operacao: e.target.value})} style={{ width: "100%", padding: "10px", borderRadius: 6, border: `1px solid ${M.brdN}`, fontSize: 13 }} />
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 800 }}>Total dos Produtos (R$)</label>
+                        <input value={manualNfData.valor_total_produtos} onChange={e => setManualNfData({...manualNfData, valor_total_produtos: e.target.value})} style={{ width: "100%", padding: "10px", borderRadius: 6, border: `1px solid ${M.brdN}`, fontSize: 13 }} />
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 800 }}>Total da Nota (R$)</label>
+                        <input value={manualNfData.valor_total_nota} onChange={e => setManualNfData({...manualNfData, valor_total_nota: e.target.value})} style={{ width: "100%", padding: "10px", borderRadius: 6, border: `1px solid ${M.brdN}`, fontSize: 13 }} />
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 800 }}>Base ICMS</label>
+                        <input value={manualNfData.base_icms} onChange={e => setManualNfData({...manualNfData, base_icms: e.target.value})} style={{ width: "100%", padding: "10px", borderRadius: 6, border: `1px solid ${M.brdN}`, fontSize: 13 }} />
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 800 }}>Valor ICMS</label>
+                        <input value={manualNfData.valor_icms} onChange={e => setManualNfData({...manualNfData, valor_icms: e.target.value})} style={{ width: "100%", padding: "10px", borderRadius: 6, border: `1px solid ${M.brdN}`, fontSize: 13 }} />
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 800 }}>Base ICMS ST</label>
+                        <input value={manualNfData.base_icms_st} onChange={e => setManualNfData({...manualNfData, base_icms_st: e.target.value})} style={{ width: "100%", padding: "10px", borderRadius: 6, border: `1px solid ${M.brdN}`, fontSize: 13 }} />
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 800 }}>Valor ICMS ST</label>
+                        <input value={manualNfData.valor_icms_st} onChange={e => setManualNfData({...manualNfData, valor_icms_st: e.target.value})} style={{ width: "100%", padding: "10px", borderRadius: 6, border: `1px solid ${M.brdN}`, fontSize: 13 }} />
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: 15 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                        <label style={{ fontWeight: 800, fontSize: 12 }}>Tabela de Produtos</label>
+                        <button onClick={addManualProd} style={{ background: M.pri, color: "#fff", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>+ Adicionar Produto</button>
+                      </div>
+                      
+                      {manualNfData.produtos.map((p, i) => (
+                        <div key={i} style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 15, padding: 10, background: M.bg, borderRadius: 8, border: `1px solid ${M.brdN}`, position: "relative" }}>
+                          <button onClick={() => removeManualProd(i)} style={{ position: "absolute", top: 5, right: 5, background: "none", border: "none", color: M.err, cursor: "pointer", fontSize: 16, fontWeight: 800 }}>×</button>
+                          
+                          <div style={{ width: "20%" }}>
+                            <div style={{ fontSize: 10, color: M.txM, marginBottom: 2 }}>Cód.</div>
+                            <input value={p.codigo} onChange={e => updateManualProd(i, 'codigo', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                          </div>
+                          <div style={{ width: "70%" }}>
+                            <div style={{ fontSize: 10, color: M.txM, marginBottom: 2 }}>Descrição</div>
+                            <input value={p.descricao} onChange={e => updateManualProd(i, 'descricao', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                          </div>
+                          <div style={{ width: "30%" }}>
+                            <div style={{ fontSize: 10, color: M.txM, marginBottom: 2 }}>NCM</div>
+                            <input value={p.ncm} onChange={e => updateManualProd(i, 'ncm', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                          </div>
+                          <div style={{ width: "20%" }}>
+                            <div style={{ fontSize: 10, color: M.txM, marginBottom: 2 }}>CST</div>
+                            <input value={p.cst} onChange={e => updateManualProd(i, 'cst', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                          </div>
+                          <div style={{ width: "20%" }}>
+                            <div style={{ fontSize: 10, color: M.txM, marginBottom: 2 }}>CFOP</div>
+                            <input value={p.cfop} onChange={e => updateManualProd(i, 'cfop', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                          </div>
+                          <div style={{ width: "20%" }}>
+                            <div style={{ fontSize: 10, color: M.txM, marginBottom: 2 }}>Qtd</div>
+                            <input value={p.quantidade} onChange={e => updateManualProd(i, 'quantidade', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                          </div>
+                          <div style={{ width: "40%" }}>
+                            <div style={{ fontSize: 10, color: M.txM, marginBottom: 2 }}>V. Unitário</div>
+                            <input value={p.valor_unitario} onChange={e => updateManualProd(i, 'valor_unitario', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                          </div>
+                          <div style={{ width: "40%" }}>
+                            <div style={{ fontSize: 10, color: M.txM, marginBottom: 2 }}>V. Total</div>
+                            <input value={p.valor_total} onChange={e => updateManualProd(i, 'valor_total', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ padding: 20, borderTop: `1px solid ${M.brdN}`, display: "flex", justifyContent: "flex-end", gap: 10, background: M.bg }}>
+                    <button onClick={() => setShowManualForm(false)} style={{ padding: "12px 20px", background: "#fff", color: M.txM, border: `1px solid ${M.brdN}`, borderRadius: 8, cursor: "pointer", fontWeight: 700 }}>Cancelar</button>
+                    <button onClick={saveManualNfData} style={{ padding: "12px 24px", background: M.pri, color: "#fff", border: "none", borderRadius: 8, fontWeight: 800, cursor: "pointer" }}>Salvar e Gerar Espelho</button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
