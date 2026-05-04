@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../api";
 import ChamadoDetail from "../components/ChamadoDetail";
+import RelatoriosPage from "./RelatoriosPage";
 
 const M = {
   pri: "#9B1B30",
@@ -122,10 +123,13 @@ export default function AdminPage() {
         <div style={{ display: "flex", gap: 20, marginTop: 20, borderBottom: `1px solid ${M.brdN}` }}>
           <button onClick={() => setActiveTab("users")} style={{ paddingBottom: 10, border: "none", background: "none", borderBottom: activeTab === "users" ? `2px solid ${M.pri}` : "none", color: activeTab === "users" ? M.pri : M.txM, fontWeight: 700, cursor: "pointer" }}>Usuários</button>
           <button onClick={() => setActiveTab("sellers")} style={{ paddingBottom: 10, border: "none", background: "none", borderBottom: activeTab === "sellers" ? `2px solid ${M.pri}` : "none", color: activeTab === "sellers" ? M.pri : M.txM, fontWeight: 700, cursor: "pointer" }}>Gestão por Vendedor</button>
+          <button onClick={() => setActiveTab("relatorios")} style={{ paddingBottom: 10, border: "none", background: "none", borderBottom: activeTab === "relatorios" ? `2px solid ${M.pri}` : "none", color: activeTab === "relatorios" ? M.pri : M.txM, fontWeight: 700, cursor: "pointer" }}>📊 Relatórios</button>
         </div>
       </header>
 
-      {activeTab === "users" ? renderUsersTable() : renderSellersManagement()}
+      {activeTab === "users" && renderUsersTable()}
+      {activeTab === "sellers" && renderSellersManagement()}
+      {activeTab === "relatorios" && <RelatoriosPage />}
 
       {editingUser && renderEditModal()}
       {showCreateModal && renderCreateModal()}
