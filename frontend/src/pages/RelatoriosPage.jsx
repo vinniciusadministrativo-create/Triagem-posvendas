@@ -403,12 +403,12 @@ export default function RelatoriosPage() {
                             </span>
                           </td>
                           <td style={{ padding: "10px 14px", whiteSpace: "nowrap", color: M.txM }}>
-                            {c.data_previsao_recolhimento ? new Date(c.data_previsao_recolhimento + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
+                            {c.data_previsao_recolhimento ? new Date(c.data_previsao_recolhimento).toLocaleDateString("pt-BR") : "—"}
                           </td>
                           <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
                             {c.data_real_recolhimento ? (
                               <span style={{ color: M.ok, fontWeight: 700 }}>
-                                ✓ {new Date(c.data_real_recolhimento + "T12:00:00").toLocaleDateString("pt-BR")}
+                                ✓ {new Date(c.data_real_recolhimento).toLocaleDateString("pt-BR")}
                               </span>
                             ) : "—"}
                           </td>
