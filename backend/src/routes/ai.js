@@ -42,35 +42,10 @@ function triageDeterministic(formData) {
 
 // ── POST /api/ai/triage ──
 router.post("/triage", authMiddleware(), async (req, res) => {
-  const { form, isTest } = req.body;
+  const { form } = req.body;
   const fallback = triageDeterministic(form);
-
-  if (isTest || !process.env.ANTHROPIC_API_KEY) {
-    return res.json({ ...fallback, resumo: "[MODO SIMULADO] " + (fallback.resumo || "Processado por regras automáticas.") });
-  }
-
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01"
-      },
-      body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 800,
-        messages: [{ role: "user", content: `Triagem Pós-Vendas. Classifique JSON: ${JSON.stringify(form)}` }]
-      })
-    });
-
-    const data = await response.json();
-    const txt = data.content?.[0]?.text || "";
-    const parsed = repairJSON(txt);
-    res.json(parsed || fallback);
-  } catch (e) {
-    res.json(fallback);
-  }
+  // IA Desligada - Usando apenas regras determinísticas
+  return res.json(fallback);
 });
 
 const { extractNFDeterministic } = require("../utils/pythonBridge");
@@ -180,77 +155,29 @@ router.post("/extract-nf", authMiddleware(), async (req, res) => {
     }
   }
 
-  // ── Fallback: dados de teste ou IA ──
-  if (isTest || !process.env.ANTHROPIC_API_KEY) {
-    return res.json({ numero_nf: "998877", razao_social_dest: "LOJA TESTE LTDA", produtos: [{ descricao: "PRODUTO TESTE", quantidade: "10" }], valor_total_nota: "1.000,00" });
-  }
-
-  try {
-    const ct = mime.startsWith("image/") ? "image" : "document";
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01"
-      },
-      body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 1000,
-        messages: [{
-          role: "user",
-          content: [
-            { type: ct, source: { type: "base64", media_type: mime, data: fileB64 } },
-            { type: "text", text: "Extraia TODOS os dados desta NF em JSON puro. É mandatório extrair TODOS os itens da tabela de produtos, sem resumir ou omitir nenhum. Retorne campos: numero_nf, data_emissao, natureza_operacao, valor_total_nota, valor_total_produtos, base_icms, valor_icms, base_icms_st, valor_icms_st, valor_frete, valor_seguro, valor_ipi, peso_bruto, peso_liquido, quantidade_volumes, especie_volumes, cliente (razao social), cnpj, endereco_dest, bairro_dest, cep_dest, e a lista de 'produtos' contendo: codigo, descricao, ncm, cst, cfop, unidade, quantidade, valor_unitario, valor_total." }
-          ]
-        }]
-      })
-    });
-
-    const data = await response.json();
-    const txt = data.content?.[0]?.text || "";
-    res.json(repairJSON(txt) || { error: "Falha na extração" });
-  } catch (e) {
-    res.status(500).json({ error: "Erro na API de IA" });
-  }
+  // ── Fallback: Extração Manual Necessária ──
+  // Como a IA foi desligada, se não for PDF (ou se o PDF falhar), retornamos flags para digitação manual
+  return res.json({ 
+    numero_nf: fd.nfOriginal || "", 
+    razao_social_dest: fd.razaoSocial || "", 
+    cnpj_dest: fd.cnpj || "",
+    produtos: [], 
+    valor_total_nota: "0,00",
+    manual_required: true,
+    isDeterministic: false
+  });
 });
 
 // ── POST /api/ai/analyze-evidence ──
 router.post("/analyze-evidence", authMiddleware(), async (req, res) => {
-  const { images, isTest } = req.body; // images: [{b64, mime}]
-
-  if (isTest || !process.env.ANTHROPIC_API_KEY) {
-    return res.json({ resumo_evidencias: "[SIMULADO] Fotos mostram dano na embalagem.", estado_produto: "Avariado", responsabilidade_sugerida: "Marin", pontos_observados: ["Amassado lateral"], grau_confianca: "Alto" });
-  }
-
-  try {
-    const imgContent = images.map(img => ({ type: "image", source: { type: "base64", media_type: img.mime, data: img.b64 } }));
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01"
-      },
-      body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 800,
-        messages: [{
-          role: "user",
-          content: [
-            ...imgContent,
-            { type: "text", text: "Analise estas fotos de evidência e retorne JSON: {resumo_evidencias, estado_produto, responsabilidade_sugerida, pontos_observados:[], grau_confianca}" }
-          ]
-        }]
-      })
-    });
-
-    const data = await response.json();
-    const txt = data.content?.[0]?.text || "";
-    res.json(repairJSON(txt) || { error: "Falha na análise" });
-  } catch (e) {
-    res.status(500).json({ error: "Erro na IA" });
-  }
+  // IA Desligada - Retorna pendência de análise humana
+  return res.json({ 
+    resumo_evidencias: "Análise visual pendente pelo Backoffice.", 
+    estado_produto: "Aguardando Avaliação Manual", 
+    responsabilidade_sugerida: "Não definida", 
+    pontos_observados: ["Fotos recebidas"], 
+    grau_confianca: "Manual" 
+  });
 });
 
 module.exports = router;

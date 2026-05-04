@@ -281,6 +281,23 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
   }
 });
 
+// PATCH /api/chamados/:id/nf_data — pos_vendas/admin atualiza os dados da nota fiscal (transcrição manual)
+router.patch("/:id/nf_data", authMiddleware(["pos_vendas", "admin"]), async (req, res) => {
+  try {
+    const { nf_data } = req.body;
+    if (!nf_data) return res.status(400).json({ error: "nf_data obrigatório" });
+    const { rows } = await pool.query(
+      "UPDATE chamados SET nf_data = $1, updated_at = NOW() WHERE id = $2 RETURNING *",
+      [nf_data, req.params.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: "Chamado não encontrado" });
+    res.json({ chamado: rows[0] });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Erro ao atualizar dados da NF" });
+  }
+});
+
 // PATCH /api/chamados/:id/ressalva — vendedor ou admin atualiza observação
 router.patch("/:id/ressalva", authMiddleware(), upload.array("ressalva_arquivos", 3), async (req, res) => {
   try {

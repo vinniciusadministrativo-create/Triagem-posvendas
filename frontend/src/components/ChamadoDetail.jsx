@@ -97,6 +97,24 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
   const [showMentions, setShowMentions] = useState(false);
   const [mentionFilter, setMentionFilter] = useState("");
   const inputRef = useRef(null);
+  
+  // MODO DE TRANSCRIÇÃO MANUAL
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualNfData, setManualNfData] = useState({
+    numero_nf: chamado.nf_data?.numero_nf || chamado.nf_original || "",
+    data_emissao: chamado.nf_data?.data_emissao || "",
+    natureza_operacao: chamado.nf_data?.natureza_operacao || "5202 - DEVOLUÇÃO DE COMPRA PARA COMERCIALIZAÇÃO",
+    valor_total_nota: chamado.nf_data?.valor_total_nota || "0,00",
+    valor_total_produtos: chamado.nf_data?.valor_total_produtos || "0,00",
+    base_icms: chamado.nf_data?.base_icms || "0,00",
+    valor_icms: chamado.nf_data?.valor_icms || "0,00",
+    base_icms_st: chamado.nf_data?.base_icms_st || "0,00",
+    valor_icms_st: chamado.nf_data?.valor_icms_st || "0,00",
+    valor_frete: chamado.nf_data?.valor_frete || "0,00",
+    valor_seguro: chamado.nf_data?.valor_seguro || "0,00",
+    valor_ipi: chamado.nf_data?.valor_ipi || "0,00",
+    produtos: chamado.nf_data?.produtos?.length ? chamado.nf_data.produtos : [{ codigo: "", descricao: "", ncm: "", cst: "", cfop: "5202", unidade: "UN", quantidade: "1", valor_unitario: "0,00", valor_total: "0,00" }]
+  });
 
   useEffect(() => {
     window.scrollTo(0, 0); // Sobe a página ao abrir o detalhe
@@ -247,6 +265,42 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
     } finally {
       setSavingRessalva(false);
     }
+  };
+
+  const saveManualNfData = async () => {
+    try {
+      const updatedNfData = {
+        ...chamado.nf_data,
+        ...manualNfData,
+        manual_required: false,
+        isDeterministic: false
+      };
+      await api.updateNFData(chamado.id, updatedNfData);
+      alert("Dados da NF salvos com sucesso! O espelho agora pode ser emitido.");
+      setShowManualForm(false);
+      if (onStatusChange) onStatusChange(chamado.id, chamado.status);
+    } catch (e) {
+      alert("Erro ao salvar dados da NF: " + e.message);
+    }
+  };
+
+  const updateManualProd = (index, field, value) => {
+    const newProds = [...manualNfData.produtos];
+    newProds[index][field] = value;
+    setManualNfData({ ...manualNfData, produtos: newProds });
+  };
+  
+  const addManualProd = () => {
+    setManualNfData({
+      ...manualNfData,
+      produtos: [...manualNfData.produtos, { codigo: "", descricao: "", ncm: "", cst: "", cfop: "5202", unidade: "UN", quantidade: "1", valor_unitario: "0,00", valor_total: "0,00" }]
+    });
+  };
+  
+  const removeManualProd = (index) => {
+    const newProds = [...manualNfData.produtos];
+    newProds.splice(index, 1);
+    setManualNfData({ ...manualNfData, produtos: newProds });
   };
 
   return (
@@ -515,21 +569,105 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
             );
           })()}
 
+          {/* FORMULÁRIO DE PREENCHIMENTO MANUAL DA NF */}
+          {showManualForm && (
+            <div style={{ background: "#fff", border: `1px solid ${M.pri}`, borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: "0 4px 20px rgba(155,27,48,0.1)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15 }}>
+                <h3 style={{ margin: 0, fontSize: 16, color: M.pri }}>✍️ Transcrição Manual de Nota Fiscal</h3>
+                <button onClick={() => setShowManualForm(false)} style={{ border: "none", background: "none", fontSize: 24, cursor: "pointer", color: M.txM }}>×</button>
+              </div>
+              
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20, fontSize: 12 }}>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label style={{ fontWeight: 800 }}>Natureza da Operação</label>
+                  <input value={manualNfData.natureza_operacao} onChange={e => setManualNfData({...manualNfData, natureza_operacao: e.target.value})} style={{ width: "100%", padding: 8, borderRadius: 6, border: `1px solid ${M.brdN}` }} />
+                </div>
+                <div>
+                  <label style={{ fontWeight: 800 }}>Total dos Produtos (R$)</label>
+                  <input value={manualNfData.valor_total_produtos} onChange={e => setManualNfData({...manualNfData, valor_total_produtos: e.target.value})} style={{ width: "100%", padding: 8, borderRadius: 6, border: `1px solid ${M.brdN}` }} />
+                </div>
+                <div>
+                  <label style={{ fontWeight: 800 }}>Total da Nota (R$)</label>
+                  <input value={manualNfData.valor_total_nota} onChange={e => setManualNfData({...manualNfData, valor_total_nota: e.target.value})} style={{ width: "100%", padding: 8, borderRadius: 6, border: `1px solid ${M.brdN}` }} />
+                </div>
+                <div>
+                  <label style={{ fontWeight: 800 }}>Base ICMS</label>
+                  <input value={manualNfData.base_icms} onChange={e => setManualNfData({...manualNfData, base_icms: e.target.value})} style={{ width: "100%", padding: 8, borderRadius: 6, border: `1px solid ${M.brdN}` }} />
+                </div>
+                <div>
+                  <label style={{ fontWeight: 800 }}>Valor ICMS</label>
+                  <input value={manualNfData.valor_icms} onChange={e => setManualNfData({...manualNfData, valor_icms: e.target.value})} style={{ width: "100%", padding: 8, borderRadius: 6, border: `1px solid ${M.brdN}` }} />
+                </div>
+                <div>
+                  <label style={{ fontWeight: 800 }}>Base ICMS ST</label>
+                  <input value={manualNfData.base_icms_st} onChange={e => setManualNfData({...manualNfData, base_icms_st: e.target.value})} style={{ width: "100%", padding: 8, borderRadius: 6, border: `1px solid ${M.brdN}` }} />
+                </div>
+                <div>
+                  <label style={{ fontWeight: 800 }}>Valor ICMS ST</label>
+                  <input value={manualNfData.valor_icms_st} onChange={e => setManualNfData({...manualNfData, valor_icms_st: e.target.value})} style={{ width: "100%", padding: 8, borderRadius: 6, border: `1px solid ${M.brdN}` }} />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 15 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <label style={{ fontWeight: 800, fontSize: 12 }}>Tabela de Produtos</label>
+                  <button onClick={addManualProd} style={{ background: M.pri, color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>+ Adicionar Produto</button>
+                </div>
+                
+                {manualNfData.produtos.map((p, i) => (
+                  <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 3fr 1fr 1fr 1fr 1fr 1fr 1fr 30px", gap: 5, marginBottom: 5, alignItems: "center" }}>
+                    <input placeholder="Cód" value={p.codigo} onChange={e => updateManualProd(i, 'codigo', e.target.value)} style={{ padding: 6, fontSize: 11, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                    <input placeholder="Descrição do Produto" value={p.descricao} onChange={e => updateManualProd(i, 'descricao', e.target.value)} style={{ padding: 6, fontSize: 11, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                    <input placeholder="NCM" value={p.ncm} onChange={e => updateManualProd(i, 'ncm', e.target.value)} style={{ padding: 6, fontSize: 11, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                    <input placeholder="CST" value={p.cst} onChange={e => updateManualProd(i, 'cst', e.target.value)} style={{ padding: 6, fontSize: 11, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                    <input placeholder="CFOP" value={p.cfop} onChange={e => updateManualProd(i, 'cfop', e.target.value)} style={{ padding: 6, fontSize: 11, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                    <input placeholder="Qtd" value={p.quantidade} onChange={e => updateManualProd(i, 'quantidade', e.target.value)} style={{ padding: 6, fontSize: 11, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                    <input placeholder="V. Unit" value={p.valor_unitario} onChange={e => updateManualProd(i, 'valor_unitario', e.target.value)} style={{ padding: 6, fontSize: 11, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                    <input placeholder="V. Total" value={p.valor_total} onChange={e => updateManualProd(i, 'valor_total', e.target.value)} style={{ padding: 6, fontSize: 11, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                    <button onClick={() => removeManualProd(i)} style={{ background: "none", border: "none", color: M.err, cursor: "pointer", fontSize: 14 }}>×</button>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+                <button onClick={() => setShowManualForm(false)} style={{ padding: "10px 15px", background: "transparent", color: M.txM, border: `1px solid ${M.brdN}`, borderRadius: 8, cursor: "pointer" }}>Cancelar</button>
+                <button onClick={saveManualNfData} style={{ padding: "10px 20px", background: M.pri, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>Salvar e Gerar Espelho</button>
+              </div>
+            </div>
+          )}
+
           {/* ESPELHO DA NFD (CONDICIONAL) */}
           {(() => {
-            // Regra: Só mostra o espelho se a triagem disser que precisa (ex: devolução) 
-            // OU se o status atual for de uma etapa que exige o espelho.
             const triageNeedsMirror = chamado.triage_result?.precisa_espelho_nfd === true;
             const statusStageRequiresMirror = ["espelho", "aguardando_nfd", "aguardando_recolhimento", "aguardando_financeiro"].includes(chamado.status);
+            const showMirrorArea = canEdit && (triageNeedsMirror || statusStageRequiresMirror);
             
-            // Caso especial: mesmo se a triagem disse que não, se o Admin preencheu dados manualmente, 
-            // e mudou o status para um que requer espelho, ele deve ver.
-            // Mas para "Preço Errado" (onde triageNeedsMirror é false e o status não é de espelho), ele some.
-            const showMirror = canEdit && (triageNeedsMirror || statusStageRequiresMirror);
+            if (!showMirrorArea) return null;
             
-            if (!showMirror) return null;
+            // Se falhou extração (ou era imagem)
+            if (chamado.nf_data?.manual_required) {
+              return (
+                <div style={{ background: M.warnS, border: `1px solid ${M.warnB}`, borderRadius: 12, padding: 20, marginBottom: 20 }}>
+                  <h3 style={{ color: M.warn, margin: "0 0 10px 0" }}>⚠️ Transcrição Manual Necessária</h3>
+                  <p style={{ fontSize: 13, color: M.txM, margin: "0 0 15px 0" }}>
+                    Este chamado contém uma nota fiscal enviada como foto/imagem, ou o PDF estava ilegível. Para gerar o Espelho NFD, por favor preencha os dados da tabela manualmente.
+                  </p>
+                  <button onClick={() => setShowManualForm(true)} style={{ padding: "10px 20px", background: M.warn, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
+                    ✍️ Preencher Dados da NF
+                  </button>
+                </div>
+              );
+            }
             
-            return <DanfeMirror nf={chamado.nf_data} chamado={chamado} />;
+            return (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: M.txM, textTransform: "uppercase" }}>🧾 Espelho NFD Gerado</span>
+                  <button onClick={() => setShowManualForm(true)} style={{ fontSize: 11, background: "transparent", color: M.blue, border: "none", cursor: "pointer", textDecoration: "underline" }}>Editar Dados</button>
+                </div>
+                <DanfeMirror nf={chamado.nf_data} chamado={chamado} />
+              </div>
+            );
           })()}
 
           {/* ÁREA DE COMPARTILHAMENTO */}
