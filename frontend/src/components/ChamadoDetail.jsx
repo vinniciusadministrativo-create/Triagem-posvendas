@@ -269,6 +269,31 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
     }
   };
 
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+
+  const handleUploadPdf = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      alert("Por favor, selecione apenas arquivos PDF.");
+      return;
+    }
+
+    setUploadingPdf(true);
+    try {
+      const fd = new FormData();
+      fd.append("nf_file", file);
+      await api.reprocessPDF(chamado.id, fd);
+      alert("PDF processado com sucesso! O Espelho foi gerado automaticamente.");
+      if (onStatusChange) onStatusChange(chamado.id, chamado.status);
+    } catch (err) {
+      alert("Erro ao processar PDF: " + err.message);
+    } finally {
+      setUploadingPdf(false);
+      e.target.value = null; // reseta input
+    }
+  };
+
   const saveManualNfData = async () => {
     try {
       const updatedNfData = {
@@ -712,11 +737,18 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
                 <div style={{ background: M.warnS, border: `1px solid ${M.warnB}`, borderRadius: 12, padding: 20, marginBottom: 20 }}>
                   <h3 style={{ color: M.warn, margin: "0 0 10px 0" }}>⚠️ Transcrição Manual Necessária</h3>
                   <p style={{ fontSize: 13, color: M.txM, margin: "0 0 15px 0" }}>
-                    Este chamado contém uma nota fiscal enviada como foto/imagem, ou o PDF estava ilegível. Para gerar o Espelho NFD, por favor preencha os dados da tabela manualmente.
+                    Este chamado contém uma nota fiscal enviada como foto/imagem, ou o PDF estava ilegível. Para gerar o Espelho NFD, você pode preencher os dados manualmente ou fazer o upload do PDF original caso tenha recebido do vendedor.
                   </p>
-                  <button onClick={() => setShowManualForm(true)} style={{ padding: "10px 20px", background: M.warn, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
-                    ✍️ Preencher Dados da NF
-                  </button>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button onClick={() => setShowManualForm(true)} style={{ padding: "10px 20px", background: M.warn, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
+                      ✍️ Preencher Dados Manualmente
+                    </button>
+                    
+                    <label style={{ padding: "10px 20px", background: M.blue, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: uploadingPdf ? "not-allowed" : "pointer", opacity: uploadingPdf ? 0.7 : 1 }}>
+                      {uploadingPdf ? "⏳ Processando PDF..." : "📄 Anexar PDF Original (Automático)"}
+                      <input type="file" accept="application/pdf" style={{ display: "none" }} onChange={handleUploadPdf} disabled={uploadingPdf} />
+                    </label>
+                  </div>
                 </div>
               );
             }

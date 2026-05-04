@@ -56,6 +56,7 @@ export const api = {
   deleteMultipleChamados: (ids) => request("/api/chamados/batch-delete", { method: "POST", body: JSON.stringify({ ids }) }),
   updateRessalva: (id, data) => request(`/api/chamados/${id}/ressalva`, { method: "PATCH", body: data }),
   updateNFData: (id, nf_data) => request(`/api/chamados/${id}/nf_data`, { method: "PATCH", body: JSON.stringify({ nf_data }) }),
+  reprocessPDF: (id, formData) => request(`/api/chamados/${id}/reprocess-pdf`, { method: "POST", body: formData }),
   getHistory: (id) => request(`/api/chamados/${id}/history`),
 
   // Chat

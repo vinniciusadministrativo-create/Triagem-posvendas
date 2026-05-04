@@ -281,6 +281,42 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
   }
 });
 
+// ── POST /api/chamados/:id/reprocess-pdf ──
+// Pós-Vendas pode anexar o PDF original para substituir a foto e gerar o espelho automaticamente
+const { extractNFDeterministic } = require("../utils/pythonBridge");
+
+router.post("/:id/reprocess-pdf", authMiddleware(["pos_vendas", "admin"]), upload.single("nf_file"), async (req, res) => {
+  try {
+    if (!req.file || req.file.mimetype !== "application/pdf") {
+      return res.status(400).json({ error: "É obrigatório enviar um arquivo PDF válido." });
+    }
+
+    const docRes = await extractNFDeterministic(req.file.path);
+    
+    if (!docRes || docRes.error) {
+      return res.status(422).json({ error: "Não foi possível ler os dados deste PDF. Certifique-se que é uma DANFE válida gerada pelo sistema (não escaneada)." });
+    }
+
+    // Se a extração deu certo, atualizamos o banco de dados
+    const nfFilePath = req.file.filename;
+    
+    // Assegura que a flag de manual_required foi desligada pelo sucesso do PDF
+    docRes.manual_required = false;
+
+    const { rows } = await pool.query(
+      "UPDATE chamados SET nf_file_path = $1, nf_data = $2, updated_at = NOW() WHERE id = $3 RETURNING *",
+      [nfFilePath, docRes, req.params.id]
+    );
+
+    if (!rows[0]) return res.status(404).json({ error: "Chamado não encontrado" });
+
+    res.json({ chamado: rows[0] });
+  } catch (e) {
+    console.error("Erro ao reprocessar PDF:", e);
+    res.status(500).json({ error: "Erro interno ao processar o PDF." });
+  }
+});
+
 // PATCH /api/chamados/:id/nf_data — pos_vendas/admin atualiza os dados da nota fiscal (transcrição manual)
 router.patch("/:id/nf_data", authMiddleware(["pos_vendas", "admin"]), async (req, res) => {
   try {
