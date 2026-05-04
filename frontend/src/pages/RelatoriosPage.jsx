@@ -221,7 +221,7 @@ export default function RelatoriosPage() {
   // ──────────────────────────────
 
   return (
-    <div style={{ padding: "24px 0" }}>
+    <div data-relatorios-root style={{ padding: "24px 0" }}>
       {/* ── HEADER ── */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div>
