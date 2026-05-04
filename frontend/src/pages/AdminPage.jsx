@@ -11,6 +11,7 @@ const M = {
   txM: "#6b6560",
   brdN: "#e5e0db",
   ok: "#16a34a",
+  warn: "#d97706",
   err: "#dc2626",
 };
 
@@ -99,6 +100,38 @@ export default function AdminPage() {
     }
   };
 
+  const handleToggleActive = async (u) => {
+    const acao = u.active ? "inativar" : "ativar";
+    if (!window.confirm(`Tem certeza que deseja ${acao} o usuário "${u.name}"?`)) return;
+    try {
+      await fetch(`/api/users/${u.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+        body: JSON.stringify({ active: !u.active }),
+      });
+      setMessage({ type: "success", text: `Usuário ${u.active ? "inativado" : "ativado"} com sucesso!` });
+      fetchUsers();
+    } catch (e) {
+      setMessage({ type: "error", text: "Erro ao alterar status do usuário." });
+    }
+  };
+
+  const handleDeleteUser = async (u) => {
+    if (!window.confirm(`⚠️ ATENÇÃO: Excluir permanentemente o usuário "${u.name}"? Esta ação não pode ser desfeita.`)) return;
+    try {
+      const r = await fetch(`/api/users/${u.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      setMessage({ type: "success", text: data.message });
+      fetchUsers();
+    } catch (e) {
+      setMessage({ type: "error", text: e.message || "Erro ao excluir usuário." });
+    }
+  };
+
   return (
     <div className="page-container">
       {selectedChamado && (
@@ -126,6 +159,13 @@ export default function AdminPage() {
           <button onClick={() => setActiveTab("relatorios")} style={{ paddingBottom: 10, border: "none", background: "none", borderBottom: activeTab === "relatorios" ? `2px solid ${M.pri}` : "none", color: activeTab === "relatorios" ? M.pri : M.txM, fontWeight: 700, cursor: "pointer" }}>📊 Relatórios</button>
         </div>
       </header>
+
+      {message && (
+        <div style={{ marginBottom: 16, padding: "12px 18px", borderRadius: 10, background: message.type === "success" ? "#dcfce7" : "#fee2e2", color: message.type === "success" ? "#166534" : "#991b1b", fontWeight: 600, fontSize: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>{message.type === "success" ? "✅" : "❌"} {message.text}</span>
+          <button onClick={() => setMessage(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "inherit" }}>✕</button>
+        </div>
+      )}
 
       {activeTab === "users" && renderUsersTable()}
       {activeTab === "sellers" && renderSellersManagement()}
@@ -183,21 +223,43 @@ export default function AdminPage() {
         <table className="table-responsive">
           <thead>
             <tr style={{ background: "#f8f9fa", textAlign: "left" }}>
-              {["Nome", "E-mail", "Função", "Ações"].map(h => (
+              {["Nome", "E-mail", "Função", "Status", "Ações"].map(h => (
                 <th key={h} style={{ padding: "16px", fontSize: 12, textTransform: "uppercase", color: M.txM }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {users.map(u => (
-              <tr key={u.id} style={{ borderTop: `1px solid ${M.brdN}` }}>
-                <td style={{ padding: "16px", fontSize: 14, fontWeight: 600 }}>{u.name}</td>
+              <tr key={u.id} style={{ borderTop: `1px solid ${M.brdN}`, opacity: u.active ? 1 : 0.55 }}>
+                <td style={{ padding: "16px", fontSize: 14, fontWeight: 600, color: u.active ? M.tx : M.txM }}>{u.name}</td>
                 <td style={{ padding: "16px", fontSize: 14, color: M.txM }}>{u.email}</td>
                 <td style={{ padding: "16px" }}>
                   <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 8px", borderRadius: 4, background: "#f5f3f0", color: M.txM }}>{u.role.toUpperCase()}</span>
                 </td>
-                <td style={{ padding: "16px", display: "flex", gap: 10 }}>
-                  <button onClick={() => setEditingUser(u)} style={{ background: "none", border: "none", color: M.pri, fontWeight: 700, cursor: "pointer" }}>Editar</button>
+                <td style={{ padding: "16px" }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 20,
+                    background: u.active ? "#dcfce7" : "#fee2e2",
+                    color: u.active ? "#166534" : "#991b1b"
+                  }}>
+                    {u.active ? "● Ativo" : "● Inativo"}
+                  </span>
+                </td>
+                <td style={{ padding: "16px" }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button onClick={() => setEditingUser(u)}
+                      style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${M.brdN}`, background: "#fff", color: M.tx, fontWeight: 700, cursor: "pointer", fontSize: 12 }}>
+                      ✏️ Editar
+                    </button>
+                    <button onClick={() => handleToggleActive(u)}
+                      style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${u.active ? M.warn : M.ok}`, background: "#fff", color: u.active ? M.warn : M.ok, fontWeight: 700, cursor: "pointer", fontSize: 12 }}>
+                      {u.active ? "⏸ Inativar" : "▶ Ativar"}
+                    </button>
+                    <button onClick={() => handleDeleteUser(u)}
+                      style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: M.err, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>
+                      🗑 Excluir
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

@@ -105,4 +105,22 @@ router.patch("/:id/password", authMiddleware(), async (req, res) => {
   }
 });
 
+// DELETE /api/users/:id — permanently delete user (admin only, cannot delete self)
+router.delete("/:id", authMiddleware(["admin"]), async (req, res) => {
+  if (parseInt(req.params.id) === req.user.id)
+    return res.status(400).json({ error: "Você não pode excluir sua própria conta." });
+  try {
+    const { rows } = await pool.query(
+      "DELETE FROM users WHERE id = $1 RETURNING id, name",
+      [req.params.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: "Usuário não encontrado" });
+    res.json({ message: `Usuário "${rows[0].name}" excluído com sucesso.` });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Erro ao excluir usuário. Verifique se não há chamados vinculados." });
+  }
+});
+
 module.exports = router;
+
