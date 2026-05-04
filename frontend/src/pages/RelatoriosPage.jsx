@@ -214,7 +214,39 @@ export default function RelatoriosPage() {
     URL.revokeObjectURL(url);
   }
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    const content = document.querySelector("[data-relatorios-root]");
+    if (!content) return;
+
+    const win = window.open("", "_blank", "width=1100,height=800");
+    win.document.write(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="utf-8">
+        <title>Relatório - Triagem Pós-Vendas</title>
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #fff;
+            color: #1a1a1a;
+            padding: 24px;
+          }
+          button, input, select, label { display: none !important; }
+          @media print {
+            body { padding: 10px; }
+          }
+        </style>
+      </head>
+      <body>
+        ${content.innerHTML}
+      </body>
+      </html>
+    `);
+    win.document.close();
+    setTimeout(() => { win.focus(); win.print(); }, 600);
+  };
 
   // ──────────────────────────────
   //  RENDER
@@ -423,15 +455,6 @@ export default function RelatoriosPage() {
         </>
       )}
 
-      {/* Print styles */}
-      <style>{`
-        @media print {
-          body * { visibility: hidden !important; }
-          [data-relatorios-root], [data-relatorios-root] * { visibility: visible !important; }
-          [data-relatorios-root] { position: absolute; left: 0; top: 0; width: 100%; }
-          button { display: none !important; }
-        }
-      `}</style>
     </div>
   );
 }
