@@ -103,6 +103,8 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
   const [manualNfData, setManualNfData] = useState({
     numero_nf: chamado.nf_data?.numero_nf || chamado.nf_original || "",
     data_emissao: chamado.nf_data?.data_emissao || "",
+    chave_acesso: chamado.nf_data?.chave_acesso || "",
+    cnpj_emitente: chamado.nf_data?.cnpj_emitente || "",
     natureza_operacao: chamado.nf_data?.natureza_operacao || "5202 - DEVOLUÇÃO DE COMPRA PARA COMERCIALIZAÇÃO",
     valor_total_nota: chamado.nf_data?.valor_total_nota || "0,00",
     valor_total_produtos: chamado.nf_data?.valor_total_produtos || "0,00",
@@ -600,6 +602,15 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
                   </div>
                   
                   <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
+                    
+                    {manualNfData.chave_acesso && (
+                      <div style={{ padding: 10, background: "#dcfce7", color: "#166534", borderRadius: 8, marginBottom: 15, fontSize: 12, border: "1px solid #bbf7d0" }}>
+                        <b>✅ QR Code Detectado!</b> Preenchemos automaticamente alguns dados da nota.
+                        <div style={{ marginTop: 4, fontFamily: "monospace", fontSize: 11 }}>Chave: {manualNfData.chave_acesso}</div>
+                        <div style={{ marginTop: 4 }}>CNPJ Emissor: {manualNfData.cnpj_emitente} | Data: {manualNfData.data_emissao} | Número: {manualNfData.numero_nf}</div>
+                      </div>
+                    )}
+
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20, fontSize: 12 }}>
                       <div style={{ gridColumn: "1 / -1" }}>
                         <label style={{ fontWeight: 800 }}>Natureza da Operação</label>

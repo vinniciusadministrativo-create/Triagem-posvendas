@@ -49,6 +49,7 @@ router.post("/triage", authMiddleware(), async (req, res) => {
 });
 
 const { extractNFDeterministic } = require("../utils/pythonBridge");
+const { processarQrCodeImagem } = require("../utils/qrDecoder");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -155,10 +156,23 @@ router.post("/extract-nf", authMiddleware(), async (req, res) => {
     }
   }
 
+  // ── Tentativa de Leitura de QR Code (Assistente para Transcrição Manual) ──
+  let qrDataParsed = null;
+  if (fileB64 && mime.startsWith("image/")) {
+    try {
+      qrDataParsed = await processarQrCodeImagem(fileB64);
+    } catch (e) {
+      console.warn("Falha ao processar QR Code:", e.message);
+    }
+  }
+
   // ── Fallback: Extração Manual Necessária ──
-  // Como a IA foi desligada, se não for PDF (ou se o PDF falhar), retornamos flags para digitação manual
+  // Como a IA foi desligada, retornamos flags para digitação manual, pré-preenchendo com dados do QR Code se encontrados.
   return res.json({ 
-    numero_nf: fd.nfOriginal || "", 
+    numero_nf: qrDataParsed?.numero || fd.nfOriginal || "", 
+    data_emissao: qrDataParsed?.data_emissao || "",
+    chave_acesso: qrDataParsed?.chave_acesso || "",
+    cnpj_emitente: qrDataParsed?.cnpj_emitente || "",
     razao_social_dest: fd.razaoSocial || "", 
     cnpj_dest: fd.cnpj || "",
     produtos: [], 
