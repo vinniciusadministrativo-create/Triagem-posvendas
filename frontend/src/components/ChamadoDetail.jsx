@@ -404,12 +404,12 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 13, color: M.tx }}>
                 {chamado.data_previsao_recolhimento && (
                   <div style={{ color: M.pri, fontWeight: 700 }}>
-                    📅 Previsão: {new Date(chamado.data_previsao_recolhimento + 'T12:00:00').toLocaleDateString('pt-BR')}
+                    📅 Previsão: {new Date(chamado.data_previsao_recolhimento.split('T')[0] + 'T12:00:00').toLocaleDateString('pt-BR')}
                   </div>
                 )}
                 {chamado.data_real_recolhimento && (
                   <div style={{ color: "#059669", fontWeight: 700 }}>
-                    ✅ Data Real: {new Date(chamado.data_real_recolhimento + 'T12:00:00').toLocaleDateString('pt-BR')}
+                    ✅ Data Real: {new Date(chamado.data_real_recolhimento.split('T')[0] + 'T12:00:00').toLocaleDateString('pt-BR')}
                   </div>
                 )}
                 
