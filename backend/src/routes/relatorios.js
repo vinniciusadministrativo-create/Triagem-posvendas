@@ -125,13 +125,26 @@ router.get("/chamados", authMiddleware(["admin", "pos_vendas"]), async (req, res
         "ID", "Criado em", "Atualizado em", "Vendedor", "Cód. Cliente",
         "Razão Social", "CNPJ", "Telefone", "Tipo Solicitação", "Status",
         "NF Original", "Responsável", "Descrição", "Ressalva Vendedor",
-        "Data Recolhimento (Form)", "Previsão Recolhimento", "Data Real Recolhimento",
-        "Total Mensagens"
+        "Data Recolhimento (Form)", "Previsão Recolhimento", "Data Real Recolhimento"
       ];
 
       const formatBR = (date) => {
         if (!date) return "";
-        return new Date(date).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return "";
+        return d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+      };
+
+      const safeDate = (val) => {
+        if (!val) return "";
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return "";
+        // Se for string de data curta, ajusta para meio-dia para evitar erro de fuso
+        const s = String(val);
+        if (s.length <= 10 || (s.includes('-') && !s.includes(':'))) {
+          return new Date(s.split('T')[0] + "T12:00:00").toLocaleDateString("pt-BR");
+        }
+        return d.toLocaleDateString("pt-BR");
       };
 
       const formatCNPJ = (val) => {
@@ -161,10 +174,9 @@ router.get("/chamados", authMiddleware(["admin", "pos_vendas"]), async (req, res
         r.responsavel,
         r.descricao,
         r.ressalva_vendedor,
-        r.recolhimento_data?.data_recolhimento ? new Date(r.recolhimento_data.data_recolhimento + "T12:00:00").toLocaleDateString("pt-BR") : "",
-        r.data_previsao_recolhimento ? new Date(r.data_previsao_recolhimento + "T12:00:00").toLocaleDateString("pt-BR") : "",
-        r.data_real_recolhimento ? new Date(r.data_real_recolhimento + "T12:00:00").toLocaleDateString("pt-BR") : "",
-        r.total_mensagens,
+        safeDate(r.recolhimento_data?.data_recolhimento),
+        safeDate(r.data_previsao_recolhimento),
+        safeDate(r.data_real_recolhimento),
       ].map(escape).join(";"));
 
       const csv = "\uFEFF" + [headers.map(h => `"${h}"`).join(";"), ...csvRows].join("\n");
