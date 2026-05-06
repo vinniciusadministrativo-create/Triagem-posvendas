@@ -69,8 +69,12 @@ function AttachmentCard({ filename, label }) {
   );
 }
 
-export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDelete }) {
+export default function ChamadoDetail({ chamado: initialChamado, onClose, onStatusChange, onDelete }) {
+  const [chamado, setChamado] = useState(initialChamado);
   const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const isAdmin = user.role === "admin";
+  const isPosVendas = user.role === "pos_vendas";
+  const canEdit = isAdmin || isPosVendas;
   const [newStatus, setNewStatus] = useState(chamado.status || "novo");
   const [localRessalva, setLocalRessalva] = useState(chamado.ressalva_vendedor || "");
   const [ressalvaFiles, setRessalvaFiles] = useState([]);
@@ -117,6 +121,10 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
     valor_ipi: chamado.nf_data?.valor_ipi || "0,00",
     produtos: chamado.nf_data?.produtos?.length ? chamado.nf_data.produtos : [{ codigo: "", descricao: "", ncm: "", cst: "", cfop: "5202", unidade: "UN", quantidade: "1", valor_unitario: "0,00", valor_total: "0,00" }]
   });
+
+  useEffect(() => {
+    setChamado(initialChamado);
+  }, [initialChamado]);
 
   useEffect(() => {
     window.scrollTo(0, 0); // Sobe a página ao abrir o detalhe
@@ -283,9 +291,15 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
     try {
       const fd = new FormData();
       fd.append("nf_file", file);
-      await api.reprocessPDF(chamado.id, fd);
+      const res = await api.reprocessPDF(chamado.id, fd);
+      
+      // Atualiza o chamado no estado local para refletir os novos dados (nf_data) imediatamente
+      if (res.chamado) {
+        setChamado(res.chamado);
+      }
+      
       alert("PDF processado com sucesso! O Espelho foi gerado automaticamente.");
-      if (onStatusChange) onStatusChange(chamado.id, chamado.status);
+      // onStatusChange(chamado.id, chamado.status); // Removido para não fechar o modal
     } catch (err) {
       alert("Erro ao processar PDF: " + err.message);
     } finally {
@@ -302,10 +316,15 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
         manual_required: false,
         isDeterministic: false
       };
-      await api.updateNFData(chamado.id, updatedNfData);
+      const res = await api.updateNFData(chamado.id, updatedNfData);
+      
+      if (res.chamado) {
+        setChamado(res.chamado);
+      }
+
       alert("Dados da NF salvos com sucesso! O espelho agora pode ser emitido.");
       setShowManualForm(false);
-      if (onStatusChange) onStatusChange(chamado.id, chamado.status);
+      // if (onStatusChange) onStatusChange(chamado.id, chamado.status);
     } catch (e) {
       alert("Erro ao salvar dados da NF: " + e.message);
     }
@@ -754,8 +773,15 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
             if (chamado.nf_data?.manual_required) return null;
 
             // Regra: Mostrar apenas nas etapas específicas solicitadas pelo usuário.
-            // "Aguardando NFD/Espelho", "Aguardando Recolhimento", "Recolhido" e "Concluído"
-            const statusStageRequiresMirror = ["espelho", "aguardando_nfd", "aguardando_recolhimento", "recolhido", "concluido"].includes(chamado.status);
+            // "Aguardando NFD/Espelho", "Aguardando Recolhimento", "Recolhido", "Financeiro" e "Encerrado"
+            const statusStageRequiresMirror = [
+              "espelho", 
+              "aguardando_nfd", 
+              "aguardando_recolhimento", 
+              "recolhido", 
+              "aguardando_financeiro", 
+              "encerrado"
+            ].includes(chamado.status);
             const showMirrorArea = canEdit && statusStageRequiresMirror;
             
             if (!showMirrorArea) return null;
