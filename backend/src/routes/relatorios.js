@@ -153,6 +153,28 @@ router.get("/chamados", authMiddleware(["admin", "pos_vendas"]), async (req, res
         return `${s.slice(0, 2)}.${s.slice(2, 5)}.${s.slice(5, 8)}/${s.slice(8, 12)}-${s.slice(12, 14)}`;
       };
 
+      const TIPO_LABELS = {
+        preco_errado: "Preço Errado",
+        produto_avariado: "Produto Avariado",
+        erro_pigmentacao: "Erro de Pigmentação",
+        produto_defeito: "Produto com Defeito",
+        qtd_errada: "Quantidade Errada",
+        arrependimento: "Arrependimento / Troca",
+        recusa_entrega: "Recusa na Entrega",
+      };
+
+      const STATUS_LABELS = {
+        novo: "Novo",
+        triagem: "Triagem",
+        analise: "Análise",
+        aprovado: "Aprovado",
+        reprovado: "Reprovado",
+        encerrado: "Encerrado",
+        aguardando_recolhimento: "Ag. Recolhimento",
+        recolhido: "Recolhido",
+        espelho: "Emitir Espelho NFD",
+      };
+
       const escape = (v) => {
         if (v === null || v === undefined) return "";
         const s = String(v).replace(/"/g, '""');
@@ -168,8 +190,8 @@ router.get("/chamados", authMiddleware(["admin", "pos_vendas"]), async (req, res
         r.razao_social,
         formatCNPJ(r.cnpj),
         r.telefone,
-        r.tipo_solicitacao,
-        r.status,
+        TIPO_LABELS[r.tipo_solicitacao] || r.tipo_solicitacao,
+        STATUS_LABELS[r.status] || r.status,
         r.nf_original,
         r.responsavel,
         r.descricao,
