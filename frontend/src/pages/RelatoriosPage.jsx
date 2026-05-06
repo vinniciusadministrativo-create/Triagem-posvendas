@@ -39,6 +39,16 @@ const STATUS_LABELS = {
   recolhido: "Recolhido",
 };
 
+const TIPO_LABELS = {
+  preco_errado: "Preço Errado",
+  produto_avariado: "Produto Avariado",
+  erro_pigmentacao: "Erro de Pigmentação",
+  produto_defeito: "Produto com Defeito",
+  qtd_errada: "Quantidade Errada",
+  arrependimento: "Arrependimento / Troca",
+  recusa_entrega: "Recusa na Entrega",
+};
+
 const STATUS_COLORS = {
   novo: { bg: "#dbeafe", color: "#1d4ed8" },
   triagem: { bg: "#fef3c7", color: "#92400e" },
@@ -349,7 +359,11 @@ export default function RelatoriosPage() {
                 </Section>
 
                 <Section title="Chamados por Tipo de Solicitação">
-                  <MiniBarChart data={resumo.por_tipo} labelKey="tipo_solicitacao" valueKey="qtd" />
+                  <MiniBarChart 
+                    data={resumo.por_tipo.map(d => ({ ...d, label: TIPO_LABELS[d.tipo_solicitacao] || d.tipo_solicitacao }))} 
+                    labelKey="label" 
+                    valueKey="qtd" 
+                  />
                 </Section>
               </div>
 
@@ -370,7 +384,7 @@ export default function RelatoriosPage() {
                       {resumo.por_vendedor_motivo?.map((d, i) => (
                         <tr key={i} style={{ borderBottom: `1px solid ${M.brdN}`, background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
                           <td style={{ padding: 12, fontWeight: 700 }}>{d.vendedor || "Não identificado"}</td>
-                          <td style={{ padding: 12 }}>{d.tipo_solicitacao}</td>
+                          <td style={{ padding: 12 }}>{TIPO_LABELS[d.tipo_solicitacao] || d.tipo_solicitacao}</td>
                           <td style={{ padding: 12, textAlign: "right", fontWeight: 800, color: M.pri }}>{d.qtd}</td>
                         </tr>
                       ))}
