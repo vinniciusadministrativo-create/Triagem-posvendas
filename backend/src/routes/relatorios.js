@@ -34,13 +34,11 @@ router.get("/resumo", authMiddleware(["admin", "pos_vendas"]), async (req, res) 
         GROUP BY tipo_solicitacao ORDER BY qtd DESC
       `, params),
 
-      // Chamados por vendedor (top 10)
+      // Chamados por cliente (top 10)
       pool.query(`
-        SELECT u.name as vendedor, COUNT(c.id) as qtd
-        FROM chamados c
-        LEFT JOIN users u ON c.vendedor_id = u.id
-        ${where.replace("WHERE", "WHERE c.")}
-        GROUP BY u.name ORDER BY qtd DESC LIMIT 10
+        SELECT razao_social as cliente, COUNT(id) as qtd
+        FROM chamados ${where}
+        GROUP BY razao_social ORDER BY qtd DESC LIMIT 10
       `, params),
 
       // SLA de recolhimento: previsão vs real
@@ -61,7 +59,7 @@ router.get("/resumo", authMiddleware(["admin", "pos_vendas"]), async (req, res) 
       total: parseInt(total.rows[0].total),
       por_status: porStatus.rows,
       por_tipo: porTipo.rows,
-      por_vendedor: porVendedor.rows,
+      por_cliente: porVendedor.rows, // Reutilizando a variável porVendedor para o resultado de Clientes
       sla_recolhimento: slaRecolhimento.rows[0],
     });
   } catch (e) {

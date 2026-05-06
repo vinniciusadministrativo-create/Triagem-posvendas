@@ -353,8 +353,8 @@ export default function RelatoriosPage() {
                 </Section>
               </div>
 
-              <Section title="Top 10 Vendedores por Volume">
-                <MiniBarChart data={resumo.por_vendedor} labelKey="vendedor" valueKey="qtd" colors={[M.chart2]} />
+              <Section title="Top 10 Clientes por Volume">
+                <MiniBarChart data={resumo.por_cliente} labelKey="cliente" valueKey="qtd" colors={[M.chart2]} />
               </Section>
             </>
           )}
