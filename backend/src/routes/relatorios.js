@@ -150,9 +150,9 @@ router.get("/chamados", authMiddleware(["admin", "pos_vendas"]), async (req, res
         r.responsavel,
         r.descricao,
         r.ressalva_vendedor,
-        r.recolhimento_data,
-        r.data_previsao_recolhimento,
-        r.data_real_recolhimento,
+        r.recolhimento_data?.data_recolhimento ? new Date(r.recolhimento_data.data_recolhimento + "T12:00:00").toLocaleDateString("pt-BR") : "",
+        r.data_previsao_recolhimento ? new Date(r.data_previsao_recolhimento).toLocaleDateString("pt-BR") : "",
+        r.data_real_recolhimento ? new Date(r.data_real_recolhimento).toLocaleDateString("pt-BR") : "",
         r.total_mensagens,
       ].map(escape).join(";"));
 
