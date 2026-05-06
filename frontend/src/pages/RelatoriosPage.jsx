@@ -353,6 +353,32 @@ export default function RelatoriosPage() {
                 </Section>
               </div>
 
+              <Section title="Análise de Motivos por Vendedor">
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: "#f8f9fa", borderBottom: `2px solid ${M.brdN}` }}>
+                        <th style={{ padding: 12, textAlign: "left", color: M.txM, fontSize: 11, textTransform: "uppercase" }}>Vendedor</th>
+                        <th style={{ padding: 12, textAlign: "left", color: M.txM, fontSize: 11, textTransform: "uppercase" }}>Motivo (Tipo)</th>
+                        <th style={{ padding: 12, textAlign: "right", color: M.txM, fontSize: 11, textTransform: "uppercase" }}>Qtd.</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {resumo.por_vendedor_motivo?.length === 0 && (
+                        <tr><td colSpan={3} style={{ padding: 20, textAlign: "center", color: M.txM }}>Nenhum dado encontrado</td></tr>
+                      )}
+                      {resumo.por_vendedor_motivo?.map((d, i) => (
+                        <tr key={i} style={{ borderBottom: `1px solid ${M.brdN}`, background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                          <td style={{ padding: 12, fontWeight: 700 }}>{d.vendedor || "Não identificado"}</td>
+                          <td style={{ padding: 12 }}>{d.tipo_solicitacao}</td>
+                          <td style={{ padding: 12, textAlign: "right", fontWeight: 800, color: M.pri }}>{d.qtd}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Section>
+
               <Section title="Top 10 Clientes por Volume">
                 <MiniBarChart data={resumo.por_cliente} labelKey="cliente" valueKey="qtd" colors={[M.chart2]} />
               </Section>

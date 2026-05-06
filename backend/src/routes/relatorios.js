@@ -16,7 +16,7 @@ router.get("/resumo", authMiddleware(["admin", "pos_vendas"]), async (req, res) 
 
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
-    const [total, porStatus, porTipo, porVendedor, slaRecolhimento] = await Promise.all([
+    const [total, porStatus, porTipo, porCliente, slaRecolhimento, porVendedorMotivo] = await Promise.all([
       // Total de chamados
       pool.query(`SELECT COUNT(*) as total FROM chamados ${where}`, params),
 
@@ -53,13 +53,23 @@ router.get("/resumo", authMiddleware(["admin", "pos_vendas"]), async (req, res) 
           ), 0), 2) as desvio_reais
         FROM chamados ${where}
       `, params),
+      // Motivos por vendedor
+      pool.query(`
+        SELECT u.name as vendedor, c.tipo_solicitacao, COUNT(c.id) as qtd
+        FROM chamados c
+        LEFT JOIN users u ON c.vendedor_id = u.id
+        ${where.replace("WHERE", "WHERE c.")}
+        GROUP BY u.name, c.tipo_solicitacao
+        ORDER BY u.name ASC, qtd DESC
+      `, params),
     ]);
 
     res.json({
       total: parseInt(total.rows[0].total),
       por_status: porStatus.rows,
       por_tipo: porTipo.rows,
-      por_cliente: porVendedor.rows, // Reutilizando a variável porVendedor para o resultado de Clientes
+      por_cliente: porCliente.rows, 
+      por_vendedor_motivo: porVendedorMotivo.rows,
       sla_recolhimento: slaRecolhimento.rows[0],
     });
   } catch (e) {
