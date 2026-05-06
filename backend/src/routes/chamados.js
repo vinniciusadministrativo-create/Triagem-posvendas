@@ -42,6 +42,11 @@ const upload = multer({
   },
 });
 
+const memoryUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+});
+
 // GET /api/chamados/meus — usuário vê seus próprios e os compartilhados
 router.get("/meus", authMiddleware(["vendedor", "pos_vendas", "admin"]), async (req, res) => {
   try {
@@ -351,30 +356,15 @@ function cleanAndFormatNfData(det) {
   };
 }
 
-router.post("/:id/reprocess-pdf", authMiddleware(["pos_vendas", "admin"]), upload.single("nf_file"), async (req, res) => {
+router.post("/:id/reprocess-pdf", authMiddleware(["pos_vendas", "admin"]), memoryUpload.single("nf_file"), async (req, res) => {
   const tempPath = path.join(os.tmpdir(), `nf_${Date.now()}.pdf`);
   try {
     if (!req.file || req.file.mimetype !== "application/pdf") {
       return res.status(400).json({ error: "É obrigatório enviar um arquivo PDF válido." });
     }
 
-    const axios = require("axios");
-    const fileUrl = req.file.path;
-
-    // Baixa o arquivo do Cloudinary usando axios
-    const response = await axios({
-      method: "get",
-      url: fileUrl,
-      responseType: "stream",
-    });
-
-    const writer = fs.createWriteStream(tempPath);
-    response.data.pipe(writer);
-
-    await new Promise((resolve, reject) => {
-      writer.on("finish", resolve);
-      writer.on("error", reject);
-    });
+    // Salva o buffer recebido em um arquivo temporário local para o Python
+    fs.writeFileSync(tempPath, req.file.buffer);
 
     // Processa o arquivo com o script Python
     let rawDet;
@@ -383,17 +373,32 @@ router.post("/:id/reprocess-pdf", authMiddleware(["pos_vendas", "admin"]), uploa
     } catch (pythonErr) {
       console.error("Erro no script Python:", pythonErr.message);
       return res.status(422).json({ error: "Não foi possível extrair os dados do PDF. Verifique se o arquivo não está corrompido ou protegido por senha." });
-    } finally {
-      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
     }
     
     if (!rawDet || rawDet.error) {
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
       return res.status(422).json({ error: "O extrator não encontrou dados válidos neste PDF. Certifique-se que é uma DANFE padrão." });
     }
 
+    // Se a extração deu certo, agora sim subimos para o Cloudinary de forma definitiva
+    // Usamos o SDK do Cloudinary para fazer o upload do arquivo local
+    const uploadRes = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload(tempPath, {
+        folder: "triagem_posvendas",
+        resource_type: "raw",
+        public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`
+      }, (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      });
+    });
+
+    // Remove o arquivo temporário
+    if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+
     // Formatar os dados usando a mesma lógica da IA/Triagem
     const docRes = cleanAndFormatNfData(rawDet);
-    const nfFilePath = fileUrl; // Salvamos a URL para acessar depois
+    const nfFilePath = uploadRes.secure_url; 
     docRes.manual_required = false;
 
     const { rows } = await pool.query(
