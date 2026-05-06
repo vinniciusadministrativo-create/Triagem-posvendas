@@ -25,6 +25,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "pg": "^8.20.0",
     "jsqr": "^1.4.0",
-    "sharp": "^0.33.2"
+    "sharp": "^0.33.2",
+    "axios": "^1.6.7"
   }
 }

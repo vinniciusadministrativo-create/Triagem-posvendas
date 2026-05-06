@@ -352,62 +352,63 @@ function cleanAndFormatNfData(det) {
 }
 
 router.post("/:id/reprocess-pdf", authMiddleware(["pos_vendas", "admin"]), upload.single("nf_file"), async (req, res) => {
+  const tempPath = path.join(os.tmpdir(), `nf_${Date.now()}.pdf`);
   try {
     if (!req.file || req.file.mimetype !== "application/pdf") {
       return res.status(400).json({ error: "É obrigatório enviar um arquivo PDF válido." });
     }
 
-    // req.file.path é a URL do Cloudinary. Precisamos baixar o arquivo para processar no Python local.
-    const tempPath = path.join(os.tmpdir(), `nf_${Date.now()}.pdf`);
+    const axios = require("axios");
     const fileUrl = req.file.path;
-    const https = require("https");
 
-    const fileStream = fs.createWriteStream(tempPath);
-    
-    https.get(fileUrl, (response) => {
-      response.pipe(fileStream);
-      fileStream.on("finish", async () => {
-        fileStream.close();
-        
-        try {
-          const rawDet = await extractNFDeterministic(tempPath);
-          if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-          
-          if (!rawDet || rawDet.error) {
-            return res.status(422).json({ error: "Não foi possível ler os dados deste PDF. Certifique-se que é uma DANFE válida gerada pelo sistema (não escaneada)." });
-          }
-
-          // Formatar os dados usando a mesma lógica da IA/Triagem
-          const docRes = cleanAndFormatNfData(rawDet);
-
-          // Se a extração deu certo, atualizamos o banco de dados
-          const nfFilePath = fileUrl; // Salvamos a URL para acessar depois
-          
-          docRes.manual_required = false;
-
-          const { rows } = await pool.query(
-            "UPDATE chamados SET nf_file_path = $1, nf_data = $2, updated_at = NOW() WHERE id = $3 RETURNING *",
-            [nfFilePath, docRes, req.params.id]
-          );
-
-          if (!rows[0]) return res.status(404).json({ error: "Chamado não encontrado" });
-
-          res.json({ chamado: rows[0] });
-        } catch (err) {
-          console.error("Erro na extração do PDF:", err);
-          if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-          res.status(500).json({ error: "Erro interno ao processar o PDF." });
-        }
-      });
-    }).on("error", (err) => {
-      console.error("Erro ao baixar PDF do Cloudinary:", err);
-      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-      res.status(500).json({ error: "Erro ao acessar o arquivo do PDF." });
+    // Baixa o arquivo do Cloudinary usando axios
+    const response = await axios({
+      method: "get",
+      url: fileUrl,
+      responseType: "stream",
     });
 
+    const writer = fs.createWriteStream(tempPath);
+    response.data.pipe(writer);
+
+    await new Promise((resolve, reject) => {
+      writer.on("finish", resolve);
+      writer.on("error", reject);
+    });
+
+    // Processa o arquivo com o script Python
+    let rawDet;
+    try {
+      rawDet = await extractNFDeterministic(tempPath);
+    } catch (pythonErr) {
+      console.error("Erro no script Python:", pythonErr.message);
+      return res.status(422).json({ error: "Não foi possível extrair os dados do PDF. Verifique se o arquivo não está corrompido ou protegido por senha." });
+    } finally {
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    }
+    
+    if (!rawDet || rawDet.error) {
+      return res.status(422).json({ error: "O extrator não encontrou dados válidos neste PDF. Certifique-se que é uma DANFE padrão." });
+    }
+
+    // Formatar os dados usando a mesma lógica da IA/Triagem
+    const docRes = cleanAndFormatNfData(rawDet);
+    const nfFilePath = fileUrl; // Salvamos a URL para acessar depois
+    docRes.manual_required = false;
+
+    const { rows } = await pool.query(
+      "UPDATE chamados SET nf_file_path = $1, nf_data = $2, updated_at = NOW() WHERE id = $3 RETURNING *",
+      [nfFilePath, docRes, req.params.id]
+    );
+
+    if (!rows[0]) return res.status(404).json({ error: "Chamado não encontrado" });
+
+    res.json({ chamado: rows[0] });
+
   } catch (e) {
-    console.error("Erro ao reprocessar PDF:", e);
-    res.status(500).json({ error: "Erro interno ao processar o PDF." });
+    console.error("Erro geral ao reprocessar PDF:", e);
+    if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    res.status(500).json({ error: `Erro no processamento: ${e.message}` });
   }
 });
 
