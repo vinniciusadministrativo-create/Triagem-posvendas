@@ -129,6 +129,17 @@ router.get("/chamados", authMiddleware(["admin", "pos_vendas"]), async (req, res
         "Total Mensagens"
       ];
 
+      const formatBR = (date) => {
+        if (!date) return "";
+        return new Date(date).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+      };
+
+      const formatCNPJ = (val) => {
+        const s = String(val || "").replace(/\D/g, "");
+        if (s.length !== 14) return s;
+        return `${s.slice(0, 2)}.${s.slice(2, 5)}.${s.slice(5, 8)}/${s.slice(8, 12)}-${s.slice(12, 14)}`;
+      };
+
       const escape = (v) => {
         if (v === null || v === undefined) return "";
         const s = String(v).replace(/"/g, '""');
@@ -137,12 +148,12 @@ router.get("/chamados", authMiddleware(["admin", "pos_vendas"]), async (req, res
 
       const csvRows = rows.map(r => [
         r.id,
-        r.created_at ? new Date(r.created_at).toLocaleString("pt-BR") : "",
-        r.updated_at ? new Date(r.updated_at).toLocaleString("pt-BR") : "",
+        formatBR(r.created_at),
+        formatBR(r.updated_at),
         r.vendedor_nome,
         r.codigo_cliente,
         r.razao_social,
-        r.cnpj,
+        formatCNPJ(r.cnpj),
         r.telefone,
         r.tipo_solicitacao,
         r.status,
@@ -151,8 +162,8 @@ router.get("/chamados", authMiddleware(["admin", "pos_vendas"]), async (req, res
         r.descricao,
         r.ressalva_vendedor,
         r.recolhimento_data?.data_recolhimento ? new Date(r.recolhimento_data.data_recolhimento + "T12:00:00").toLocaleDateString("pt-BR") : "",
-        r.data_previsao_recolhimento ? new Date(r.data_previsao_recolhimento).toLocaleDateString("pt-BR") : "",
-        r.data_real_recolhimento ? new Date(r.data_real_recolhimento).toLocaleDateString("pt-BR") : "",
+        r.data_previsao_recolhimento ? new Date(r.data_previsao_recolhimento + "T12:00:00").toLocaleDateString("pt-BR") : "",
+        r.data_real_recolhimento ? new Date(r.data_real_recolhimento + "T12:00:00").toLocaleDateString("pt-BR") : "",
         r.total_mensagens,
       ].map(escape).join(";"));
 
