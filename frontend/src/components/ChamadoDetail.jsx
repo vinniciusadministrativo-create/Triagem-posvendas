@@ -748,15 +748,13 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
               return (
                 <div style={{ background: M.warnS, border: `1px solid ${M.warnB}`, borderRadius: 12, padding: 20, marginBottom: 20 }}>
                   <h3 style={{ color: M.warn, margin: "0 0 10px 0" }}>⚠️ Transcrição Manual Necessária</h3>
-                  <p style={{ fontSize: 13, color: M.txM, margin: "0 0 15px 0" }}>
-                    Este chamado contém uma nota fiscal enviada como foto/imagem, ou o PDF estava ilegível. Para gerar o Espelho NFD, você pode preencher os dados manualmente ou fazer o upload do PDF original caso tenha recebido do vendedor.
-                  </p>
+                  <div style={{ marginBottom: 15, padding: "10px 15px", background: "#fff", borderRadius: 8, border: `1px solid ${M.warnB}`, display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: M.txM, textTransform: "uppercase" }}>Número NF informado pelo Vendedor:</span>
+                    <span style={{ fontSize: 15, fontWeight: 900, color: M.pri }}>{chamado.nf_original || "N/A"}</span>
+                  </div>
+
                   <div style={{ display: "flex", gap: 10 }}>
-                    <button onClick={() => setShowManualForm(true)} style={{ padding: "10px 20px", background: M.warn, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
-                      ✍️ Preencher Dados Manualmente
-                    </button>
-                    
-                    <label style={{ padding: "10px 20px", background: M.blue, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: uploadingPdf ? "not-allowed" : "pointer", opacity: uploadingPdf ? 0.7 : 1 }}>
+                    <label style={{ padding: "12px 24px", background: M.blue, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: uploadingPdf ? "not-allowed" : "pointer", opacity: uploadingPdf ? 0.7 : 1, display: "flex", alignItems: "center", gap: 8 }}>
                       {uploadingPdf ? "⏳ Processando PDF..." : "📄 Anexar PDF Original (Automático)"}
                       <input type="file" accept="application/pdf" style={{ display: "none" }} onChange={handleUploadPdf} disabled={uploadingPdf} />
                     </label>
