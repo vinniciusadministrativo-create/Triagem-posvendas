@@ -11,33 +11,33 @@ router.get("/resumo", authMiddleware(["admin", "pos_vendas"]), async (req, res) 
     const conditions = [];
     const params = [];
 
-    if (from) { params.push(from); conditions.push(`created_at >= $${params.length}`); }
-    if (to)   { params.push(to);   conditions.push(`created_at <= $${params.length}::date + interval '1 day'`); }
+    if (from) { params.push(from); conditions.push(`c.created_at >= $${params.length}`); }
+    if (to)   { params.push(to);   conditions.push(`c.created_at <= $${params.length}::date + interval '1 day'`); }
 
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
     const [total, porStatus, porTipo, porCliente, slaRecolhimento, porVendedorMotivo] = await Promise.all([
       // Total de chamados
-      pool.query(`SELECT COUNT(*) as total FROM chamados ${where}`, params),
+      pool.query(`SELECT COUNT(*) as total FROM chamados c ${where}`, params),
 
       // Distribuição por status
       pool.query(`
         SELECT status, COUNT(*) as qtd
-        FROM chamados ${where}
+        FROM chamados c ${where}
         GROUP BY status ORDER BY qtd DESC
       `, params),
 
       // Distribuição por tipo de solicitação
       pool.query(`
         SELECT tipo_solicitacao, COUNT(*) as qtd
-        FROM chamados ${where}
+        FROM chamados c ${where}
         GROUP BY tipo_solicitacao ORDER BY qtd DESC
       `, params),
 
       // Chamados por cliente (top 10)
       pool.query(`
         SELECT razao_social as cliente, COUNT(id) as qtd
-        FROM chamados ${where}
+        FROM chamados c ${where}
         GROUP BY razao_social ORDER BY qtd DESC LIMIT 10
       `, params),
 
@@ -52,14 +52,14 @@ router.get("/resumo", authMiddleware(["admin", "pos_vendas"]), async (req, res) 
             COALESCE(NULLIF(recolhimento_data->>'valor_frete', '')::numeric, 0) +
             COALESCE(NULLIF(recolhimento_data->>'despesas', '')::numeric, 0)
           ), 0), 2) as desvio_reais
-        FROM chamados ${where}
+        FROM chamados c ${where}
       `, params),
       // Motivos por vendedor
       pool.query(`
         SELECT u.name as vendedor, c.tipo_solicitacao, COUNT(c.id) as qtd
         FROM chamados c
         LEFT JOIN users u ON c.vendedor_id = u.id
-        ${where.replace("WHERE", "WHERE c.")}
+        ${where}
         GROUP BY u.name, c.tipo_solicitacao
         ORDER BY u.name ASC, qtd DESC
       `, params),
