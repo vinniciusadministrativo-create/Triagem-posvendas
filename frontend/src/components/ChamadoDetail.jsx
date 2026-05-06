@@ -74,7 +74,11 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const isAdmin = user.role === "admin";
   const isPosVendas = user.role === "pos_vendas";
-  const canEdit = isAdmin || isPosVendas;
+  const isOperacional = user.role === "operacional";
+  const isOwner = chamado.vendedor_id === user.id;
+  const canEdit = isAdmin || isPosVendas || isOperacional;
+  const canDelete = isAdmin;
+  const canShare = isOwner || isAdmin;
   const [newStatus, setNewStatus] = useState(chamado.status || "novo");
   const [localRessalva, setLocalRessalva] = useState(chamado.ressalva_vendedor || "");
   const [ressalvaFiles, setRessalvaFiles] = useState([]);
@@ -215,14 +219,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
     });
   };
 
-  // Regras de Permissão
-  const isAdmin = user.role === "admin";
-  const isPosVendas = user.role === "pos_vendas";
-  const isOperacional = user.role === "operacional";
-  const isOwner = chamado.vendedor_id === user.id;
-  const canEdit = isAdmin || isPosVendas || isOperacional;
-  const canDelete = isAdmin;
-  const canShare = isOwner || isAdmin;
+  // Regras de Permissão (Consolidadas no topo)
 
   const save = async () => {
     if (isOperacional && newStatus === "recolhido" && chamado.status !== "recolhido") {
