@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react"; // Final permission fix
 import { api } from "../api";
 import ShareChamado from "./ShareChamado";
 import DanfeMirror from "./DanfeMirror";
