@@ -334,7 +334,7 @@ export default function RelatoriosPage() {
                 <KPICard label="Com Previsão Recolhimento" value={resumo.sla_recolhimento?.com_previsao ?? "—"} icon="📦" color="#2563eb" bg="#dbeafe" />
                 <KPICard label="Recolhidos" value={resumo.sla_recolhimento?.recolhidos ?? "—"} icon="✅" color={M.ok} bg={M.okBg} />
                 <KPICard label="Atrasados no Recolhimento" value={resumo.sla_recolhimento?.atrasados ?? "—"} icon="⚠️" color={M.warn} bg={M.warnBg} />
-                <KPICard label="Desvio Médio (dias)" value={resumo.sla_recolhimento?.media_desvio_dias ?? "—"} icon="📅" color={resumo.sla_recolhimento?.media_desvio_dias > 0 ? M.err : M.ok} bg={resumo.sla_recolhimento?.media_desvio_dias > 0 ? M.errBg : M.okBg} />
+                <KPICard label="Custo de Desvio (Frete + Despesas)" value={resumo.sla_recolhimento?.desvio_reais ? `R$ ${Number(resumo.sla_recolhimento.desvio_reais).toLocaleString('pt-BR', {minimumFractionDigits: 2})}` : "R$ 0,00"} icon="💸" color={resumo.sla_recolhimento?.desvio_reais > 0 ? M.err : M.ok} bg={resumo.sla_recolhimento?.desvio_reais > 0 ? M.errBg : M.okBg} />
               </div>
 
               {/* Charts row */}

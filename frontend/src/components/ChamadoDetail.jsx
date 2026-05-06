@@ -723,16 +723,9 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
             </div>
           )}
 
-          {/* ESPELHO DA NFD (CONDICIONAL) */}
+          {/* TRANSCRIÇÃO MANUAL (AVISO) */}
           {(() => {
-            const triageNeedsMirror = chamado.triage_result?.precisa_espelho_nfd === true;
-            const statusStageRequiresMirror = ["espelho", "aguardando_nfd", "aguardando_recolhimento", "aguardando_financeiro"].includes(chamado.status);
-            const showMirrorArea = canEdit && (triageNeedsMirror || statusStageRequiresMirror);
-            
-            if (!showMirrorArea) return null;
-            
-            // Se falhou extração (ou era imagem)
-            if (chamado.nf_data?.manual_required) {
+            if (canEdit && chamado.nf_data?.manual_required) {
               return (
                 <div style={{ background: M.warnS, border: `1px solid ${M.warnB}`, borderRadius: 12, padding: 20, marginBottom: 20 }}>
                   <h3 style={{ color: M.warn, margin: "0 0 10px 0" }}>⚠️ Transcrição Manual Necessária</h3>
@@ -752,6 +745,20 @@ export default function ChamadoDetail({ chamado, onClose, onStatusChange, onDele
                 </div>
               );
             }
+            return null;
+          })()}
+
+          {/* ESPELHO DA NFD (GERADO) */}
+          {(() => {
+            // Se ainda precisa de transcrição manual, não renderiza o espelho
+            if (chamado.nf_data?.manual_required) return null;
+
+            // Regra: Mostrar apenas nas etapas específicas solicitadas pelo usuário.
+            // "Aguardando NFD/Espelho", "Aguardando Recolhimento", "Recolhido" e "Concluído"
+            const statusStageRequiresMirror = ["espelho", "aguardando_nfd", "aguardando_recolhimento", "recolhido", "concluido"].includes(chamado.status);
+            const showMirrorArea = canEdit && statusStageRequiresMirror;
+            
+            if (!showMirrorArea) return null;
             
             return (
               <div style={{ marginBottom: 20 }}>

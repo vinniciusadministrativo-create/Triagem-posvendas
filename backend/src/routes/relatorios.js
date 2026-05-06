@@ -49,9 +49,10 @@ router.get("/resumo", authMiddleware(["admin", "pos_vendas"]), async (req, res) 
           COUNT(*) FILTER (WHERE data_previsao_recolhimento IS NOT NULL) as com_previsao,
           COUNT(*) FILTER (WHERE data_real_recolhimento IS NOT NULL) as recolhidos,
           COUNT(*) FILTER (WHERE data_real_recolhimento > data_previsao_recolhimento) as atrasados,
-          ROUND(AVG(data_real_recolhimento - data_previsao_recolhimento) FILTER (
-            WHERE data_real_recolhimento IS NOT NULL AND data_previsao_recolhimento IS NOT NULL
-          ), 1) as media_desvio_dias
+          ROUND(COALESCE(SUM(
+            COALESCE(NULLIF(recolhimento_data->>'valor_frete', '')::numeric, 0) +
+            COALESCE(NULLIF(recolhimento_data->>'despesas', '')::numeric, 0)
+          ), 0), 2) as desvio_reais
         FROM chamados ${where}
       `, params),
     ]);
