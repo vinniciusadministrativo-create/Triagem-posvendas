@@ -360,6 +360,8 @@ main, .card, .v-container {
     max-height: none !important;
     overflow: visible !important;
     transform: none !important;
+    opacity: 1 !important;
+    animation: none !important;
     background: #fff !important;
     box-shadow: none !important;
     border: none !important;

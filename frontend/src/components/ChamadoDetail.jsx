@@ -782,8 +782,8 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
             if (!showMirrorArea) return null;
             
             return (
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div className="danfe-container" style={{ marginBottom: 20 }}>
+                <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                   <span style={{ fontSize: 11, fontWeight: 800, color: M.txM, textTransform: "uppercase" }}>🧾 Espelho NFD Gerado</span>
                   <button onClick={() => setShowManualForm(true)} style={{ fontSize: 11, background: "transparent", color: M.blue, border: "none", cursor: "pointer", textDecoration: "underline" }}>Editar Dados</button>
                 </div>
