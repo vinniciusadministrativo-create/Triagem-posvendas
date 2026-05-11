@@ -224,39 +224,7 @@ export default function RelatoriosPage() {
     URL.revokeObjectURL(url);
   }
 
-  const handlePrint = () => {
-    const content = document.querySelector("[data-relatorios-root]");
-    if (!content) return;
 
-    const win = window.open("", "_blank", "width=1100,height=800");
-    win.document.write(`
-      <!DOCTYPE html>
-      <html lang="pt-BR">
-      <head>
-        <meta charset="utf-8">
-        <title>Relatório - Triagem Pós-Vendas</title>
-        <style>
-          * { box-sizing: border-box; margin: 0; padding: 0; }
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            background: #fff;
-            color: #1a1a1a;
-            padding: 24px;
-          }
-          button, input, select, label { display: none !important; }
-          @media print {
-            body { padding: 10px; }
-          }
-        </style>
-      </head>
-      <body>
-        ${content.innerHTML}
-      </body>
-      </html>
-    `);
-    win.document.close();
-    setTimeout(() => { win.focus(); win.print(); }, 600);
-  };
 
   // ──────────────────────────────
   //  RENDER
@@ -272,14 +240,10 @@ export default function RelatoriosPage() {
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button
-            onClick={handlePrint}
-            style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${M.brdN}`, background: M.card, color: M.tx, fontWeight: 600, cursor: "pointer", fontSize: 13 }}
-          >🖨️ Imprimir</button>
-          <button
             onClick={() => handleExportCSV(activeTab === "chamados" ? "chamados" : activeTab === "historico" ? "historico" : "chamados")}
             disabled={exportLoading}
             style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: M.pri, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13, opacity: exportLoading ? 0.6 : 1 }}
-          >⬇️ Exportar CSV</button>
+          >📊 Exportar Excel</button>
         </div>
       </div>
 
@@ -436,7 +400,7 @@ export default function RelatoriosPage() {
             <button onClick={() => fetchChamados(chamadosFilters)}
               style={{ padding: "9px 20px", background: M.pri, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>Filtrar</button>
             <button onClick={() => handleExportCSV("chamados")} disabled={exportLoading}
-              style={{ padding: "9px 16px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 13, opacity: exportLoading ? 0.6 : 1 }}>⬇️ CSV</button>
+              style={{ padding: "9px 16px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 13, opacity: exportLoading ? 0.6 : 1 }}>📊 Excel</button>
           </div>
 
           {chamadosLoading ? (
