@@ -342,7 +342,8 @@ router.delete("/grupos/:id", authMiddleware(), async (req, res) => {
     await pool.query("DELETE FROM chat_grupos WHERE id=$1", [req.params.id]);
     res.json({ ok: true, message: "Grupo excluído com sucesso" });
   } catch (e) {
-    res.status(500).json({ error: "Erro ao excluir grupo" });
+    console.error("Erro ao excluir grupo:", e);
+    res.status(500).json({ error: "Erro ao excluir grupo: " + (e.detail || e.message || "Erro desconhecido") });
   }
 });
 

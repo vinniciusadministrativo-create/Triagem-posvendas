@@ -183,9 +183,14 @@ export default function ChatPage(){
   };
   const excluirGrupo=async g=>{
     if(!window.confirm(`Excluir o grupo "${g.nome}"? Esta ação não pode ser desfeita.`))return;
-    const r=await fetch(`${API}/grupos/${g.id}`,{method:"DELETE",headers:authH()});
-    if(r.ok){fetchGrupos();if(ativo?.dados?.id===g.id)setAtivo(null);}
-    else alert("Erro ao excluir grupo.");
+    try {
+      const r=await fetch(`${API}/grupos/${g.id}`,{method:"DELETE",headers:authH()});
+      const d=await r.json().catch(()=>({}));
+      if(r.ok){fetchGrupos();if(ativo?.dados?.id===g.id)setAtivo(null);}
+      else alert(d.error||"Erro ao excluir grupo.");
+    } catch(e) {
+      alert("Erro ao excluir grupo.");
+    }
   };
 
   const totalNaoLidas=contatos.reduce((a,c)=>a+parseInt(c.nao_lidas||0),0)+grupos.reduce((a,g)=>a+parseInt(g.nao_lidas||0),0);
