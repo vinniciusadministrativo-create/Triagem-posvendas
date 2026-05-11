@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 const M = {
@@ -12,6 +12,25 @@ const M = {
 
 export default function Sidebar({ user, onLogout, onSwitchUser, isOpen, onToggle }) {
   const navigate = useNavigate();
+  const [naoLidas, setNaoLidas] = useState(0);
+
+  // Polling de mensagens não lidas (badge)
+  useEffect(() => {
+    const fetchNaoLidas = async () => {
+      try {
+        const r = await fetch("/api/chat/nao-lidas", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+        if (r.ok) {
+          const data = await r.json();
+          setNaoLidas(data.total || 0);
+        }
+      } catch (_) {}
+    };
+    fetchNaoLidas();
+    const t = setInterval(fetchNaoLidas, 10000);
+    return () => clearInterval(t);
+  }, []);
 
   const menuItems = [
     { label: "Novo Chamado", path: "/formulario", icon: "📥", roles: ["vendedor", "pos_vendas", "admin"] },
@@ -19,6 +38,7 @@ export default function Sidebar({ user, onLogout, onSwitchUser, isOpen, onToggle
     { label: "Pós-Vendas", path: "/dashboard", icon: "🔍", roles: ["pos_vendas", "admin", "operacional"] },
     { label: "Visão Geral", path: "/historico", icon: "🗃️", roles: ["pos_vendas", "admin"] },
     { label: "Gestão Usuários", path: "/admin", icon: "👤", roles: ["admin"] },
+    { label: "Chat", path: "/chat", icon: "💬", roles: ["vendedor", "pos_vendas", "admin", "operacional"], badge: naoLidas },
   ].filter(item => item.roles.includes(user?.role));
 
   const sidebarStyle = {
@@ -99,7 +119,14 @@ export default function Sidebar({ user, onLogout, onSwitchUser, isOpen, onToggle
               style={({ isActive }) => navItemStyle(isActive)}
             >
               <span style={{ fontSize: 20, minWidth: 30 }}>{item.icon}</span>
-              <span style={{ marginLeft: 12, fontSize: 14, fontWeight: 600 }}>{item.label}</span>
+              <span style={{ marginLeft: 12, fontSize: 14, fontWeight: 600, flex: 1 }}>{item.label}</span>
+              {item.badge > 0 && (
+                <span style={{
+                  background: "#dc2626", color: "#fff", fontSize: 10,
+                  fontWeight: 800, borderRadius: 10, padding: "2px 6px",
+                  minWidth: 18, textAlign: "center", lineHeight: "14px",
+                }}>{item.badge > 99 ? "99+" : item.badge}</span>
+              )}
             </NavLink>
           ))}
         </nav>

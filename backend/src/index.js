@@ -33,6 +33,7 @@ app.use("/api/chamados", require("./routes/chamados"));
 app.use("/api/users", require("./routes/users"));
 app.use("/api/ai", require("./routes/ai"));
 app.use("/api/relatorios", require("./routes/relatorios"));
+app.use("/api/chat", require("./routes/chat"));
 
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "ok", ts: new Date().toISOString() }));

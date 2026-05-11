@@ -8,6 +8,7 @@ import PosVendasPage from './pages/PosVendasPage.jsx'
 import HistoricoPage from './pages/HistoricoPage.jsx'
 import Layout from './Layout.jsx'
 import AdminPage from './pages/AdminPage.jsx'
+import ChatPage from './pages/ChatPage.jsx'
 
 function ProtectedRoute({ children, allowedRoles }) {
   const location = useLocation();
@@ -87,6 +88,14 @@ createRoot(document.getElementById('root')).render(
             element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/chat"
+            element={
+              <ProtectedRoute allowedRoles={['vendedor', 'pos_vendas', 'admin', 'operacional']}>
+                <ChatPage />
               </ProtectedRoute>
             }
           />
