@@ -11,11 +11,15 @@ const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 const router = express.Router();
 
-// Configuração do Cloudinary
+// Configuração do Cloudinary — credenciais OBRIGATORIAMENTE via variáveis de ambiente
+if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+  console.error("❌ ERRO: Variáveis de ambiente do Cloudinary não configuradas (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET)");
+  process.exit(1);
+}
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "dvrcqfo4o",
-  api_key: process.env.CLOUDINARY_API_KEY || "192681423577212",
-  api_secret: process.env.CLOUDINARY_API_SECRET || "oZfa9N7J9KZt7us-sCNwkbKE2BI",
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key:    process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 const storage = new CloudinaryStorage({
