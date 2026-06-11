@@ -3,6 +3,14 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  keyGenerator: (req) => {
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    return ip.replace(/:\d+$/, '').replace(/^::ffff:/, '');
+  }
+});
 const path = require("path");
 
 console.log("🛠️ Carregando middlewares...");
