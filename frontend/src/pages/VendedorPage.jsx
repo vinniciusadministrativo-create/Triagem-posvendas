@@ -175,10 +175,16 @@ export default function VendedorPage({ defaultTab = "novo" }) {
 
     try {
       // 1. Triagem
-      setAgentStatus({ triage: "running", doc: "waiting", evidence: "waiting" });
-      const triageRes = await api.triage(form, isTest);
-      setTriageResult(triageRes);
-      setAgentStatus(p => ({ ...p, triage: "done" }));
+setAgentStatus({ triage: "running", doc: "waiting", evidence: "waiting" });
+let triageRes = {};
+try {
+  triageRes = await api.triage(form, isTest);
+} catch (triageErr) {
+  console.warn("Triagem falhou, usando fallback vazio:", triageErr.message);
+  triageRes = {};
+}
+setTriageResult(triageRes);
+setAgentStatus(p => ({ ...p, triage: "done" }));
 
       // 2. Documentação
       let docRes = null;
