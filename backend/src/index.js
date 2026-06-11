@@ -26,8 +26,16 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 console.log("🛤️ Carregando rotas...");
 
 // Rate limiting
-app.use("/api/auth", rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { error: "Muitas tentativas. Aguarde 15 minutos." } }));
-app.use("/api", rateLimit({ windowMs: 60 * 1000, max: 100 }));
+const rlOptions = {
+  validate: false,
+  keyGenerator: (req) => {
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    return ip.replace(/:\d+$/, '').replace(/^::ffff:/, '');
+  }
+};
+
+app.use("/api/auth", rateLimit({ ...rlOptions, windowMs: 15 * 60 * 1000, max: 20 }));
+app.use("/api", rateLimit({ ...rlOptions, windowMs: 60 * 1000, max: 100 }));
 
 // Security headers
 app.use((req, res, next) => {
