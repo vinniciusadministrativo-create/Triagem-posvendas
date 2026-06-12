@@ -151,7 +151,7 @@ router.post(
 
       res.status(201).json({ chamado: rows[0] });
     } catch (e) {
-      console.error(e);
+      console.error("Erro ao salvar chamado:", e?.message, e?.stack);
       res.status(500).json({ error: "Erro ao salvar chamado" });
     }
   }
