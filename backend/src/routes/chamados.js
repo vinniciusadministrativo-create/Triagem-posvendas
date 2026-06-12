@@ -28,8 +28,8 @@ const storage = new CloudinaryStorage({
     const ext = path.extname(file.originalname);
     let resource_type = "auto";
     if (file.mimetype === "application/pdf") {
-      resource_type = "raw"; // Para PDFs, raw ou auto funcionam, mas raw evita transformações indesejadas
-    }
+  resource_type = "auto";
+  }
     return {
       folder: "triagem_posvendas",
       resource_type: resource_type,
