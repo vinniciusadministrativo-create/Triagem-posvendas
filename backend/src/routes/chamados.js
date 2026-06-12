@@ -36,11 +36,12 @@ const storage = new CloudinaryStorage({
     if (file.mimetype === "application/pdf") {
   resource_type = "auto";
   }
-    return {
-      folder: "triagem_posvendas",
-      resource_type: resource_type,
-      public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`,
-    };
+   return {
+  folder: "triagem_posvendas",
+  resource_type: resource_type,
+  upload_preset: "TesteUpload",
+  public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`,
+};
   },
 });
 const upload = multer({
