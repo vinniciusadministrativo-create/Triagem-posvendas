@@ -28,30 +28,25 @@ console.log("Cloudinary config:", {
   api_secret: process.env.CLOUDINARY_API_SECRET?.slice(0, 6) + "..."
 });
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: async (req, file) => {
-    const ext = path.extname(file.originalname);
-    let resource_type = "auto";
-    if (file.mimetype === "application/pdf") {
-  resource_type = "auto";
-  }
-   return {
-  folder: "triagem_posvendas",
-  resource_type: resource_type,
-  upload_preset: "TesteUpload",
-  public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`,
-};
-  },
-});
 const upload = multer({
-  storage,
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = ["image/jpeg","image/png","image/webp","image/gif","application/pdf","video/mp4","video/quicktime","video/x-msvideo"];
     cb(null, allowed.includes(file.mimetype));
   },
 });
+
+async function uploadToCloudinary(buffer, options = {}) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.unsigned_upload_stream(
+      'TesteUpload',
+      { folder: 'triagem_posvendas', resource_type: 'auto', ...options },
+      (err, result) => { if (err) reject(err); else resolve(result); }
+    );
+    stream.end(buffer);
+  });
+}
 
 const memoryUpload = multer({
   storage: multer.memoryStorage(),
@@ -119,8 +114,10 @@ router.post(
         email_vendedor, tipo_solicitacao, nf_original,
       } = req.body;
 
-      const nfFile = req.files?.nf_file?.[0];
-      const evFiles = req.files?.evidence_files || [];
+     const nfFileRaw = req.files?.nf_file?.[0];
+    const evFilesRaw = req.files?.evidence_files || [];
+    const nfFile = nfFileRaw ? await uploadToCloudinary(nfFileRaw.buffer) : null;
+    const evFiles = await Promise.all(evFilesRaw.map(f => uploadToCloudinary(f.buffer)));
 
       const triageObj = triage_result ? JSON.parse(triage_result) : {};
       const cleanCnpj = cnpj ? cnpj.toString().replace(/\D/g, '') : null;
@@ -150,8 +147,8 @@ router.post(
           evidence_result ? JSON.parse(evidence_result) : null,
           triageObj.etapa_destino || "novo",
           triageObj.etapa_destino || "novo",
-          nfFile ? nfFile.path : null,
-          evFiles.length ? evFiles.map(f => f.path) : null,
+          nfFile ? nfFile.secure_url : null,
+          evFiles.length ? evFiles.map(f => f.secure_url) : null,
           ressalva_vendedor || null,
         ]
       );
