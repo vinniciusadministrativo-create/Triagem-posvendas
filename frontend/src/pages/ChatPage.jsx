@@ -210,7 +210,7 @@ export default function ChatPage(){
       {/* PAINEL ESQUERDO — oculto no mobile quando conversa está aberta */}
       {(!isMobile||!ativo)&&(
       <div style={{width:isMobile?"100%":300,minWidth:isMobile?"100%":300,background:M.card,borderRight:`1px solid ${M.brdN}`,display:"flex",flexDirection:"column",flexShrink:0}}>
-        <div style={{padding:"16px 14px 10px",borderBottom:`1px solid ${M.brdN}`}}>
+        <div style={{padding:isMobile?"16px 14px 10px 64px":"16px 14px 10px",borderBottom:`1px solid ${M.brdN}`}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
             <span style={{fontWeight:800,fontSize:17,color:M.tx}}>💬 Chat {totalNaoLidas>0&&<Badge count={totalNaoLidas}/>}</span>
             <button onClick={()=>setShowNovoGrupo(true)} title="Novo Grupo" style={{background:M.pri,color:"#fff",border:"none",borderRadius:8,padding:"5px 10px",cursor:"pointer",fontSize:12,fontWeight:700}}>+ Grupo</button>
@@ -278,7 +278,7 @@ export default function ChatPage(){
         ):(
           <>
             {/* Header com botão voltar no mobile */}
-            <div style={{padding:"12px 18px",background:M.card,borderBottom:`1px solid ${M.brdN}`,display:"flex",alignItems:"center",gap:12,boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}>
+            <div style={{padding:isMobile?"12px 18px 12px 64px":"12px 18px",background:M.card,borderBottom:`1px solid ${M.brdN}`,display:"flex",alignItems:"center",gap:12,boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}>
               {isMobile&&(
                 <button onClick={()=>setAtivo(null)}
                   style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:M.pri,padding:"0 4px",fontWeight:700,flexShrink:0}}>←</button>
