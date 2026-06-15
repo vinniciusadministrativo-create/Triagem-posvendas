@@ -110,7 +110,9 @@ router.post(
 
      const nfFileRaw = req.files?.nf_file?.[0];
     const evFilesRaw = req.files?.evidence_files || [];
-    const nfFile = nfFileRaw ? await uploadToCloudinary(nfFileRaw.buffer) : null;
+    const nfFile = nfFileRaw ? await uploadToCloudinary(nfFileRaw.buffer, {
+    resource_type: nfFileRaw.mimetype === 'application/pdf' ? 'raw' : 'auto'
+    }) : null;
     const evFiles = await Promise.all(evFilesRaw.map(f => uploadToCloudinary(f.buffer)));
 
       const triageObj = triage_result ? JSON.parse(triage_result) : {};
