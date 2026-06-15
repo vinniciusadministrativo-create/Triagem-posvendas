@@ -111,9 +111,12 @@ router.post(
      const nfFileRaw = req.files?.nf_file?.[0];
     const evFilesRaw = req.files?.evidence_files || [];
     const nfFile = nfFileRaw ? await uploadToCloudinary(nfFileRaw.buffer, {
-    resource_type: nfFileRaw.mimetype === 'application/pdf' ? 'raw' : 'auto'
-    }) : null;
-    const evFiles = await Promise.all(evFilesRaw.map(f => uploadToCloudinary(f.buffer)));
+      resource_type: nfFileRaw.mimetype === 'application/pdf' ? 'raw' : 'auto',
+      public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(nfFileRaw.originalname) || '.pdf'}`,
+      }) : null;
+      const evFiles = await Promise.all(evFilesRaw.map(f => uploadToCloudinary(f.buffer, {
+      public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(f.originalname) || ''}`,
+      })));
 
       const triageObj = triage_result ? JSON.parse(triage_result) : {};
       const cleanCnpj = cnpj ? cnpj.toString().replace(/\D/g, '') : null;
