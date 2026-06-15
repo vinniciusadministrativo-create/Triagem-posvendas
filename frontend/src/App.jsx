@@ -440,6 +440,13 @@ export default function App() {
   const fRef=useRef(null);
   const evRef=useRef(null);
   const cancelledRef=useRef(false);
+ 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+useEffect(()=>{
+  const fn=()=>setIsMobile(window.innerWidth<640);
+  window.addEventListener("resize",fn);
+  return()=>window.removeEventListener("resize",fn);
+},[]);
 
   useEffect(()=>{const l=document.createElement("link");l.href=FONT;l.rel="stylesheet";document.head.appendChild(l);},[]);
   useEffect(()=>{if(step===2&&animPhase<5){const t=setTimeout(()=>setAnimPhase(p=>p+1),350);return()=>clearTimeout(t);}},[step,animPhase]);
@@ -629,7 +636,7 @@ export default function App() {
         {step===0&&(
           <div style={{padding:"24px 28px"}}>
             {/* Upload row: NF + Evidências */}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
+            <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:12,marginBottom:20}}>
 
               {/* NF Upload */}
               <div style={{padding:14,border:`2px dashed ${nfFile?M.ok:formErrors.nfFile?M.err:M.brdL}`,borderRadius:12,background:nfFile?M.okS:formErrors.nfFile?M.errS:"#faf9f7",textAlign:"center",cursor:"pointer"}}
@@ -669,7 +676,7 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"14px 18px"}}>
+            <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"14px 18px"}}>
               <VInput label="Código do Cliente" value={form.codigo} onChange={v=>upd("codigo",v)} placeholder="40001907" maxLength={10} pattern="numeric" error={formErrors.codigo}/>
               <VInput label="CNPJ ou CPF" value={form.cnpj} onChange={v=>upd("cnpj",v)} placeholder="11 ou 14 dígitos" maxLength={14} pattern="numeric" error={formErrors.cnpj}/>
               <div style={{gridColumn:"1/-1"}}><VInput label="Razão Social" value={form.razaoSocial} onChange={v=>upd("razaoSocial",v)} placeholder="Nome da empresa" maxLength={60} error={formErrors.razaoSocial}/></div>

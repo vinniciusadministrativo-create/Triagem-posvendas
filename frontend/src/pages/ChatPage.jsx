@@ -100,6 +100,12 @@ export default function ChatPage(){
   const inputRef=useRef(null);
   const fileRef=useRef(null);
   const pollRef=useRef(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const fn=() => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  },[]);
 
   const fetchContatos=useCallback(async()=>{
     try{const r=await fetch(`${API}/contatos`,{headers:authH()});const d=await r.json();setContatos(d.contatos||[]);}catch(e){}
@@ -197,12 +203,13 @@ export default function ChatPage(){
   const contatosFilt=contatos.filter(c=>c.name.toLowerCase().includes(busca.toLowerCase()));
   const gruposFilt=grupos.filter(g=>g.nome.toLowerCase().includes(busca.toLowerCase()));
 
-  return(
+ return(
     <div style={{display:"flex",height:"100vh",background:M.bg,overflow:"hidden"}}>
       {showNovoGrupo&&<NovoGrupoModal onClose={()=>setShowNovoGrupo(false)} onCriado={g=>{fetchGrupos();setShowNovoGrupo(false);selecionar("grupo",g);}}/>}
 
-      {/* PAINEL ESQUERDO */}
-      <div style={{width:300,minWidth:300,background:M.card,borderRight:`1px solid ${M.brdN}`,display:"flex",flexDirection:"column",flexShrink:0}}>
+      {/* PAINEL ESQUERDO — oculto no mobile quando conversa está aberta */}
+      {(!isMobile||!ativo)&&(
+      <div style={{width:isMobile?"100%":300,minWidth:isMobile?"100%":300,background:M.card,borderRight:`1px solid ${M.brdN}`,display:"flex",flexDirection:"column",flexShrink:0}}>
         <div style={{padding:"16px 14px 10px",borderBottom:`1px solid ${M.brdN}`}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
             <span style={{fontWeight:800,fontSize:17,color:M.tx}}>💬 Chat {totalNaoLidas>0&&<Badge count={totalNaoLidas}/>}</span>
@@ -213,7 +220,6 @@ export default function ChatPage(){
         </div>
 
         <div style={{flex:1,overflowY:"auto"}}>
-          {/* Grupos */}
           {gruposFilt.length>0&&<div style={{padding:"8px 14px 4px",fontSize:10,fontWeight:700,color:M.txM,textTransform:"uppercase",letterSpacing:1}}>Grupos</div>}
           {gruposFilt.map(g=>{
             const at=ativo?.tipo==="grupo"&&ativo.dados.id===g.id;
@@ -236,7 +242,6 @@ export default function ChatPage(){
             );
           })}
 
-          {/* Contatos */}
           {contatosFilt.length>0&&<div style={{padding:"8px 14px 4px",fontSize:10,fontWeight:700,color:M.txM,textTransform:"uppercase",letterSpacing:1}}>Direto</div>}
           {contatosFilt.map(c=>{
             const at=ativo?.tipo==="dm"&&ativo.dados.id===c.id;
@@ -259,8 +264,10 @@ export default function ChatPage(){
           })}
         </div>
       </div>
+      )}
 
-      {/* PAINEL DIREITO */}
+      {/* PAINEL DIREITO — ocupa tela toda no mobile */}
+      {(!isMobile||ativo)&&(
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         {!ativo?(
           <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",color:M.txM}}>
@@ -270,8 +277,12 @@ export default function ChatPage(){
           </div>
         ):(
           <>
-            {/* Header */}
+            {/* Header com botão voltar no mobile */}
             <div style={{padding:"12px 18px",background:M.card,borderBottom:`1px solid ${M.brdN}`,display:"flex",alignItems:"center",gap:12,boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}>
+              {isMobile&&(
+                <button onClick={()=>setAtivo(null)}
+                  style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:M.pri,padding:"0 4px",fontWeight:700,flexShrink:0}}>←</button>
+              )}
               {ativo.tipo==="grupo"
                 ?<div style={{width:42,height:42,borderRadius:"50%",background:M.pri,color:"#fff",fontWeight:800,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}>👥</div>
                 :<Avatar name={ativo.dados.name} size={42}/>}
@@ -322,7 +333,7 @@ export default function ChatPage(){
                   onChange={e=>setArquivo(e.target.files[0]||null)}/>
                 <textarea ref={inputRef} value={texto} onChange={e=>setTexto(e.target.value)} rows={1}
                   onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();enviar();}}}
-                  placeholder="Digite uma mensagem... (Enter para enviar)"
+                  placeholder="Digite uma mensagem..."
                   style={{flex:1,padding:"9px 12px",borderRadius:10,border:`1px solid ${editando?M.pri:M.brdN}`,fontSize:14,resize:"none",fontFamily:"inherit",outline:"none",maxHeight:100,overflowY:"auto"}}/>
                 <button type="submit" disabled={enviando||(!texto.trim()&&!arquivo)}
                   style={{padding:"9px 16px",borderRadius:10,background:texto.trim()||arquivo?M.pri:M.brdN,color:"#fff",border:"none",fontWeight:700,cursor:"pointer",fontSize:15,flexShrink:0}}>➤</button>
@@ -331,6 +342,6 @@ export default function ChatPage(){
           </>
         )}
       </div>
+      )}
     </div>
-  );
-}
+  );}
