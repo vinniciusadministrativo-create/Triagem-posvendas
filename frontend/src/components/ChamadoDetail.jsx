@@ -43,7 +43,9 @@ function Badge({ label, color }) {
 
 function AttachmentCard({ filename, label }) {
   if (!filename) return null;
-  const url = api.fileUrl(filename);
+  const url = (filename.startsWith('http://') || filename.startsWith('https://'))
+  ? filename
+  : api.fileUrl(filename);
   const ext = filename.split('.').pop().toLowerCase();
   
   const isImg = ["jpg", "jpeg", "png", "webp", "gif"].includes(ext);
