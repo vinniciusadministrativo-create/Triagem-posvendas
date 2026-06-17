@@ -197,9 +197,14 @@ setAgentStatus(p => ({ ...p, triage: "done" }));
       let docRes = null;
       if (triageRes.precisa_espelho_nfd && nfB64) {
         setAgentStatus(p => ({ ...p, doc: "running" }));
-        docRes = await api.extractNF(nfB64, nfMime, isTest, form);
-        if (docRes && !docRes.error) setNfData(docRes);
-        setAgentStatus(p => ({ ...p, doc: "done" }));
+        try {
+          docRes = await api.extractNF(nfB64, nfMime, isTest, form);
+          if (docRes && !docRes.error) setNfData(docRes);
+          setAgentStatus(p => ({ ...p, doc: docRes?.error ? "error" : "done" }));
+        } catch (docErr) {
+          console.warn("Extração NF falhou:", docErr.message);
+          setAgentStatus(p => ({ ...p, doc: "error" }));
+        }
       } else {
         setAgentStatus(p => ({ ...p, doc: "skipped" }));
       }
