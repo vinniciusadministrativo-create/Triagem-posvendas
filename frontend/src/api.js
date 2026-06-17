@@ -23,7 +23,15 @@ async function request(path, options = {}) {
   }
 
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Erro na requisição");
+if (!res.ok) {
+  const err = new Error(
+    res.status === 429
+      ? "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente."
+      : data.error || "Erro na requisição"
+  );
+  err.status = res.status;
+  throw err;
+}
   return data;
 }
 

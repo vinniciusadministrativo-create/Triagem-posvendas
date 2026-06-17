@@ -131,6 +131,20 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
   useEffect(() => {
     setChamado(initialChamado);
   }, [initialChamado]);
+  
+  useEffect(() => {
+  const interval = setInterval(async () => {
+    try {
+      await api.getChamado(chamado.id);
+    } catch (e) {
+     if (e?.status === 404) {
+        alert("Este chamado foi excluído por um administrador.");
+        onClose();
+      }
+    }
+  }, 15000);
+  return () => clearInterval(interval);
+}, [chamado.id]);
 
   useEffect(() => {
     window.scrollTo(0, 0); // Sobe a página ao abrir o detalhe
@@ -162,25 +176,29 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
   };
 
   const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if ((!newMessage.trim() && !chatFile) || saving) return;
-    setSaving(true);
-    try {
-      const fd = new FormData();
-      if (newMessage.trim()) fd.append("mensagem", newMessage);
-      if (chatFile) fd.append("anexo", chatFile);
+  e.preventDefault();
+  if ((!newMessage.trim() && !chatFile) || saving) return;
+  setSaving(true);
+  const textoBackup = newMessage;
+  const arquivoBackup = chatFile;
+  try {
+    const fd = new FormData();
+    if (newMessage.trim()) fd.append("mensagem", newMessage);
+    if (chatFile) fd.append("anexo", chatFile);
 
-      const res = await api.sendMessage(chamado.id, fd);
-      setMessages(p => [...p, res.message]);
-      setNewMessage("");
-      setChatFile(null);
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
-    } catch (err) {
-      alert("Erro ao enviar mensagem.");
-    } finally {
-      setSaving(false);
-    }
-  };
+    const res = await api.sendMessage(chamado.id, fd);
+    setMessages(p => [...p, res.message]);
+    setNewMessage("");
+    setChatFile(null);
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+  } catch (err) {
+    setNewMessage(textoBackup);
+    setChatFile(arquivoBackup);
+    alert(err?.message || "Erro ao enviar mensagem. O texto foi restaurado — tente novamente.");
+  } finally {
+    setSaving(false);
+  }
+};
 
   const handleInputChange = (e) => {
     const val = e.target.value;

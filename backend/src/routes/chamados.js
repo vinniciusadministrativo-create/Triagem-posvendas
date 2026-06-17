@@ -109,14 +109,30 @@ router.post(
       } = req.body;
 
      const nfFileRaw = req.files?.nf_file?.[0];
-    const evFilesRaw = req.files?.evidence_files || [];
-    const nfFile = nfFileRaw ? await uploadToCloudinary(nfFileRaw.buffer, {
+     let nfFile = null;
+if (nfFileRaw) {
+  try {
+    nfFile = await uploadToCloudinary(nfFileRaw.buffer, {
       resource_type: nfFileRaw.mimetype === 'application/pdf' ? 'raw' : 'auto',
       public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(nfFileRaw.originalname) || '.pdf'}`,
-      }) : null;
-      const evFiles = await Promise.all(evFilesRaw.map(f => uploadToCloudinary(f.buffer, {
+    });
+  } catch (uploadErr) {
+    console.error("Erro upload NF:", uploadErr?.message);
+    return res.status(500).json({ error: "Falha ao enviar a Nota Fiscal. Verifique o arquivo e tente novamente." });
+  }
+}
+    const evFilesRaw = req.files?.evidence_files || [];
+      let evFiles = [];
+if (evFilesRaw.length) {
+  try {
+    evFiles = await Promise.all(evFilesRaw.map(f => uploadToCloudinary(f.buffer, {
       public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(f.originalname) || ''}`,
-      })));
+    })));
+  } catch (uploadErr) {
+    console.error("Erro upload evidências:", uploadErr?.message);
+    return res.status(500).json({ error: "Falha ao enviar os arquivos de evidência. Tente novamente." });
+  }
+}
 
       const triageObj = triage_result ? JSON.parse(triage_result) : {};
       const cleanCnpj = cnpj ? cnpj.toString().replace(/\D/g, '') : null;

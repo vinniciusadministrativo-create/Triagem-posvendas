@@ -72,7 +72,7 @@ export default function VendedorPage({ defaultTab = "novo" }) {
   const [meusChamados, setMeusChamados] = useState([]);
   const [loadingChamados, setLoadingChamados] = useState(false);
   const [selected, setSelected] = useState(null);
-
+  const [erroChamados, setErroChamados] = useState(null);
   const fRef = useRef(null); const evRef = useRef(null);
   const timerRef = useRef(null);
 
@@ -81,16 +81,17 @@ export default function VendedorPage({ defaultTab = "novo" }) {
   }, [defaultTab]);
 
   const loadChamados = useCallback(async () => {
-    setLoadingChamados(true);
-    try {
-      const res = await api.getMeusChamados();
-      setMeusChamados(res.chamados || []);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoadingChamados(false);
-    }
-  }, []);
+  setLoadingChamados(true);
+  setErroChamados(null);
+  try {
+    const res = await api.getMeusChamados();
+    setMeusChamados(res.chamados || []);
+  } catch (e) {
+    setErroChamados("Não foi possível carregar os chamados. Tente novamente.");
+  } finally {
+    setLoadingChamados(false);
+  }
+}, []);
 
   useEffect(() => {
     if (activeTab === "meus") loadChamados();
@@ -168,6 +169,12 @@ export default function VendedorPage({ defaultTab = "novo" }) {
 
   const submit = async () => {
     if (!validate()) return;
+
+     if (!navigator.onLine) {
+    alert("Sem conexão com a internet. Verifique sua rede e tente novamente.");
+    return;
+  }
+
     setStep(1); setElapsed(0);
     timerRef.current = setInterval(() => setElapsed(p => p + 1), 1000);
 
@@ -225,7 +232,7 @@ setAgentStatus(p => ({ ...p, triage: "done" }));
     } catch (e) {
       console.error(e);
       setStep(0);
-      alert("Erro ao processar chamado.");
+      alert(e?.response?.data?.error || e.message || "Erro ao processar chamado. Tente novamente.");
     } finally {
       clearInterval(timerRef.current);
     }
@@ -267,7 +274,15 @@ setAgentStatus(p => ({ ...p, triage: "done" }));
   );
 
   function minhasFiles() {
-    if (meusChamados.length === 0) return <p style={{ textAlign: "center", padding: 40 }}>Nenhum chamado encontrado.</p>;
+    if (erroChamados) return (
+  <div style={{ textAlign: "center", padding: 40 }}>
+    <p style={{ color: M.err, fontWeight: 700 }}>{erroChamados}</p>
+    <button onClick={loadChamados} style={{ marginTop: 10, padding: "8px 20px", background: M.pri, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700 }}>
+      Tentar novamente
+    </button>
+  </div>
+);
+if (meusChamados.length === 0) return <p style={{ textAlign: "center", padding: 40, color: M.txM }}>Nenhum chamado encontrado.</p>;
     return meusChamados.map(c => (
       <div key={c.id} onClick={() => setSelected(c)} style={{ padding: 15, borderBottom: `1px solid ${M.brdN}`, display: "flex", justifyContent: "space-between", cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = M.bg} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
         <div>
@@ -308,7 +323,7 @@ setAgentStatus(p => ({ ...p, triage: "done" }));
             {evidenceFiles.length ? <p>📸 {evidenceFiles.length} fotos anexadas</p> : <p>📸 Fotos de Evidência</p>}
           </div>
         </div>
-        <VInput label="Código do Cliente" placeholder="Ex: 12345" value={form.codigo} onChange={v => upd("codigo", v)} />
+        <VInput label="Código do Cliente" placeholder="Ex: 12345" value={form.codigo} onChange={v => upd("codigo", v)} pattern="numeric" maxLength={10} />
         <VInput 
           label="Nome do Vendedor / Responsável" 
           value={form.nomeVendedor} 
@@ -334,7 +349,7 @@ setAgentStatus(p => ({ ...p, triage: "done" }));
           value={form.cnpj} 
           onChange={v => upd("cnpj", maskCpfCnpj(v))} 
         />
-        <VInput label="NF Original" value={form.nfOriginal} onChange={v => upd("nfOriginal", v)} />
+        <VInput label="NF Original" value={form.nfOriginal} onChange={v => upd("nfOriginal", v)} pattern="numeric" maxLength={10} />
         <div className="responsive-grid-full"><VInput label="Razão Social" value={form.razaoSocial} onChange={v => upd("razaoSocial", v)} /></div>
         <div>
           <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 5 }}>Tipo</label>

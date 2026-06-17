@@ -1,4 +1,3 @@
-import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import './index.css'
@@ -9,24 +8,42 @@ import HistoricoPage from './pages/HistoricoPage.jsx'
 import Layout from './Layout.jsx'
 import AdminPage from './pages/AdminPage.jsx'
 import ChatPage from './pages/ChatPage.jsx'
+import { StrictMode, useState, useEffect } from 'react'
 
 function ProtectedRoute({ children, allowedRoles }) {
   const location = useLocation();
-  const token = localStorage.getItem('token');
-  const user = (() => {
-    try { return JSON.parse(localStorage.getItem('user') || '{}'); }
-    catch { return {}; }
-  })();
+  const [auth, setAuth] = useState(() => {
+    try {
+      const token = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      return { token, user };
+    } catch { return { token: null, user: {} }; }
+  });
 
-  if (!token || !user?.role) {
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === 'token' || e.key === 'user') {
+        try {
+          setAuth({
+            token: localStorage.getItem('token'),
+            user: JSON.parse(localStorage.getItem('user') || '{}'),
+          });
+        } catch {
+          setAuth({ token: null, user: {} });
+        }
+      }
+    };
+    window.addEventListener('storage', e => onStorage(e));
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  if (!auth.token || !auth.user?.role) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
-
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    if (user.role === 'vendedor') return <Navigate to="/formulario" replace />;
+  if (allowedRoles && !allowedRoles.includes(auth.user.role)) {
+    if (auth.user.role === 'vendedor') return <Navigate to="/formulario" replace />;
     return <Navigate to="/dashboard" replace />;
   }
-
   return children;
 }
 

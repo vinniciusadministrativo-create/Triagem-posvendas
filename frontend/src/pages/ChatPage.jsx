@@ -100,6 +100,8 @@ export default function ChatPage(){
   const inputRef=useRef(null);
   const fileRef=useRef(null);
   const pollRef=useRef(null);
+  const pollFailCount=useRef(0);
+  const[reconectando,setReconectando]=useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
     const fn=() => setIsMobile(window.innerWidth < 768);
@@ -133,6 +135,7 @@ export default function ChatPage(){
   const pollNovas=useCallback(async(a)=>{
     if(!a) return;
     try{
+      pollFailCount.current=0;setReconectando(false);
       const url=a.tipo==="dm"?`${API}/novas/${a.dados.id}?desde=${ultimoId.current}`:`${API}/grupos/${a.dados.id}/mensagens?desde=${ultimoId.current}`;
       const r=await fetch(url,{headers:authH()});const d=await r.json();
       const novas=d.mensagens||[];
@@ -143,7 +146,7 @@ export default function ChatPage(){
         else fetch(`${API}/grupos/${a.dados.id}/lidas`,{method:"POST",headers:authH()});
         fetchContatos();fetchGrupos();
       }
-    }catch(e){}
+    }catch(e){pollFailCount.current+=1;if(pollFailCount.current>=3)setReconectando(true);}
   },[fetchContatos,fetchGrupos]);
 
   useEffect(()=>{
@@ -156,32 +159,38 @@ export default function ChatPage(){
 
   const selecionar=(tipo,dados)=>{setAtivo({tipo,dados});setMsgs([]);setTexto("");setEditando(null);setArquivo(null);};
 
-  const enviar=async e=>{
-    e?.preventDefault();
-    if(!ativo||(!texto.trim()&&!arquivo)) return;
-    if(editando){
-      const r=await fetch(`${API}/mensagens/${editando.id}`,{method:"PATCH",headers:hdrs(),body:JSON.stringify({conteudo:texto})});
-      const d=await r.json();
-      if(r.ok) setMsgs(p=>p.map(m=>m.id===editando.id?{...m,...d.mensagem}:m));
-      setEditando(null);setTexto("");return;
-    }
-    setEnviando(true);
-    const fd=new FormData();
-    if(texto.trim()) fd.append("conteudo",texto.trim());
-    if(ativo.tipo==="dm") fd.append("destinatario_id",ativo.dados.id);
-    else fd.append("grupo_id",ativo.dados.id);
-    if(arquivo) fd.append("arquivo",arquivo);
-    const tmp={id:`tmp-${Date.now()}`,conteudo:texto.trim()||(arquivo?"📎 "+arquivo.name:""),tipo:"texto",remetente_id:myUser.id,created_at:new Date().toISOString()};
-    setMsgs(p=>[...p,tmp]);setTexto("");setArquivo(null);
-    try{
-      const r=await fetch(`${API}/mensagens`,{method:"POST",headers:authH(),body:fd});
-      const d=await r.json();
-      if(r.ok){setMsgs(p=>p.map(m=>m.id===tmp.id?{...m,...d.mensagem}:m));ultimoId.current=Math.max(ultimoId.current,d.mensagem.id);fetchContatos();fetchGrupos();}
-      else setMsgs(p=>p.filter(m=>m.id!==tmp.id));
-    }catch(e){setMsgs(p=>p.filter(m=>m.id!==tmp.id));}
-    finally{setEnviando(false);}
-  };
-
+const enviar=async e=>{
+  e?.preventDefault();
+  if(!ativo||(!texto.trim()&&!arquivo)) return;
+  if(editando){
+    const r=await fetch(`${API}/mensagens/${editando.id}`,{method:"PATCH",headers:hdrs(),body:JSON.stringify({conteudo:texto})});
+    const d=await r.json();
+    if(r.ok) setMsgs(p=>p.map(m=>m.id===editando.id?{...m,...d.mensagem}:m));
+    setEditando(null);setTexto("");return;
+  }
+  setEnviando(true);
+  const textoBackup=texto;
+  const arquivoBackup=arquivo;
+  const fd=new FormData();
+  if(texto.trim()) fd.append("conteudo",texto.trim());
+  if(ativo.tipo==="dm") fd.append("destinatario_id",ativo.dados.id);
+  else fd.append("grupo_id",ativo.dados.id);
+  if(arquivo) fd.append("arquivo",arquivo);
+  const tmp={id:`tmp-${Date.now()}`,conteudo:texto.trim()||(arquivo?"📎 "+arquivo.name:""),tipo:"texto",remetente_id:myUser.id,created_at:new Date().toISOString()};
+  setMsgs(p=>[...p,tmp]);setTexto("");setArquivo(null);
+  try{
+    const r=await fetch(`${API}/mensagens`,{method:"POST",headers:authH(),body:fd});
+    const d=await r.json();
+    if(r.ok){setMsgs(p=>p.map(m=>m.id===tmp.id?{...m,...d.mensagem}:m));ultimoId.current=Math.max(ultimoId.current,d.mensagem.id);fetchContatos();fetchGrupos(); if(fileRef.current)fileRef.current.value="";}
+    else{setMsgs(p=>p.filter(m=>m.id!==tmp.id));setTexto(textoBackup);setArquivo(arquivoBackup);alert(d.error||"Erro ao enviar mensagem.");}
+  }catch(e){
+    setMsgs(p=>p.filter(m=>m.id!==tmp.id));
+    setTexto(textoBackup);
+    setArquivo(arquivoBackup);
+    alert("Erro ao enviar mensagem. Tente novamente.");
+  }
+  finally{setEnviando(false);}
+};
   const deletar=async id=>{
     if(!window.confirm("Apagar mensagem?"))return;
     await fetch(`${API}/mensagens/${id}`,{method:"DELETE",headers:authH()});
@@ -289,6 +298,7 @@ export default function ChatPage(){
               <div style={{flex:1}}>
                 <div style={{fontWeight:800,fontSize:15,color:M.tx}}>{ativo.tipo==="grupo"?ativo.dados.nome:ativo.dados.name}</div>
                 <div style={{fontSize:12,color:M.txM}}>{ativo.tipo==="grupo"?`${ativo.dados.membros} membros`:ROLES[ativo.dados.role]||ativo.dados.role}</div>
+{reconectando&&<div style={{fontSize:11,color:"#f59e0b",fontWeight:700}}>⚠️ Reconectando...</div>}
               </div>
               {ativo.tipo==="dm"&&ativo.dados.telefone&&(
                 <a href={`https://wa.me/55${ativo.dados.telefone.replace(/\D/g,"")}`} target="_blank" rel="noreferrer"
