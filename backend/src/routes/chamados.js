@@ -34,9 +34,9 @@ const upload = multer({
 async function uploadToCloudinary(buffer, options = {}) {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.unsigned_upload_stream(
-      'TesteUpload',
-      { folder: 'triagem_posvendas', resource_type: 'auto', type: 'upload', ...options },
-      (err, result) => { if (err) reject(err); else resolve(result); }
+  'TesteUpload',
+  { folder: 'triagem_posvendas', resource_type: 'auto', ...options },
+  (err, result) => { if (err) reject(err); else resolve(result); }
     );
     stream.end(buffer);
   });
