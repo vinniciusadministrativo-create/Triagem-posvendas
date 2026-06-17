@@ -115,7 +115,7 @@ if (nfFileRaw) {
   try {
     nfFile = await uploadToCloudinary(nfFileRaw.buffer, {
       resource_type: nfFileRaw.mimetype === 'application/pdf' ? 'raw' : 'auto',
-      public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(nfFileRaw.originalname) || '.pdf'}`,
+     public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     });
   } catch (uploadErr) {
     console.error("Erro upload NF:", uploadErr?.message);
@@ -127,7 +127,7 @@ if (nfFileRaw) {
 if (evFilesRaw.length) {
   try {
     evFiles = await Promise.all(evFilesRaw.map(f => uploadToCloudinary(f.buffer, {
-      public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(f.originalname) || ''}`,
+   public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,  
     })));
   } catch (uploadErr) {
     console.error("Erro upload evidências:", uploadErr?.message);
