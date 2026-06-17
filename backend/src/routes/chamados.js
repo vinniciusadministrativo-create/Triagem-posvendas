@@ -33,10 +33,11 @@ const upload = multer({
 
 async function uploadToCloudinary(buffer, options = {}) {
   return new Promise((resolve, reject) => {
+    const { resource_type, type, ...safeOptions } = options;
     const stream = cloudinary.uploader.unsigned_upload_stream(
-  'TesteUpload',
-  { folder: 'triagem_posvendas', resource_type: 'auto', ...options },
-  (err, result) => { if (err) reject(err); else resolve(result); }
+      'TesteUpload',
+      { folder: 'triagem_posvendas', ...safeOptions },
+      (err, result) => { if (err) reject(err); else resolve(result); }
     );
     stream.end(buffer);
   });
@@ -406,15 +407,14 @@ router.post("/:id/reprocess-pdf", authMiddleware(["pos_vendas", "admin"]), memor
     // Se a extração deu certo, agora sim subimos para o Cloudinary de forma definitiva
     // Usamos o SDK do Cloudinary para fazer o upload do arquivo local
     const uploadRes = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload(tempPath, {
-        folder: "triagem_posvendas",
-        resource_type: "raw",
-        public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`
-      }, (error, result) => {
-        if (error) reject(error);
-        else resolve(result);
-      });
-    });
+  cloudinary.uploader.unsigned_upload(tempPath, 'TesteUpload', {
+    folder: "triagem_posvendas",
+    public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`
+  }, (error, result) => {
+    if (error) reject(error);
+    else resolve(result);
+  });
+});
 
     // Remove o arquivo temporário
     if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
