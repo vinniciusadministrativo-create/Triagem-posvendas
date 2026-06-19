@@ -264,6 +264,7 @@ router.get("/:id", authMiddleware(), async (req, res) => {
 router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"]), async (req, res) => {
   try {
     const { status, recolhimento_data, data_previsao_recolhimento, data_real_recolhimento } = req.body;
+    console.log("STATUS UPDATE:", JSON.stringify({ status, recolhimento_data }));
     if (!status) return res.status(400).json({ error: "Status obrigatório" });
 
     // Busca status atual para o histórico
