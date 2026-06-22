@@ -57,6 +57,7 @@ export const api = {
 
   getChamado: (id) => request(`/api/chamados/${id}`),
 
+  //v2 - fix recolhimento_data
   updateStatus: (id, status, extraData = {}) =>
   request(`/api/chamados/${id}/status`, { method: "PATCH", body: JSON.stringify({ 
     status,
