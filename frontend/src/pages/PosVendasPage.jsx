@@ -171,7 +171,7 @@ export default function PosVendasPage(){
     setPendingRecolhimento(null);
     setChamados(p => p.map(c => c.id == chamadoId ? { ...c, status: columnId } : c));
     try {
-      await api.updateStatus(chamadoId, columnId, recolhimentoData);
+      await api.updateStatus(chamadoId, columnId, { recolhimento_data: recolhimentoData });
     } catch(err) {
       setChamados(p => p.map(c => c.id == chamadoId ? { ...c, status: ch.status } : c));
       alert("Erro ao mudar status.");
