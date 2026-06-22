@@ -1,63 +1,46 @@
-# =======================================================
-# GitHub Actions — Deploy para Azure App Service
-# =======================================================
-# Segredos necessários no GitHub (Settings → Secrets → Actions):
-#   AZURE_APP_NAME        → nome do seu App Service no Azure
-#   AZURE_PUBLISH_PROFILE → conteúdo do Publish Profile baixado no Azure Portal
-#                           (App Service → Overview → Get publish profile)
-# =======================================================
-
 name: Deploy to Azure App Service
 
 on:
   push:
     branches: [main]
-  workflow_dispatch: # permite disparar manualmente pelo GitHub
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout do repositório
       - name: Checkout código
         uses: actions/checkout@v4
 
-      # 2. Configura Node.js 20 (mesma versão do dev local)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'  
+          node-version: '20'
 
-      # 3. Configura Python 3.11 (para pdfplumber + reportlab)
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      # 4. Instala dependências Python (para verificar que o requirements.txt está correto)
       - name: Instalar dependências Python
         run: pip install -r backend/requirements.txt
 
-        - name: Limpar dist antigo
+      - name: Limpar dist antigo
         run: rm -rf frontend/dist
 
-     # 5. Build do frontend
       - name: Build Frontend (React + Vite)
         run: |
-        cd frontend
-        npm ci
-        VITE_API_URL="" npm run build
-      # 6. Instala dependências do backend
-      # npm ci é mais rápido e reprodutível que npm install em CI
+          cd frontend
+          npm ci
+          VITE_API_URL="" npm run build
+
       - name: Instalar dependências do Backend
         run: |
           cd backend
           npm ci
-          # postinstall roda npm rebuild sharp automaticamente (já definido no package.json)
 
-      # 7. Faz o deploy para o Azure App Service
       - name: Deploy para Azure Web App
         uses: azure/webapps-deploy@v3
         with:
