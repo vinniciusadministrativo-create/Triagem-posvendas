@@ -40,13 +40,12 @@ jobs:
       - name: Instalar dependências Python
         run: pip install -r backend/requirements.txt
 
-      # 5. Build do frontend
-      # VITE_API_URL vazio = usa rotas relativas (backend serve o dist/)
-      - name: Build Frontend (React + Vite)
-        run: |
-          cd frontend
-          npm ci
-          VITE_API_URL="" npm run build
+     # 5. Build do frontend
+# - name: Build Frontend (React + Vite)
+#   run: |
+#     cd frontend
+#     npm ci
+#     VITE_API_URL="" npm run build
 
       # 6. Instala dependências do backend
       # npm ci é mais rápido e reprodutível que npm install em CI
