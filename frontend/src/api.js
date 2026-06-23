@@ -61,7 +61,7 @@ export const api = {
   updateStatus: (id, status, extraData = {}) =>
   request(`/api/chamados/${id}/status`, { method: "PATCH", body: JSON.stringify({ 
     status,
-    recolhimento_data: extraData.recolhimento_data ?? null,
+    recolhimento_data: extraData.recolhimento_data,
     data_previsao_recolhimento: extraData.data_previsao_recolhimento || null,
     data_real_recolhimento: extraData.data_real_recolhimento || null,
   }) }),
