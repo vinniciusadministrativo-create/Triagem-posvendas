@@ -242,7 +242,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
   // Regras de Permissão (Consolidadas no topo)
 
   const save = async () => {
-    if (isOperacional && newStatus === "recolhido") {
+    if (isOperacional && newStatus === "recolhido" && chamado.status !== "recolhido") {
       setPendingRecolhimento(true);
       return;
     }
