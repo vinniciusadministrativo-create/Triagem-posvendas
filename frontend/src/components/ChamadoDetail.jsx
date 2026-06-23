@@ -93,11 +93,11 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
   const [history, setHistory] = useState([]);
   const [pendingRecolhimento, setPendingRecolhimento] = useState(false);
   const [recolhimentoData, setRecolhimentoData] = useState({
-    tipo_frete: "proprio",
-    nome_transportadora: "",
-    valor_frete: "",
-    despesas: "",
-    observacoes: ""
+    tipo_frete: chamado.recolhimento_data?.tipo_frete || "proprio",
+    nome_transportadora: chamado.recolhimento_data?.nome_transportadora || "",
+    valor_frete: chamado.recolhimento_data?.valor_frete || "",
+    despesas: chamado.recolhimento_data?.despesas || "",
+    observacoes: chamado.recolhimento_data?.observacoes || ""
   });
   const [dataPrevisao, setDataPrevisao] = useState(chamado.data_previsao_recolhimento ? chamado.data_previsao_recolhimento.split('T')[0] : "");
   const [dataReal, setDataReal] = useState(chamado.data_real_recolhimento ? chamado.data_real_recolhimento.split('T')[0] : "");
@@ -242,7 +242,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
   // Regras de Permissão (Consolidadas no topo)
 
   const save = async () => {
-    if (isOperacional && newStatus === "recolhido" && chamado.status !== "recolhido") {
+    if (isOperacional && newStatus === "recolhido") {
       setPendingRecolhimento(true);
       return;
     }
@@ -252,11 +252,12 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
   const executeSave = async (data = undefined) => {
     setSaving(true);
     try {
-      await api.updateStatus(chamado.id, newStatus, {
+      const res = await api.updateStatus(chamado.id, newStatus, {
         recolhimento_data: data,
         data_previsao_recolhimento: dataPrevisao,
         data_real_recolhimento: dataReal
       });
+      if (res?.chamado) setChamado(res.chamado);
       if (onStatusChange) onStatusChange(chamado.id, newStatus);
       if (isAdmin || isPosVendas) loadHistory();
       alert("Status atualizado!");
