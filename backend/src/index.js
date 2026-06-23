@@ -71,6 +71,19 @@ app.use(express.static(frontendPath, {
   }
 }));
 
+// Debug endpoint (temporary)
+app.get("/api/debug-path", (req, res) => {
+  const fs = require("fs");
+  const indexPath = path.join(frontendPath, "index.html");
+  res.json({
+    frontendPath,
+    indexExists: fs.existsSync(indexPath),
+    indexContent: fs.existsSync(indexPath) ? fs.readFileSync(indexPath, "utf8").match(/index-[^.]+\.js/)?.[0] : null,
+    dirname: __dirname,
+    cwd: process.cwd()
+  });
+});
+
 // Web App SPA fallback (Must be after all other routes)
 app.get(/.*/, (req, res) => {
   // Se for uma rota de API ou de UPLOADS que não foi capturada acima, retorna 404 real
