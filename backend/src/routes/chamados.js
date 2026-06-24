@@ -31,6 +31,13 @@ const upload = multer({
 });
 
 async function uploadToCloudinary(buffer, options = {}, mimetype = 'application/octet-stream') {
+  const cfg = cloudinary.config();
+  console.log("[Cloudinary] config em uso:", JSON.stringify({
+    cloud_name: cfg.cloud_name,
+    api_key: cfg.api_key,
+    secret_len: cfg.api_secret?.length,
+    secret_start: cfg.api_secret?.substring(0, 4),
+  }));
   try {
     const b64 = buffer.toString('base64');
     const result = await cloudinary.uploader.upload(
@@ -43,6 +50,18 @@ async function uploadToCloudinary(buffer, options = {}, mimetype = 'application/
     throw err;
   }
 }
+
+// GET /api/chamados/diag-cloudinary — diagnóstico de conexão (admin only)
+router.get("/diag-cloudinary", authMiddleware(["admin"]), async (req, res) => {
+  const cfg = cloudinary.config();
+  const info = { cloud_name: cfg.cloud_name, api_key: cfg.api_key, secret_len: cfg.api_secret?.length, secret_start: cfg.api_secret?.substring(0, 4) };
+  try {
+    const ping = await cloudinary.api.ping();
+    res.json({ status: "ok", ping, config: info });
+  } catch (e) {
+    res.json({ status: "error", error: JSON.stringify(e, Object.getOwnPropertyNames(e)), config: info });
+  }
+});
 
 const memoryUpload = multer({
   storage: multer.memoryStorage(),
