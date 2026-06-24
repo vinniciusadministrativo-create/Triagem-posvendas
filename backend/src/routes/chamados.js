@@ -31,13 +31,20 @@ const upload = multer({
 });
 
 async function uploadToCloudinary(buffer, options = {}) {
-  const tmpFile = path.join(os.tmpdir(), `cloudinary-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  try {
-    fs.writeFileSync(tmpFile, buffer);
-    return await cloudinary.uploader.upload(tmpFile, { folder: 'triagem_posvendas', ...options });
-  } finally {
-    try { fs.unlinkSync(tmpFile); } catch (_) {}
-  }
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: 'triagem_posvendas', ...options },
+      (err, result) => {
+        if (err) {
+          console.error("[Cloudinary] upload_stream error:", JSON.stringify(err));
+          reject(err);
+        } else {
+          resolve(result);
+        }
+      }
+    );
+    stream.end(buffer);
+  });
 }
 
 const memoryUpload = multer({
@@ -115,7 +122,7 @@ if (nfFileRaw) {
      public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     });
   } catch (uploadErr) {
-    console.error("Erro upload NF:", uploadErr?.message);
+    console.error("Erro upload NF:", uploadErr?.message, JSON.stringify(uploadErr));
     return res.status(500).json({ error: "Falha ao enviar a Nota Fiscal. Verifique o arquivo e tente novamente." });
   }
 }
