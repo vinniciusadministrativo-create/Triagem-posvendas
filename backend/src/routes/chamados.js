@@ -7,7 +7,6 @@ const pool = require("../db");
 const authMiddleware = require("../middleware/auth");
 const { generatePDFFromJSON } = require("../utils/pythonBridge");
 const cloudinary = require("cloudinary").v2;
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 const router = express.Router();
 
@@ -404,16 +403,16 @@ router.post("/:id/reprocess-pdf", authMiddleware(["pos_vendas", "admin"]), memor
     }
 
     // Se a extração deu certo, agora sim subimos para o Cloudinary de forma definitiva
-    // Usamos o SDK do Cloudinary para fazer o upload do arquivo local
     const uploadRes = await new Promise((resolve, reject) => {
-  cloudinary.uploader.unsigned_upload(tempPath, 'TesteUpload', {
-    folder: "triagem_posvendas",
-    public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`
-  }, (error, result) => {
-    if (error) reject(error);
-    else resolve(result);
-  });
-});
+      cloudinary.uploader.upload(tempPath, {
+        folder: "triagem_posvendas",
+        resource_type: "raw",
+        public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`,
+      }, (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      });
+    });
 
     // Remove o arquivo temporário
     if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
