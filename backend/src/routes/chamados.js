@@ -30,21 +30,18 @@ const upload = multer({
   },
 });
 
-async function uploadToCloudinary(buffer, options = {}) {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      { folder: 'triagem_posvendas', ...options },
-      (err, result) => {
-        if (err) {
-          console.error("[Cloudinary] upload_stream error:", JSON.stringify(err));
-          reject(err);
-        } else {
-          resolve(result);
-        }
-      }
+async function uploadToCloudinary(buffer, options = {}, mimetype = 'application/octet-stream') {
+  try {
+    const b64 = buffer.toString('base64');
+    const result = await cloudinary.uploader.upload(
+      `data:${mimetype};base64,${b64}`,
+      { folder: 'triagem_posvendas', ...options }
     );
-    stream.end(buffer);
-  });
+    return result;
+  } catch (err) {
+    console.error("[Cloudinary] upload error:", JSON.stringify(err, Object.getOwnPropertyNames(err)));
+    throw err;
+  }
 }
 
 const memoryUpload = multer({
@@ -118,9 +115,9 @@ router.post(
 if (nfFileRaw) {
   try {
     nfFile = await uploadToCloudinary(nfFileRaw.buffer, {
-      resource_type: nfFileRaw.mimetype === 'application/pdf' ? 'raw' : 'auto',
-     public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    });
+      resource_type: 'auto',
+      public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    }, nfFileRaw.mimetype);
   } catch (uploadErr) {
     console.error("Erro upload NF:", uploadErr?.message, JSON.stringify(uploadErr));
     return res.status(500).json({ error: "Falha ao enviar a Nota Fiscal. Verifique o arquivo e tente novamente." });
@@ -131,10 +128,11 @@ if (nfFileRaw) {
 if (evFilesRaw.length) {
   try {
     evFiles = await Promise.all(evFilesRaw.map(f => uploadToCloudinary(f.buffer, {
-   public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,  
-    })));
+      resource_type: 'auto',
+      public_id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    }, f.mimetype)));
   } catch (uploadErr) {
-    console.error("Erro upload evidências:", uploadErr?.message);
+    console.error("Erro upload evidências:", uploadErr?.message, JSON.stringify(uploadErr));
     return res.status(500).json({ error: "Falha ao enviar os arquivos de evidência. Tente novamente." });
   }
 }
