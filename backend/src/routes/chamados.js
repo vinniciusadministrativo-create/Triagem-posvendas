@@ -81,7 +81,28 @@ router.get("/diag-cloudinary", authMiddleware(["admin"]), async (req, res) => {
     tryUpload({ resource_type: 'auto' }),
   ]);
 
-  res.json({ config: info, ping: pingResult, uploadDefault, uploadImage, uploadAuto });
+  // Raw HTTPS test — mostra o body real da resposta 403
+  const rawTest = await new Promise((resolve) => {
+    const crypto = require('crypto');
+    const https = require('https');
+    const qs = require('querystring');
+    const ts = Math.floor(Date.now() / 1000);
+    const folder = 'triagem_diag';
+    const public_id = `raw_${ts}`;
+    const sigStr = `folder=${folder}&public_id=${public_id}&timestamp=${ts}`;
+    const signature = crypto.createHash('sha1').update(sigStr + cfg.api_secret).digest('hex');
+    const body = qs.stringify({ file: `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==`, timestamp: String(ts), api_key: cfg.api_key, signature, folder, public_id });
+    const req = https.request({ hostname: 'api.cloudinary.com', path: `/v1_1/${cfg.cloud_name}/image/upload`, method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body) } }, (r) => {
+      let data = '';
+      r.on('data', c => data += c);
+      r.on('end', () => resolve({ status: r.statusCode, headers: r.headers, body: data.substring(0, 1000) }));
+    });
+    req.on('error', e => resolve({ error: e.message }));
+    req.write(body);
+    req.end();
+  });
+
+  res.json({ config: info, ping: pingResult, uploadDefault, uploadImage, uploadAuto, rawTest });
 });
 
 const memoryUpload = multer({
