@@ -54,13 +54,34 @@ async function uploadToCloudinary(buffer, options = {}, mimetype = 'application/
 // GET /api/chamados/diag-cloudinary — diagnóstico de conexão (admin only)
 router.get("/diag-cloudinary", authMiddleware(["admin"]), async (req, res) => {
   const cfg = cloudinary.config();
-  const info = { cloud_name: cfg.cloud_name, api_key: cfg.api_key, secret_len: cfg.api_secret?.length, secret_start: cfg.api_secret?.substring(0, 4) };
-  try {
-    const ping = await cloudinary.api.ping();
-    res.json({ status: "ok", ping, config: info });
-  } catch (e) {
-    res.json({ status: "error", error: JSON.stringify(e, Object.getOwnPropertyNames(e)), config: info });
-  }
+  const info = {
+    cloud_name: cfg.cloud_name,
+    api_key: cfg.api_key,
+    secret_len: cfg.api_secret?.length,
+    secret_start: cfg.api_secret?.substring(0, 4),
+    cloudinary_url_env: !!process.env.CLOUDINARY_URL,
+  };
+
+  let pingResult;
+  try { pingResult = { ok: true, ...(await cloudinary.api.ping()) }; }
+  catch (e) { pingResult = { ok: false, error: e.message, http_code: e.http_code }; }
+
+  const tinyPng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+  const tryUpload = async (opts) => {
+    try {
+      const r = await cloudinary.uploader.upload(`data:image/png;base64,${tinyPng}`, { public_id: `diag_${Date.now()}`, ...opts });
+      return { ok: true, url: r.secure_url };
+    } catch (e) { return { ok: false, error: e.message, http_code: e.http_code, name: e.name }; }
+  };
+
+  const [uploadDefault, uploadImage, uploadAuto] = await Promise.all([
+    tryUpload({}),
+    tryUpload({ resource_type: 'image' }),
+    tryUpload({ resource_type: 'auto' }),
+  ]);
+
+  res.json({ config: info, ping: pingResult, uploadDefault, uploadImage, uploadAuto });
 });
 
 const memoryUpload = multer({
@@ -563,6 +584,7 @@ router.delete("/:id", authMiddleware(["admin"]), async (req, res) => {
     res.status(500).json({ error: "Erro ao excluir chamado" });
   }
 });
+
 
 // POST /api/chamados/batch-delete — APENAS ADMIN exclui vários
 router.post("/batch-delete", authMiddleware(["admin"]), async (req, res) => {
