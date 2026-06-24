@@ -54,7 +54,7 @@ app.use("/api/relatorios", require("./routes/relatorios"));
 app.use("/api/chat", require("./routes/chat"));
 
 // Health check
-app.get("/api/health", (req, res) => res.json({ status: "ok", ts: new Date().toISOString() }));
+app.get("/api/health", (req, res) => res.json({ status: "ok", ts: new Date().toISOString(), build: "2026-06-24-upload-fix-v3" }));
 
 // Static uploads
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
