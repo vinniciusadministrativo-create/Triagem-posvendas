@@ -16,7 +16,7 @@ const M = {
 const STAGES = [
   { id: "novo", label: "Novo Chamado", color: "#6b7280", icon: "📥" },
   { id: "avaliacao", label: "Avaliação", color: "#f59e0b", icon: "🔍" },
-  { id: "negociacao", label: "Negociação Cliente", color: "#8b5cf6", icon: "🤝" },
+  { id: "avaliado", label: "Avaliado", color: "#8b5cf6", icon: "✔️" },
   { id: "espelho", label: "Emitir Espelho NFD", color: M.pri, icon: "🧾" },
   { id: "aguardando_nfd", label: "Aguard. NFD Cliente", color: "#2563eb", icon: "⏳" },
   { id: "aguardando_recolhimento", label: "Aguard. Recolhimento", color: "#059669", icon: "🚚" },
