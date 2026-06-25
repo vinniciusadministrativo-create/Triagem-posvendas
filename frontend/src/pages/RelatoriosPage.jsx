@@ -30,13 +30,14 @@ const M = {
 
 const STATUS_LABELS = {
   novo: "Novo",
-  triagem: "Triagem",
-  analise: "Análise",
-  aprovado: "Aprovado",
-  reprovado: "Reprovado",
-  encerrado: "Encerrado",
+  avaliacao: "Avaliação",
+  avaliado: "Avaliado",
+  espelho: "Emitir Espelho NFD",
+  aguardando_nfd: "Aguard. NFD",
   aguardando_recolhimento: "Ag. Recolhimento",
   recolhido: "Recolhido",
+  aguardando_financeiro: "Aguard. Financeiro",
+  encerrado: "Encerrado",
 };
 
 const TIPO_LABELS = {
@@ -50,14 +51,15 @@ const TIPO_LABELS = {
 };
 
 const STATUS_COLORS = {
-  novo: { bg: "#dbeafe", color: "#1d4ed8" },
-  triagem: { bg: "#fef3c7", color: "#92400e" },
-  analise: { bg: "#ede9fe", color: "#6d28d9" },
-  aprovado: { bg: "#dcfce7", color: "#166534" },
-  reprovado: { bg: "#fee2e2", color: "#991b1b" },
-  encerrado: { bg: "#f3f4f6", color: "#374151" },
+  novo: { bg: "#f3f4f6", color: "#374151" },
+  avaliacao: { bg: "#fef3c7", color: "#92400e" },
+  avaliado: { bg: "#ede9fe", color: "#6d28d9" },
+  espelho: { bg: "#fce7ec", color: "#9B1B30" },
+  aguardando_nfd: { bg: "#dbeafe", color: "#1d4ed8" },
   aguardando_recolhimento: { bg: "#fff7ed", color: "#c2410c" },
   recolhido: { bg: "#d1fae5", color: "#065f46" },
+  aguardando_financeiro: { bg: "#dcfce7", color: "#166534" },
+  encerrado: { bg: "#f3f4f6", color: "#6b7280" },
 };
 
 const CHART_COLORS = [M.chart1, M.chart2, M.chart3, M.chart4, M.chart5, M.chart6];

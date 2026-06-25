@@ -6,6 +6,7 @@ const os = require("os");
 const pool = require("../db");
 const authMiddleware = require("../middleware/auth");
 const { generatePDFFromJSON } = require("../utils/pythonBridge");
+const { sendStatusUpdateEmail } = require("../utils/mailer");
 const cloudinary = require("cloudinary").v2;
 
 const router = express.Router();
@@ -331,9 +332,13 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
     console.log("STATUS UPDATE:", JSON.stringify({ status, recolhimento_data }));
     if (!status) return res.status(400).json({ error: "Status obrigatório" });
 
-    // Busca status atual para o histórico
-    const oldRes = await pool.query("SELECT status FROM chamados WHERE id = $1", [req.params.id]);
-    const oldStatus = oldRes.rows[0]?.status;
+    // Busca dados atuais para histórico e e-mail
+    const oldRes = await pool.query(
+      "SELECT status, email_vendedor, nome_vendedor, razao_social FROM chamados WHERE id = $1",
+      [req.params.id]
+    );
+    const oldRow = oldRes.rows[0] || {};
+    const oldStatus = oldRow.status;
 
     let query = `UPDATE chamados SET status = $1, etapa_destino = $1, updated_at = NOW()`;
     let params = [status, req.params.id];
@@ -360,13 +365,24 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
     if (!rows[0]) return res.status(404).json({ error: "Chamado não encontrado" });
 
 
-    // Grava no histórico se mudou
+    // Grava no histórico e envia e-mail se mudou
     if (oldStatus !== status) {
       await pool.query(
         `INSERT INTO chamado_historico (chamado_id, user_id, status_anterior, status_novo)
          VALUES ($1, $2, $3, $4)`,
         [req.params.id, req.user.id, oldStatus, status]
       );
+
+      if (oldRow.email_vendedor) {
+        sendStatusUpdateEmail({
+          toEmail: oldRow.email_vendedor,
+          toName: oldRow.nome_vendedor,
+          chamadoId: req.params.id,
+          razaoSocial: oldRow.razao_social,
+          oldStatus,
+          newStatus: status,
+        }).catch(() => {}); // não bloqueia a resposta
+      }
     }
 
     res.json({ chamado: rows[0] });
