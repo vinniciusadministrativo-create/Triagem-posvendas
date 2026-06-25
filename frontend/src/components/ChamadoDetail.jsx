@@ -785,11 +785,14 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
                     <span style={{ fontSize: 15, fontWeight: 900, color: M.pri }}>{chamado.nf_original || "N/A"}</span>
                   </div>
 
-                  <div style={{ display: "flex", gap: 10 }}>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <label style={{ padding: "12px 24px", background: M.blue, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: uploadingPdf ? "not-allowed" : "pointer", opacity: uploadingPdf ? 0.7 : 1, display: "flex", alignItems: "center", gap: 8 }}>
                       {uploadingPdf ? "⏳ Processando PDF..." : "📄 Anexar PDF Original (Automático)"}
                       <input type="file" accept="application/pdf" style={{ display: "none" }} onChange={handleUploadPdf} disabled={uploadingPdf} />
                     </label>
+                    <button onClick={() => setShowManualForm(true)} style={{ padding: "12px 24px", background: "#fff", color: M.pri, border: `2px solid ${M.pri}`, borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
+                      ✍️ Preencher Manualmente
+                    </button>
                   </div>
                 </div>
               );
