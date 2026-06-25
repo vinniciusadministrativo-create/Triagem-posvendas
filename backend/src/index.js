@@ -54,7 +54,19 @@ app.use("/api/relatorios", require("./routes/relatorios"));
 app.use("/api/chat", require("./routes/chat"));
 
 // Health check
-app.get("/api/health", (req, res) => res.json({ status: "ok", ts: new Date().toISOString(), build: "2026-06-24-diag-v5" }));
+app.get("/api/health", (req, res) => res.json({ status: "ok", ts: new Date().toISOString(), build: "2026-06-25-smtp-diag" }));
+
+// SMTP diagnostic — testa conexão e envia e-mail de teste
+app.get("/api/diag-smtp", async (req, res) => {
+  try {
+    const { testSmtp } = require("./utils/mailer");
+    const to = req.query.to || process.env.SMTP_USER;
+    const result = await testSmtp(to);
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // Static uploads
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
