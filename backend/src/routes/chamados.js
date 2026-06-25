@@ -678,10 +678,18 @@ router.post("/:id/messages", authMiddleware(), upload.single("anexo"), async (re
        if (!sh[0]) return res.status(403).json({ error: "Acesso negado para postar chat" });
     }
 
-    const filepath = req.file ? req.file.path : null;
+    let filepath = null;
+    if (req.file) {
+      const uploaded = await uploadToCloudinary(
+        req.file.buffer,
+        { public_id: `chat_${Date.now()}_${Math.random().toString(36).slice(2)}` },
+        req.file.mimetype
+      );
+      filepath = uploaded.secure_url;
+    }
 
     const { rows } = await pool.query(
-      `INSERT INTO chamado_mensagens (chamado_id, user_id, mensagem, anexo) 
+      `INSERT INTO chamado_mensagens (chamado_id, user_id, mensagem, anexo)
        VALUES ($1, $2, $3, $4) RETURNING *`,
       [req.params.id, req.user.id, (mensagem || "").trim(), filepath]
     );
