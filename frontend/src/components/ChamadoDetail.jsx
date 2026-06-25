@@ -42,14 +42,8 @@ function Badge({ label, color }) {
   );
 }
 
-function getPdfOpenUrl(url) {
-  if (!url) return url;
-  // PDFs salvos como image/upload no Cloudinary: adiciona fl_attachment para
-  // forçar entrega do arquivo original (não o thumbnail gerado)
-  if (url.includes('res.cloudinary.com') && url.includes('/image/upload/') && url.endsWith('.pdf')) {
-    return url.replace('/image/upload/', '/image/upload/fl_attachment/');
-  }
-  return url;
+function isLegacyCloudinaryPdf(url) {
+  return url && url.includes('res.cloudinary.com') && url.includes('/image/upload/') && url.endsWith('.pdf');
 }
 
 function AttachmentCard({ filename, label }) {
@@ -62,10 +56,18 @@ function AttachmentCard({ filename, label }) {
   const isImg = ["jpg", "jpeg", "png", "webp", "gif"].includes(ext);
   const isVideo = ["mp4", "mov", "avi", "webm"].includes(ext);
   const isPdf = ext === "pdf";
-  const openUrl = isPdf ? getPdfOpenUrl(url) : url;
+  const isLegacyPdf = isPdf && isLegacyCloudinaryPdf(url);
+
+  const handleClick = () => {
+    if (isLegacyPdf) {
+      alert("Este PDF foi enviado antes de uma atualização do sistema e não pode ser visualizado. Por favor, reenvie o arquivo neste chamado usando o botão 'Anexar PDF Original'.");
+      return;
+    }
+    window.open(url, "_blank");
+  };
 
   return (
-    <div className="attachment-card" onClick={() => window.open(openUrl, "_blank")}>
+    <div className="attachment-card" onClick={handleClick}>
       <div className="attachment-preview">
         {isImg && <img src={url} alt={label} />}
         {isVideo && (
