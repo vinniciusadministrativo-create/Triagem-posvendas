@@ -42,19 +42,32 @@ function Badge({ label, color }) {
   );
 }
 
+function isLegacyCloudinaryPdf(url) {
+  return url && url.includes('res.cloudinary.com') && url.includes('/image/upload/') && url.endsWith('.pdf');
+}
+
 function AttachmentCard({ filename, label }) {
   if (!filename) return null;
   const url = (filename.startsWith('http://') || filename.startsWith('https://'))
   ? filename
   : api.fileUrl(filename);
   const ext = filename.split('.').pop().toLowerCase();
-  
+
   const isImg = ["jpg", "jpeg", "png", "webp", "gif"].includes(ext);
   const isVideo = ["mp4", "mov", "avi", "webm"].includes(ext);
   const isPdf = ext === "pdf";
+  const isLegacyPdf = isPdf && isLegacyCloudinaryPdf(url);
+
+  const handleClick = () => {
+    if (isLegacyPdf) {
+      alert("Este PDF foi enviado antes de uma atualização do sistema e não pode ser visualizado. Por favor, reenvie o arquivo neste chamado usando o botão 'Anexar PDF Original'.");
+      return;
+    }
+    window.open(url, "_blank");
+  };
 
   return (
-    <div className="attachment-card" onClick={() => window.open(url, "_blank")}>
+    <div className="attachment-card" onClick={handleClick}>
       <div className="attachment-preview">
         {isImg && <img src={url} alt={label} />}
         {isVideo && (
@@ -772,11 +785,14 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
                     <span style={{ fontSize: 15, fontWeight: 900, color: M.pri }}>{chamado.nf_original || "N/A"}</span>
                   </div>
 
-                  <div style={{ display: "flex", gap: 10 }}>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <label style={{ padding: "12px 24px", background: M.blue, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: uploadingPdf ? "not-allowed" : "pointer", opacity: uploadingPdf ? 0.7 : 1, display: "flex", alignItems: "center", gap: 8 }}>
                       {uploadingPdf ? "⏳ Processando PDF..." : "📄 Anexar PDF Original (Automático)"}
                       <input type="file" accept="application/pdf" style={{ display: "none" }} onChange={handleUploadPdf} disabled={uploadingPdf} />
                     </label>
+                    <button onClick={() => setShowManualForm(true)} style={{ padding: "12px 24px", background: "#fff", color: M.pri, border: `2px solid ${M.pri}`, borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
+                      ✍️ Preencher Manualmente
+                    </button>
                   </div>
                 </div>
               );

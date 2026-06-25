@@ -30,19 +30,21 @@ const upload = multer({
   },
 });
 
+function resolveResourceType(mimetype) {
+  if (!mimetype) return 'raw';
+  if (mimetype.startsWith('image/')) return 'image';
+  if (mimetype.startsWith('video/')) return 'video';
+  return 'raw'; // PDFs e outros documentos
+}
+
 async function uploadToCloudinary(buffer, options = {}, mimetype = 'application/octet-stream') {
-  const cfg = cloudinary.config();
-  console.log("[Cloudinary] config em uso:", JSON.stringify({
-    cloud_name: cfg.cloud_name,
-    api_key: cfg.api_key,
-    secret_len: cfg.api_secret?.length,
-    secret_start: cfg.api_secret?.substring(0, 4),
-  }));
+  const resource_type = resolveResourceType(mimetype);
+  const { resource_type: _ignored, ...rest } = options;
   try {
     const b64 = buffer.toString('base64');
     const result = await cloudinary.uploader.upload(
       `data:${mimetype};base64,${b64}`,
-      { folder: 'triagem_posvendas', ...options }
+      { folder: 'triagem_posvendas', resource_type, ...rest }
     );
     return result;
   } catch (err) {
