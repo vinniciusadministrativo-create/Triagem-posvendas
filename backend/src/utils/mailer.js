@@ -62,4 +62,41 @@ async function sendStatusUpdateEmail({ toEmail, toName, chamadoId, razaoSocial, 
   }
 }
 
-module.exports = { sendStatusUpdateEmail };
+async function testSmtp(toEmail) {
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
+  const result = {
+    config: { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_FROM, SMTP_PASS: SMTP_PASS ? "***" : "(vazio)" },
+    verify: null,
+    send: null,
+  };
+
+  const transporter = createTransporter();
+  if (!transporter) {
+    result.verify = "SMTP não configurado (variáveis ausentes)";
+    return result;
+  }
+
+  try {
+    await transporter.verify();
+    result.verify = "ok";
+  } catch (err) {
+    result.verify = `erro: ${err.message}`;
+    return result;
+  }
+
+  try {
+    await transporter.sendMail({
+      from: `"Teste Marin" <${SMTP_FROM || SMTP_USER}>`,
+      to: toEmail,
+      subject: "Teste SMTP — Sistema Pós-Vendas Marin",
+      text: "Se recebeu este e-mail, o SMTP está funcionando corretamente.",
+    });
+    result.send = "ok";
+  } catch (err) {
+    result.send = `erro: ${err.message}`;
+  }
+
+  return result;
+}
+
+module.exports = { sendStatusUpdateEmail, testSmtp };
