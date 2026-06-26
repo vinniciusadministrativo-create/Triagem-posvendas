@@ -65,7 +65,12 @@ p, .text-base {
 }
 
 input, textarea, [contenteditable="true"] {
-  caret-color: auto !important; /* Estritamente onde é necessário digitar */
+  caret-color: auto !important;
+}
+
+textarea {
+  resize: vertical;
+  max-width: 100%;
 }
 
 /* Bloqueia o cursor de texto em áreas de clique e navegação */
@@ -86,6 +91,7 @@ body {
   background-color: var(--bg);
   color: var(--text);
   line-height: 1.5;
+  overflow-x: hidden;
 }
 
 /* Remove o contorno azul "piscante" padrão do Chrome e coloca um glow suave */
@@ -222,6 +228,7 @@ main, .card, .v-container {
   flex: 1.2;
   padding: 30px;
   overflow-y: auto;
+  overflow-x: hidden;
   border-right: 1px solid var(--border);
   background: #fff;
   scrollbar-width: thin;
@@ -233,6 +240,7 @@ main, .card, .v-container {
   flex-direction: column;
   background: #fff;
   min-width: 380px;
+  overflow: hidden;
 }
 
 .modal-wrapper {
