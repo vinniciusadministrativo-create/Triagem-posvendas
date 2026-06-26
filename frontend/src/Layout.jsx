@@ -54,7 +54,7 @@ export default function Layout() {
         flex: 1,
         minHeight: "100vh",
         position: "relative",
-        paddingLeft: isMobile ? "0px" : (isSidebarOpen ? "260px" : "80px"),
+        paddingLeft: isMobile ? "0px" : (isSidebarOpen ? "260px" : "0px"),
         transition: "padding-left 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
       }}>
         <div key={location.pathname} className="page-enter">

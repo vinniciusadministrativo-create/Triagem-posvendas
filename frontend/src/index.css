@@ -86,12 +86,15 @@ p, .selectable-text, .chat-bubble, .danfe-mirror-container {
   cursor: default;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   background-color: var(--bg);
   color: var(--text);
   line-height: 1.5;
-  overflow-x: hidden;
 }
 
 /* Remove o contorno azul "piscante" padrão do Chrome e coloca um glow suave */
