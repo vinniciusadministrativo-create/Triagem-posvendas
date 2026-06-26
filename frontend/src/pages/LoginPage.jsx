@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
+import logoMarin from "../assets/logo_marin.png";
 
 const M = {
   pri: "#9B1B30", priDk: "#7A1526", bg: "#fafafa",
@@ -37,11 +38,8 @@ export default function LoginPage() {
     <div style={{ minHeight: "100vh", background: `linear-gradient(160deg, ${M.pri} 0%, #5E1220 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Plus Jakarta Sans', sans-serif", padding: 16 }}>
       <div style={{ background: "#fff", borderRadius: 16, padding: "36px 32px", width: "100%", maxWidth: 400, boxShadow: "0 24px 80px rgba(0,0,0,0.25)" }}>
         {/* Logo */}
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: M.pri, borderRadius: 8, padding: "6px 16px", marginBottom: 12 }}>
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M3 16L10 3L17 16H13L10 9L7 16H3Z" fill="white"/></svg>
-            <span style={{ color: "#fff", fontSize: 14, fontWeight: 800, letterSpacing: 2 }}>MARIN</span>
-          </div>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <img src={logoMarin} alt="Marin Logística" style={{ width: 200, height: "auto", borderRadius: 6, marginBottom: 16 }} />
           <div style={{ fontSize: 18, fontWeight: 800, color: M.tx }}>Triagem Pós-Vendas</div>
           <div style={{ fontSize: 12, color: M.txM, marginTop: 4 }}>Faça login para continuar</div>
         </div>
