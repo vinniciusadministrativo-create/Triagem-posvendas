@@ -35,7 +35,7 @@ function triageDeterministic(formData) {
   switch (t) {
     case "preco_errado": return { ...base, etapa_destino: "aguardando_financeiro", resumo: "Erro interno de preço identificado.", acoes_automaticas: ["Identificado na descrição"], proximas_etapas: [], precisa_espelho_nfd: false, precisa_recolhimento: false };
     case "produto_avariado": return { ...base, etapa_destino: "avaliacao", resumo: "Produto avariado — encaminhado para avaliação.", acoes_automaticas: ["Chamado registrado", "Encaminhado para avaliação operacional"], proximas_etapas: ["avaliado"], precisa_espelho_nfd: false, precisa_recolhimento: false };
-    case "produto_defeito": return { ...base, etapa_destino: "espelho", resumo: "Produto com defeito.", acoes_automaticas: ["Espelho NFD gerado"], proximas_etapas: ["aguardando_nfd", "aguardando_recolhimento"], precisa_espelho_nfd: true, precisa_recolhimento: true };
+    case "produto_defeito": return { ...base, etapa_destino: "avaliacao", resumo: "Produto com defeito — encaminhado para avaliação.", acoes_automaticas: ["Chamado registrado", "Encaminhado para avaliação operacional"], proximas_etapas: ["avaliado"], precisa_espelho_nfd: false, precisa_recolhimento: false };
     default: return { ...base, etapa_destino: "avaliacao", resumo: "Avaliação manual recomendada.", acoes_automaticas: ["Chamado registrado"], proximas_etapas: [], precisa_espelho_nfd: false, precisa_recolhimento: false, escalacao_humana: true };
   }
 }
