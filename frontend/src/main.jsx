@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import './index.css'
+import { ToastProvider } from './components/Toast.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import VendedorPage from './pages/VendedorPage.jsx'
 import PosVendasPage from './pages/PosVendasPage.jsx'
@@ -61,6 +62,7 @@ function RootRedirect() {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
+    <ToastProvider>
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
@@ -121,5 +123,6 @@ createRoot(document.getElementById('root')).render(
         <Route path="*" element={<RootRedirect />} />
       </Routes>
     </BrowserRouter>
+    </ToastProvider>
   </StrictMode>,
 )

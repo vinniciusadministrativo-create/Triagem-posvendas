@@ -264,7 +264,7 @@ export default function PosVendasPage(){
         <p style={{color:M.txM}}>Acompanhamento e triagem de solicitações em tempo real.</p>
       </header>
 
-      <div 
+      <div
         ref={kanbanRef}
         style={{ display: "flex", gap: 15, overflowX: "auto", paddingBottom: 20 }}
       >

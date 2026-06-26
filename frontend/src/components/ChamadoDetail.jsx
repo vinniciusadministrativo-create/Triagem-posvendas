@@ -1,18 +1,26 @@
-import React, { useState, useEffect, useRef } from "react"; // Final permission fix
+import React, { useState, useEffect, useRef } from "react";
 import { api } from "../api";
 import ShareChamado from "./ShareChamado";
 import DanfeMirror from "./DanfeMirror";
+import { useToast } from "./Toast";
 
 const M = {
   pri: "#9B1B30",
+  priDk: "#7A1526",
   bg: "#fafafa",
+  alt: "#f5f3f0",
   tx: "#1a1a1a",
   txM: "#6b6560",
+  txD: "#9a948d",
   brdN: "#e5e0db",
   err: "#dc2626",
   blue: "#2563eb",
   blueS: "rgba(37,99,235,0.08)",
   blueB: "rgba(37,99,235,0.2)",
+  ok: "#16a34a",
+  okS: "rgba(22,163,74,0.08)",
+  okB: "rgba(22,163,74,0.2)",
+  soft: "rgba(155,27,48,0.07)",
 };
 
 const STATUS_COLOR = {
@@ -40,6 +48,28 @@ function Badge({ label, color }) {
       {label}
     </span>
   );
+}
+
+const AVATAR_COLORS = ["#9B1B30","#2563eb","#059669","#d97706","#7c3aed","#db2777","#0891b2"];
+function avatarColor(name) {
+  let h = 0;
+  for (let i = 0; i < (name||"").length; i++) h = (h + name.charCodeAt(i)) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[h];
+}
+
+function chatDateLabel(dateStr) {
+  const d = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "Hoje";
+  if (d.toDateString() === yesterday.toDateString()) return "Ontem";
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function isImageAttachment(url) {
+  if (!url) return false;
+  const clean = url.split("?")[0].toLowerCase();
+  return /\.(jpg|jpeg|png|gif|webp)$/.test(clean) || (url.includes("res.cloudinary.com") && url.includes("/image/upload/") && !clean.endsWith(".pdf"));
 }
 
 function isLegacyCloudinaryPdf(url) {
@@ -95,6 +125,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
   const canEdit = isAdmin || isPosVendas || isOperacional;
   const canDelete = isAdmin;
   const canShare = isOwner || isAdmin;
+  const toast = useToast();
   const [newStatus, setNewStatus] = useState(chamado.status || "novo");
   const [localRessalva, setLocalRessalva] = useState(chamado.ressalva_vendedor || "");
   const [ressalvaFiles, setRessalvaFiles] = useState([]);
@@ -102,7 +133,11 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
   const [newMessage, setNewMessage] = useState("");
   const [chatFile, setChatFile] = useState(null);
   const messagesEndRef = useRef(null);
+  const chatAreaRef = useRef(null);
   const [saving, setSaving] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [chatVisible, setChatVisible] = useState(false);
+  const lastSeenIdRef = useRef(null);
   const [savingRessalva, setSavingRessalva] = useState(false);
   const [history, setHistory] = useState([]);
   const [pendingRecolhimento, setPendingRecolhimento] = useState(false);
@@ -152,7 +187,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
       await api.getChamado(chamado.id);
     } catch (e) {
      if (e?.status === 404) {
-        alert("Este chamado foi excluído por um administrador.");
+        toast.error("Este chamado foi excluído por um administrador.");
         onClose();
       }
     }
@@ -181,13 +216,35 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
     } catch(e) {}
   };
 
-  const loadMessages = async () => {
+  const loadMessages = async (silent = false) => {
     try {
       const res = await api.getMessages(chamado.id);
-      setMessages(res.messages || []);
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      const msgs = res.messages || [];
+      setMessages(msgs);
+      if (!silent) {
+        lastSeenIdRef.current = msgs[msgs.length - 1]?.id || null;
+        setUnreadCount(0);
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      } else {
+        const lastSeen = lastSeenIdRef.current;
+        const newOnes = lastSeen ? msgs.filter(m => m.id > lastSeen) : [];
+        if (newOnes.length > 0) {
+          if (chatVisible) {
+            lastSeenIdRef.current = msgs[msgs.length - 1].id;
+            setUnreadCount(0);
+            setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+          } else {
+            setUnreadCount(newOnes.length);
+          }
+        }
+      }
     } catch(e) { }
   };
+
+  useEffect(() => {
+    const interval = setInterval(() => loadMessages(true), 10000);
+    return () => clearInterval(interval);
+  }, [chamado.id, chatVisible]);
 
   const handleSendMessage = async (e) => {
   e.preventDefault();
@@ -208,7 +265,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
   } catch (err) {
     setNewMessage(textoBackup);
     setChatFile(arquivoBackup);
-    alert(err?.message || "Erro ao enviar mensagem. O texto foi restaurado — tente novamente.");
+    toast.error(err?.message || "Erro ao enviar mensagem. Tente novamente.");
   } finally {
     setSaving(false);
   }
@@ -274,10 +331,10 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
       if (res?.chamado) setChamado(res.chamado);
       if (onStatusChange) onStatusChange(chamado.id, newStatus);
       if (isAdmin || isPosVendas) loadHistory();
-      alert("Status atualizado!");
+      toast.success("Status atualizado!");
       setPendingRecolhimento(false);
     } catch (e) {
-      alert(e.message);
+      toast.error(e.message || "Erro ao atualizar status.");
     } finally {
       setSaving(false);
     }
@@ -898,69 +955,99 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
           </div> {/* FIM DO LADO ESQUERDO */}
 
           {/* LADO DIREITO: CHAT INTERNO */}
-          <div className="split-right">
-            <div style={{ padding: 15, borderBottom: `1px solid ${M.brdN}`, fontWeight: 800, color: M.tx, fontSize: 14 }}>
-              💬 Chat Interno
+          <div className="split-right" onMouseEnter={() => { setChatVisible(true); if (unreadCount > 0) { setUnreadCount(0); lastSeenIdRef.current = messages[messages.length-1]?.id || null; } }} onMouseLeave={() => setChatVisible(false)}>
+            {/* HEADER DO CHAT */}
+            <div style={{ padding: "12px 15px", borderBottom: `1px solid ${M.brdN}`, fontWeight: 800, color: M.tx, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span>💬 Chat Interno</span>
+              {unreadCount > 0 && (
+                <span style={{ background: M.err, color: "#fff", borderRadius: 20, padding: "2px 9px", fontSize: 11, fontWeight: 800, minWidth: 22, textAlign: "center" }}>
+                  {unreadCount} nova{unreadCount > 1 ? "s" : ""}
+                </span>
+              )}
             </div>
-            
-            <div style={{ flex: 1, padding: 15, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
-              {messages.length === 0 && <p style={{ fontSize: 12, color: M.txM, textAlign: "center", marginTop: 20, fontStyle: "italic" }}>Nenhuma mensagem ainda.</p>}
-              {messages.map(m => {
-                const isMe = m.user_id === user.id;
-                return (
-                  <div key={m.id} style={{ alignSelf: isMe ? "flex-end" : "flex-start", maxWidth: "85%" }}>
-                    <div style={{ fontSize: 9, color: M.txM, marginBottom: 2, textAlign: isMe ? "right" : "left", fontWeight: 700 }}>
-                      {m.user_name} <span style={{ fontWeight: 400 }}>({m.user_role})</span>
-                    </div>
-                    <div 
-                      className={`chat-bubble ${isMe ? "" : "left"}`}
-                      style={{
-                      background: isMe ? M.pri : "#fff",
-                      color: isMe ? "#fff" : M.tx,
-                      padding: "10px 14px",
-                      borderRadius: 14,
-                      border: isMe ? "none" : `1px solid ${M.brdN}`,
-                      fontSize: 13,
-                      lineHeight: 1.5,
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.04)"
-                    }}>
-                      {m.mensagem && <div>{renderMessageText(m.mensagem)}</div>}
-                      {m.anexo && (
-                        <div style={{ marginTop: m.mensagem ? 8 : 0 }}>
-                          <a href={api.fileUrl(m.anexo)} target="_blank" rel="noreferrer" style={{ display: "inline-block", background: isMe ? M.priDk : M.bg, color: isMe ? "#fff" : M.tx, padding: "6px 10px", borderRadius: 8, textDecoration: "none", fontSize: 11, border: `1px solid ${isMe ? M.pri : M.brdN}` }}>
-                            📎 Ver Anexo
-                          </a>
+
+            {/* MENSAGENS */}
+            <div ref={chatAreaRef} style={{ flex: 1, padding: "15px 12px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+              {messages.length === 0 && (
+                <p style={{ fontSize: 12, color: M.txM, textAlign: "center", marginTop: 20, fontStyle: "italic" }}>Nenhuma mensagem ainda.</p>
+              )}
+              {(() => {
+                const items = [];
+                let lastDateLabel = null;
+                messages.forEach(m => {
+                  const dateLabel = chatDateLabel(m.created_at);
+                  if (dateLabel !== lastDateLabel) {
+                    lastDateLabel = dateLabel;
+                    items.push(
+                      <div key={`sep-${m.id}`} style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 0 6px" }}>
+                        <div style={{ flex: 1, height: 1, background: M.brdN }} />
+                        <span style={{ fontSize: 10, color: M.txM, fontWeight: 700, whiteSpace: "nowrap" }}>{dateLabel}</span>
+                        <div style={{ flex: 1, height: 1, background: M.brdN }} />
+                      </div>
+                    );
+                  }
+                  const isMe = m.user_id === user.id;
+                  const aColor = isMe ? M.pri : avatarColor(m.user_name || "");
+                  const hora = new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false });
+                  const isImg = isImageAttachment(m.anexo);
+                  items.push(
+                    <div key={m.id} style={{ display: "flex", flexDirection: isMe ? "row-reverse" : "row", alignItems: "flex-end", gap: 7, marginBottom: 6 }}>
+                      {/* Avatar */}
+                      <div title={m.user_name} style={{ width: 28, height: 28, borderRadius: "50%", background: aColor, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, flexShrink: 0, marginBottom: 2 }}>
+                        {(m.user_name || "?").charAt(0).toUpperCase()}
+                      </div>
+                      {/* Balão */}
+                      <div style={{ maxWidth: "75%" }}>
+                        <div style={{ fontSize: 9, color: M.txM, marginBottom: 3, textAlign: isMe ? "right" : "left", fontWeight: 700 }}>
+                          {m.user_name}
                         </div>
-                      )}
+                        <div style={{
+                          background: isMe ? M.pri : "#fff",
+                          color: isMe ? "#fff" : M.tx,
+                          padding: m.anexo && !m.mensagem ? "6px" : "10px 13px",
+                          borderRadius: isMe ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+                          border: isMe ? "none" : `1px solid ${M.brdN}`,
+                          fontSize: 13,
+                          lineHeight: 1.5,
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
+                        }}>
+                          {m.mensagem && <div>{renderMessageText(m.mensagem)}</div>}
+                          {m.anexo && isImg && (
+                            <a href={m.anexo} target="_blank" rel="noreferrer" style={{ display: "block", marginTop: m.mensagem ? 6 : 0 }}>
+                              <img src={m.anexo} alt="anexo" style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 8, display: "block", objectFit: "cover" }} />
+                            </a>
+                          )}
+                          {m.anexo && !isImg && (
+                            <a href={m.anexo} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: m.mensagem ? 6 : 0, background: isMe ? "rgba(0,0,0,0.15)" : M.bg, color: isMe ? "#fff" : M.tx, padding: "5px 10px", borderRadius: 8, textDecoration: "none", fontSize: 11, border: `1px solid ${isMe ? "rgba(255,255,255,0.2)" : M.brdN}` }}>
+                              📎 Ver Anexo
+                            </a>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 9, color: M.txM, marginTop: 3, textAlign: isMe ? "right" : "left" }}>
+                          {hora}
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ fontSize: 8, color: M.txD, marginTop: 4, textAlign: isMe ? "right" : "left" }}>
-                       {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+                return items;
+              })()}
               <div ref={messagesEndRef} />
             </div>
 
-            <div style={{ padding: 15, borderTop: `1px solid ${M.brdN}`, background: "#fff", display: "flex", flexDirection: "column", gap: 10, position: "relative" }}>
-              
+            {/* INPUT */}
+            <div style={{ padding: 12, borderTop: `1px solid ${M.brdN}`, background: "#fff", display: "flex", flexDirection: "column", gap: 8, position: "relative" }}>
               {showMentions && contacts.length > 0 && (
-                <div style={{ position: "absolute", bottom: "100%", left: 15, right: 15, background: "#fff", border: `1px solid ${M.brdN}`, borderRadius: 10, boxShadow: "0 -4px 15px rgba(0,0,0,0.08)", maxHeight: 180, overflowY: "auto", zIndex: 100, marginBottom: 5 }}>
+                <div style={{ position: "absolute", bottom: "100%", left: 12, right: 12, background: "#fff", border: `1px solid ${M.brdN}`, borderRadius: 10, boxShadow: "0 -4px 15px rgba(0,0,0,0.08)", maxHeight: 180, overflowY: "auto", zIndex: 100, marginBottom: 5 }}>
                   {contacts.filter(c => c.name.toLowerCase().includes(mentionFilter) || c.role.toLowerCase().includes(mentionFilter)).map(c => (
-                    <div 
-                      key={c.id} 
-                      onClick={() => insertMention(c.name)}
-                      style={{ padding: "8px 12px", cursor: "pointer", borderBottom: `1px solid ${M.alt}`, display: "flex", alignItems: "center", gap: 10 }}
-                      onMouseEnter={e => e.currentTarget.style.background = M.bg}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                    >
-                       <div style={{ width: 26, height: 26, borderRadius: "50%", background: M.pri, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800 }}>
-                         {c.name.charAt(0).toUpperCase()}
-                       </div>
-                       <div style={{ fontSize: 12 }}>
-                         <div style={{ fontWeight: 800, color: M.tx }}>{c.name}</div>
-                         <div style={{ fontSize: 10, color: M.txM, textTransform: "uppercase", letterSpacing: 0.5 }}>{c.role}</div>
-                       </div>
+                    <div key={c.id} onClick={() => insertMention(c.name)} style={{ padding: "8px 12px", cursor: "pointer", borderBottom: `1px solid ${M.brdN}`, display: "flex", alignItems: "center", gap: 10 }} onMouseEnter={e => e.currentTarget.style.background = M.bg} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      <div style={{ width: 26, height: 26, borderRadius: "50%", background: M.pri, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800 }}>
+                        {c.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div style={{ fontSize: 12 }}>
+                        <div style={{ fontWeight: 800, color: M.tx }}>{c.name}</div>
+                        <div style={{ fontSize: 10, color: M.txM, textTransform: "uppercase", letterSpacing: 0.5 }}>{c.role}</div>
+                      </div>
                     </div>
                   ))}
                   {contacts.filter(c => c.name.toLowerCase().includes(mentionFilter)).length === 0 && (
@@ -970,27 +1057,35 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
               )}
 
               {chatFile && (
-                <div style={{ fontSize: 11, color: M.blue, background: M.blueS, padding: "6px 10px", borderRadius: 6, display: "flex", justifyContent: "space-between" }}>
-                  <span>📎 {chatFile.name} (Pronto para enviar)</span>
-                  <button onClick={() => setChatFile(null)} style={{ border: "none", background: "none", color: M.err, cursor: "pointer", fontWeight: 700 }}>X</button>
+                <div style={{ fontSize: 11, color: M.blue, background: M.blueS, padding: "6px 10px", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span>📎 {chatFile.name} · {(chatFile.size / 1024).toFixed(0)} KB</span>
+                  <button onClick={() => setChatFile(null)} style={{ border: "none", background: "none", color: M.err, cursor: "pointer", fontWeight: 800, lineHeight: 1 }}>✕</button>
                 </div>
               )}
-              <form onSubmit={handleSendMessage} style={{ display: "flex", gap: 8 }}>
-                <label style={{ display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: M.alt, padding: "0 10px", borderRadius: 10, border: `1px solid ${M.brdN}` }}>
+
+              <form onSubmit={handleSendMessage} style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                <label style={{ display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: M.bg, padding: "0 10px", borderRadius: 10, border: `1px solid ${M.brdN}`, height: 38, flexShrink: 0 }}>
                   <input type="file" style={{ display: "none" }} onChange={e => setChatFile(e.target.files[0])} />
                   📎
                 </label>
-                <input 
-                   ref={inputRef}
-                   placeholder="Ex: @NomeUsuario..." 
-                   style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: `1px solid ${M.brdN}`, fontSize: 13, outline: "none", transition: "border 0.2s" }} 
-                   onFocus={e => e.target.style.borderColor = M.pri}
-                   onBlur={e => { e.target.style.borderColor = M.brdN; setTimeout(() => setShowMentions(false), 200); }}
-                   value={newMessage} 
-                   onChange={handleInputChange} 
+                <textarea
+                  ref={inputRef}
+                  rows={1}
+                  placeholder="Mensagem... (Enter para enviar)"
+                  style={{ flex: 1, padding: "9px 12px", borderRadius: 10, border: `1px solid ${M.brdN}`, fontSize: 13, outline: "none", resize: "none", fontFamily: "inherit", lineHeight: 1.5, maxHeight: 100, overflowY: "auto" }}
+                  onFocus={e => e.target.style.borderColor = M.pri}
+                  onBlur={e => { e.target.style.borderColor = M.brdN; setTimeout(() => setShowMentions(false), 200); }}
+                  value={newMessage}
+                  onChange={handleInputChange}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage(e);
+                    }
+                  }}
                 />
-                <button type="submit" disabled={saving || (!newMessage.trim() && !chatFile)} style={{ background: M.pri, color: "#fff", border: "none", borderRadius: 10, padding: "0 15px", fontWeight: 700, cursor: "pointer", opacity: ((!newMessage.trim() && !chatFile) || saving) ? 0.5 : 1 }}>
-                   Enviar
+                <button type="submit" disabled={saving || (!newMessage.trim() && !chatFile)} style={{ background: M.pri, color: "#fff", border: "none", borderRadius: 10, padding: "0 14px", fontWeight: 700, cursor: "pointer", height: 38, flexShrink: 0, opacity: ((!newMessage.trim() && !chatFile) || saving) ? 0.5 : 1 }}>
+                  ➤
                 </button>
               </form>
             </div>

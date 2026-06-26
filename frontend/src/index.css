@@ -1,21 +1,32 @@
 :root {
-  --text: #374151; /* Cinza bem mais escuro e legível */
-  --text-h: #111827; /* Quase preto para títulos fortes */
+  --text: #374151;
+  --text-h: #111827;
   --bg: #f8fafc;
   --card: #ffffff;
   --border: #e2e8f0;
+  --border-soft: #f0eeec;
   --pri: #9B1B30;
   --pri-glow: rgba(155, 27, 48, 0.15);
   --soft: rgba(155, 27, 48, 0.05);
   --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  
+
   font-family: var(--sans);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
+}
+
+/* ── PAGE TRANSITION ──────────────────────────────── */
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+.page-enter {
+  animation: pageEnter 0.3s ease forwards;
 }
 
 /* Melhorando a visibilidade de parágrafos e textos de apoio */
