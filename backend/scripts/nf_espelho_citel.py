@@ -224,7 +224,6 @@ def extrair_dados(texto, tabelas):
 def _extrair_produtos(texto, tabelas):
     rows = []
 
-    # Palavras-chave que indicam que uma linha NÃO é um produto
     LINHAS_INVALIDAS = [
         "identificacao", "assinatura", "recebedor", "valor do frete",
         "valor do seguro", "desconto", "outras despesas", "valor do ipi",
@@ -232,29 +231,38 @@ def _extrair_produtos(texto, tabelas):
         "emitente", "destinatario", "duplicata", "fatura", "protocolo",
     ]
 
+    found_product_table = False
+    product_col_count = 0
+
+    def _extrair_linhas(tabela, start_row):
+        for row in tabela[start_row:]:
+            if not row or len(row) < 3: continue
+            cells = [str(c).strip() if c else "" for c in row]
+            cod = cells[0].replace(".", "").strip()
+            if not cod.isdigit(): continue
+            linha_texto = " ".join(cells).lower()
+            if any(inv in linha_texto for inv in LINHAS_INVALIDAS): continue
+            rows.append(cells)
+
     for tabela in tabelas:
         if not tabela or len(tabela) < 2: continue
         header = [str(c).lower().strip() if c else "" for c in tabela[0]]
-        # A tabela de produtos deve ter coluna de descrição E de valores
         tem_prod = any(k in h for h in header for k in ["descri", "produto", "servi"])
         tem_val  = any(k in h for h in header for k in ["valor", "total", "unit", "quant"])
-        # Deve ter ao menos 6 colunas (cod, desc, ncm, cst, cfop, un...)
-        if not (tem_prod and tem_val and len(header) >= 6): continue
+        tem_header_valido = tem_prod and tem_val and len(header) >= 6
 
-        for row in tabela[1:]:
-            if not row or len(row) < 3: continue
-            cells = [str(c).strip() if c else "" for c in row]
+        # Tabela de continuação: sem cabeçalho mas mesma estrutura da tabela de produtos
+        primeira_celula = str(tabela[0][0]).replace(".", "").strip() if tabela[0] else ""
+        is_continuacao = (not tem_header_valido and found_product_table
+                          and len(header) >= max(product_col_count - 2, 6)
+                          and primeira_celula.isdigit())
 
-            # A primeira célula deve ser um código numérico (ex: "43568")
-            cod = cells[0].replace(".", "").strip()
-            if not cod.isdigit(): continue
-
-            # Filtra linhas que contenham palavras de seções inválidas
-            linha_texto = " ".join(cells).lower()
-            if any(inv in linha_texto for inv in LINHAS_INVALIDAS): continue
-
-            # Linha pode ser produto válido
-            rows.append(cells)
+        if tem_header_valido:
+            found_product_table = True
+            product_col_count = len(header)
+            _extrair_linhas(tabela, 1)
+        elif is_continuacao:
+            _extrair_linhas(tabela, 0)
 
     # Fallback: regex no texto bruto (mais flexível)
     if not rows:
