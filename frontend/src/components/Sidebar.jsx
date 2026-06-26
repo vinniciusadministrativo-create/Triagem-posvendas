@@ -132,7 +132,7 @@ export default function Sidebar({ user, onLogout, onSwitchUser, isOpen, onToggle
         </nav>
 
         <div style={{ padding: "20px 0", borderTop: `1px solid ${M.brdN}`, opacity: isOpen ? 1 : 0 }}>
-          <button 
+          <button
             onClick={onLogout}
             className="nav-item no-print"
             style={{ width: "calc(100% - 15px)", padding: "12px 22px", textAlign: "left", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "#dc2626" }}
