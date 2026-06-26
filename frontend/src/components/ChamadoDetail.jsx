@@ -880,7 +880,13 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
               <div className="danfe-container" style={{ marginBottom: 20 }}>
                 <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                   <span style={{ fontSize: 11, fontWeight: 800, color: M.txM, textTransform: "uppercase" }}>🧾 Espelho NFD Gerado</span>
-                  <button onClick={() => setShowManualForm(true)} style={{ fontSize: 11, background: "transparent", color: M.blue, border: "none", cursor: "pointer", textDecoration: "underline" }}>Editar Dados</button>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <label style={{ fontSize: 11, color: M.pri, cursor: uploadingPdf ? "not-allowed" : "pointer", textDecoration: "underline", opacity: uploadingPdf ? 0.6 : 1 }}>
+                      {uploadingPdf ? "⏳ Processando..." : "🔄 Reprocessar PDF"}
+                      <input type="file" accept="application/pdf" style={{ display: "none" }} onChange={handleUploadPdf} disabled={uploadingPdf} />
+                    </label>
+                    <button onClick={() => setShowManualForm(true)} style={{ fontSize: 11, background: "transparent", color: M.blue, border: "none", cursor: "pointer", textDecoration: "underline" }}>Editar Dados</button>
+                  </div>
                 </div>
                 <DanfeMirror nf={chamado.nf_data} chamado={chamado} />
               </div>
