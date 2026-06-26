@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import logoMarin from "../assets/logo_marin.png";
 
 const M = {
   pri: "#9B1B30",
@@ -105,7 +106,7 @@ export default function Sidebar({ user, onLogout, onSwitchUser, isOpen, onToggle
       <div className={`sidebar-container ${isOpen ? 'open' : ''}`} style={sidebarStyle}>
         <div style={{ padding: "80px 20px 30px", opacity: isOpen ? 1 : 0, transition: "opacity 0.3s" }}>
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: M.pri }}>MARIN</div>
+            <img src={logoMarin} alt="Marin" style={{ width: 120, height: "auto", borderRadius: 4, marginBottom: 6, display: "block" }} />
             <div style={{ fontSize: 10, color: M.txM, textTransform: "uppercase", letterSpacing: 1 }}>{user?.role}</div>
           </div>
         </div>
