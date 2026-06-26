@@ -16,7 +16,7 @@ const M = {
 const STAGES = [
   { id: "novo", label: "Novo Chamado", color: "#6b7280", icon: "📥" },
   { id: "avaliacao", label: "Avaliação", color: "#f59e0b", icon: "🔍" },
-  { id: "negociacao", label: "Negociação Cliente", color: "#8b5cf6", icon: "🤝" },
+  { id: "avaliado", label: "Avaliado", color: "#8b5cf6", icon: "✔️" },
   { id: "espelho", label: "Emitir Espelho NFD", color: M.pri, icon: "🧾" },
   { id: "aguardando_nfd", label: "Aguard. NFD Cliente", color: "#2563eb", icon: "⏳" },
   { id: "aguardando_recolhimento", label: "Aguard. Recolhimento", color: "#059669", icon: "🚚" },
@@ -63,6 +63,7 @@ export default function VendedorPage({ defaultTab = "novo" }) {
   const [nfData, setNfData] = useState(null); const [evidenceResult, setEvidenceResult] = useState(null);
   const [triageResult, setTriageResult] = useState(null);
   const [ressalvaVendedor, setRessalvaVendedor] = useState("");
+  const [ressalvaSalva, setRessalvaSalva] = useState(false);
   const [agentStatus, setAgentStatus] = useState({ triage: "idle", doc: "idle", evidence: "idle" });
   const [animPhase, setAnimPhase] = useState(0);
   const [formErrors, setFormErrors] = useState({});
@@ -245,7 +246,7 @@ setAgentStatus(p => ({ ...p, triage: "done" }));
 
   const reset = () => {
     setStep(0); setForm({ codigo: "", razaoSocial: "", cnpj: "", responsavel: "", nomeVendedor: user.name || "", telefone: "", emailVendedor: user.email || "", tipoSolicitacao: "", descricao: "", nfOriginal: "" });
-    setNfFile(null); setNfB64(null); setEvidenceFiles([]); setNfData(null); setTriageResult(null); setSavedId(null); setRessalvaVendedor("");
+    setNfFile(null); setNfB64(null); setEvidenceFiles([]); setNfData(null); setTriageResult(null); setSavedId(null); setRessalvaVendedor(""); setRessalvaSalva(false);
   };
 
   const targetStage = triageResult ? STAGES.find(s => s.id === triageResult.etapa_destino) : null;
@@ -390,12 +391,38 @@ if (meusChamados.length === 0) return <p style={{ textAlign: "center", padding: 
         </div>
         <div style={{ marginBottom: 20 }}>
           <label style={{ fontSize: 12, fontWeight: 800, color: M.txM, display: "block", marginBottom: 8 }}>Deseja adicionar alguma ressalva ou observação para o Pós-Vendas?</label>
-          <textarea value={ressalvaVendedor} onChange={e => setRessalvaVendedor(e.target.value)} placeholder="Ex: Cliente tem pressa, produto está na caixa original..." style={{ width: "100%", padding: 12, borderRadius: 10, border: `1px solid ${M.brdN}`, minHeight: 80, fontFamily: "inherit", fontSize: 13, boxSizing: "border-box" }} />
+          <textarea value={ressalvaVendedor} onChange={e => { setRessalvaVendedor(e.target.value); setRessalvaSalva(false); }} placeholder="Ex: Cliente tem pressa, produto está na caixa original..." style={{ width: "100%", padding: 12, borderRadius: 10, border: `1px solid ${M.brdN}`, minHeight: 80, fontFamily: "inherit", fontSize: 13, boxSizing: "border-box" }} />
+          {ressalvaVendedor.trim() && (
+            <button
+              onClick={async () => {
+                try {
+                  const fd = new FormData();
+                  fd.append("ressalva_vendedor", ressalvaVendedor);
+                  await api.updateRessalva(savedId, fd);
+                  setRessalvaSalva(true);
+                } catch (e) {
+                  alert("Erro ao salvar observação. Tente novamente.");
+                }
+              }}
+              style={{ marginTop: 8, padding: "10px 20px", background: M.ok, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 13 }}
+            >
+              {ressalvaSalva ? "✓ Observação salva" : "Enviar Observação"}
+            </button>
+          )}
         </div>
         <div style={{ background: M.soft, padding: 15, borderRadius: 10, marginBottom: 20, border: `1px solid ${M.brd}` }}>
           <p style={{ margin: 0, fontSize: 12, color: M.priDk, fontWeight: 700 }}>✓ Chamado #{savedId} registrado com sucesso.</p>
         </div>
-        <button onClick={reset} style={{ width: "100%", padding: 15, background: M.pri, color: "#fff", border: "none", borderRadius: 10, fontWeight: 800, cursor: "pointer" }}>← Novo Chamado</button>
+        <button onClick={async () => {
+          if (ressalvaVendedor.trim() && !ressalvaSalva) {
+            try {
+              const fd = new FormData();
+              fd.append("ressalva_vendedor", ressalvaVendedor);
+              await api.updateRessalva(savedId, fd);
+            } catch (e) { /* silencioso */ }
+          }
+          reset();
+        }} style={{ width: "100%", padding: 15, background: M.pri, color: "#fff", border: "none", borderRadius: 10, fontWeight: 800, cursor: "pointer" }}>← Novo Chamado</button>
       </div>
     );
   }

@@ -26,7 +26,8 @@ const TIPOS=[
 const STATUSES=[
   {id:"",label:"Todos os status"},
   {id:"novo",label:"Novo"},
-  {id:"negociacao",label:"Negociação"},
+  {id:"avaliacao",label:"Avaliação"},
+  {id:"avaliado",label:"Avaliado"},
   {id:"espelho",label:"Emitir Espelho NFD"},
   {id:"aguardando_nfd",label:"Aguard. NFD"},
   {id:"aguardando_recolhimento",label:"Aguard. Recolhimento"},
@@ -36,7 +37,7 @@ const STATUSES=[
 ];
 
 const STATUS_COLOR={
-  novo:"#6b7280",negociacao:"#8b5cf6",espelho:"#9B1B30",
+  novo:"#6b7280",avaliacao:"#f59e0b",avaliado:"#8b5cf6",espelho:"#9B1B30",
   aguardando_nfd:"#2563eb",aguardando_recolhimento:"#f59e0b",
   recolhido:"#059669",aguardando_financeiro:"#16a34a",encerrado:"#6b7280",
 };
@@ -263,14 +264,14 @@ export default function PosVendasPage(){
         <p style={{color:M.txM}}>Acompanhamento e triagem de solicitações em tempo real.</p>
       </header>
 
-      <div 
+      <div
         ref={kanbanRef}
         style={{ display: "flex", gap: 15, overflowX: "auto", paddingBottom: 20 }}
       >
         {STATUSES.filter(s => {
           if (s.id === "") return false;
           if (isOperacional) {
-            return ["aguardando_recolhimento", "recolhido"].includes(s.id);
+            return ["avaliacao", "avaliado", "aguardando_recolhimento", "recolhido"].includes(s.id);
           }
           return true;
         }).map(column => {

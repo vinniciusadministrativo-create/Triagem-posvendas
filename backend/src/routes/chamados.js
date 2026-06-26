@@ -6,6 +6,7 @@ const os = require("os");
 const pool = require("../db");
 const authMiddleware = require("../middleware/auth");
 const { generatePDFFromJSON } = require("../utils/pythonBridge");
+const { sendStatusUpdateEmail } = require("../utils/mailer");
 const cloudinary = require("cloudinary").v2;
 
 const router = express.Router();
@@ -30,19 +31,21 @@ const upload = multer({
   },
 });
 
+function resolveResourceType(mimetype) {
+  if (!mimetype) return 'raw';
+  if (mimetype.startsWith('image/')) return 'image';
+  if (mimetype.startsWith('video/')) return 'video';
+  return 'raw'; // PDFs e outros documentos
+}
+
 async function uploadToCloudinary(buffer, options = {}, mimetype = 'application/octet-stream') {
-  const cfg = cloudinary.config();
-  console.log("[Cloudinary] config em uso:", JSON.stringify({
-    cloud_name: cfg.cloud_name,
-    api_key: cfg.api_key,
-    secret_len: cfg.api_secret?.length,
-    secret_start: cfg.api_secret?.substring(0, 4),
-  }));
+  const resource_type = resolveResourceType(mimetype);
+  const { resource_type: _ignored, ...rest } = options;
   try {
     const b64 = buffer.toString('base64');
     const result = await cloudinary.uploader.upload(
       `data:${mimetype};base64,${b64}`,
-      { folder: 'triagem_posvendas', ...options }
+      { folder: 'triagem_posvendas', resource_type, ...rest }
     );
     return result;
   } catch (err) {
@@ -329,9 +332,13 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
     console.log("STATUS UPDATE:", JSON.stringify({ status, recolhimento_data }));
     if (!status) return res.status(400).json({ error: "Status obrigatório" });
 
-    // Busca status atual para o histórico
-    const oldRes = await pool.query("SELECT status FROM chamados WHERE id = $1", [req.params.id]);
-    const oldStatus = oldRes.rows[0]?.status;
+    // Busca dados atuais para histórico e e-mail
+    const oldRes = await pool.query(
+      "SELECT status, email_vendedor, nome_vendedor, razao_social FROM chamados WHERE id = $1",
+      [req.params.id]
+    );
+    const oldRow = oldRes.rows[0] || {};
+    const oldStatus = oldRow.status;
 
     let query = `UPDATE chamados SET status = $1, etapa_destino = $1, updated_at = NOW()`;
     let params = [status, req.params.id];
@@ -358,13 +365,24 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
     if (!rows[0]) return res.status(404).json({ error: "Chamado não encontrado" });
 
 
-    // Grava no histórico se mudou
+    // Grava no histórico e envia e-mail se mudou
     if (oldStatus !== status) {
       await pool.query(
         `INSERT INTO chamado_historico (chamado_id, user_id, status_anterior, status_novo)
          VALUES ($1, $2, $3, $4)`,
         [req.params.id, req.user.id, oldStatus, status]
       );
+
+      if (oldRow.email_vendedor) {
+        sendStatusUpdateEmail({
+          toEmail: oldRow.email_vendedor,
+          toName: oldRow.nome_vendedor,
+          chamadoId: req.params.id,
+          razaoSocial: oldRow.razao_social,
+          oldStatus,
+          newStatus: status,
+        }).catch(() => {}); // não bloqueia a resposta
+      }
     }
 
     res.json({ chamado: rows[0] });
@@ -660,10 +678,18 @@ router.post("/:id/messages", authMiddleware(), upload.single("anexo"), async (re
        if (!sh[0]) return res.status(403).json({ error: "Acesso negado para postar chat" });
     }
 
-    const filepath = req.file ? req.file.path : null;
+    let filepath = null;
+    if (req.file) {
+      const uploaded = await uploadToCloudinary(
+        req.file.buffer,
+        { public_id: `chat_${Date.now()}_${Math.random().toString(36).slice(2)}` },
+        req.file.mimetype
+      );
+      filepath = uploaded.secure_url;
+    }
 
     const { rows } = await pool.query(
-      `INSERT INTO chamado_mensagens (chamado_id, user_id, mensagem, anexo) 
+      `INSERT INTO chamado_mensagens (chamado_id, user_id, mensagem, anexo)
        VALUES ($1, $2, $3, $4) RETURNING *`,
       [req.params.id, req.user.id, (mensagem || "").trim(), filepath]
     );

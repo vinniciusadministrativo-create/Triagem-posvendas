@@ -1,8 +1,9 @@
 import React from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 
 export default function Layout() {
+  const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
   const navigate = useNavigate();
@@ -56,7 +57,9 @@ export default function Layout() {
         paddingLeft: isMobile ? "0px" : (isSidebarOpen ? "260px" : "80px"),
         transition: "padding-left 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
       }}>
-        <Outlet />
+        <div key={location.pathname} className="page-enter">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
