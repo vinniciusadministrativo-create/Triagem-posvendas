@@ -231,30 +231,33 @@ def _extrair_produtos(texto, tabelas):
         "emitente", "destinatario", "duplicata", "fatura", "protocolo",
     ]
 
-    found_product_table = False
-    product_col_count = 0
+    def _linha_valida(cells):
+        cod = cells[0].replace(".", "").strip()
+        if not cod.isdigit(): return False
+        linha_texto = " ".join(cells).lower()
+        if any(inv in linha_texto for inv in LINHAS_INVALIDAS): return False
+        return True
 
     def _extrair_linhas(tabela, start_row):
         for row in tabela[start_row:]:
             if not row or len(row) < 3: continue
             cells = [str(c).strip() if c else "" for c in row]
-            cod = cells[0].replace(".", "").strip()
-            if not cod.isdigit(): continue
-            linha_texto = " ".join(cells).lower()
-            if any(inv in linha_texto for inv in LINHAS_INVALIDAS): continue
-            rows.append(cells)
+            if _linha_valida(cells):
+                rows.append(cells)
 
+    # Primeira passagem: tabelas com cabeçalho reconhecível
+    found_product_table = False
+    product_col_count = 0
     for tabela in tabelas:
         if not tabela or len(tabela) < 2: continue
         header = [str(c).lower().strip() if c else "" for c in tabela[0]]
-        tem_prod = any(k in h for h in header for k in ["descri", "produto", "servi"])
-        tem_val  = any(k in h for h in header for k in ["valor", "total", "unit", "quant"])
-        tem_header_valido = tem_prod and tem_val and len(header) >= 6
+        tem_prod = any(k in h for h in header for k in ["descri", "produto", "servi", "cod"])
+        tem_val  = any(k in h for h in header for k in ["valor", "total", "unit", "quant", "qtd", "preco"])
+        tem_header_valido = tem_prod and tem_val and len(header) >= 5
 
-        # Tabela de continuação: sem cabeçalho mas mesma estrutura da tabela de produtos
         primeira_celula = str(tabela[0][0]).replace(".", "").strip() if tabela[0] else ""
         is_continuacao = (not tem_header_valido and found_product_table
-                          and len(header) >= max(product_col_count - 2, 6)
+                          and len(header) >= max(product_col_count - 2, 5)
                           and primeira_celula.isdigit())
 
         if tem_header_valido:
@@ -264,17 +267,23 @@ def _extrair_produtos(texto, tabelas):
         elif is_continuacao:
             _extrair_linhas(tabela, 0)
 
-    # Fallback: regex no texto bruto (mais flexível)
+    # Segunda passagem: qualquer tabela com >= 5 colunas onde primeira célula é código numérico
     if not rows:
-        # Regex que procura: Codigo, Descrição (texto), NCM (8 dig), CST (3 dig), CFOP (4 dig), UN (2-4 letras), Qtd, ValorUnit, ValorTotal
-        # Usamos regex que aceita variações de espaços
-        p_regex = r"(\d{3,7})\s+([A-Z0-0\s\*.-]+?)\s+(\d{8})\s+(\d{3})\s+(\d{4})\s+([A-Z]{2,4})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)"
+        for tabela in tabelas:
+            if not tabela or len(tabela) < 2: continue
+            for row in tabela:
+                if not row or len(row) < 5: continue
+                cells = [str(c).strip() if c else "" for c in row]
+                if _linha_valida(cells):
+                    rows.append(cells)
+
+    # Fallback: regex no texto bruto — corrigido [A-Z0-9]
+    if not rows:
+        p_regex = r"(\d{3,7})\s+([A-Z0-9\s\*./:-]+?)\s+(\d{8})\s+(\d{3})\s+(\d{4})\s+([A-Z]{2,4})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)"
         linhas = re.findall(p_regex, texto, re.MULTILINE)
         for l in linhas:
-            # Força CFOP 5202 e organiza colunas
-            # l[0]=cod, l[1]=desc, l[2]=ncm, l[3]=cst, l[4]=cfop, l[5]=un, l[6]=qtd, l[7]=unit, l[8]=total
             r = list(l)
-            r[4] = "5202" # Força CFOP
+            r[4] = "5202"
             rows.append([r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], "0,00", r[7], r[8]])
 
     return {"rows": rows}
