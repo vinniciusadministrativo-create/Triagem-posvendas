@@ -1,6 +1,7 @@
 const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
 
 /**
  * Executa o script Python para extrair dados de uma NF-e (PDF).

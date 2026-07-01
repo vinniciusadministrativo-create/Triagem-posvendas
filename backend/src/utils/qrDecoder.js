@@ -1,6 +1,14 @@
 const sharp = require("sharp");
 const jsQR = require("jsqr");
 
+/**
+ * Lê um QR Code de uma imagem. Tenta a leitura direta e, se falhar, reprocessa
+ * a imagem com `sharp` (grayscale + normalize + sharpen + resize e, por fim,
+ * inversão de cores) para aumentar a taxa de acerto.
+ *
+ * @param {Buffer} imageBuffer Conteúdo binário da imagem.
+ * @returns {Promise<string|null>} Texto bruto contido no QR Code, ou `null` se não detectado.
+ */
 async function lerQRCode(imageBuffer) {
   try {
     const { data, info } = await sharp(imageBuffer)
@@ -50,6 +58,13 @@ async function lerQRCode(imageBuffer) {
   }
 }
 
+/**
+ * Extrai a chave de acesso de 44 dígitos do conteúdo do QR Code da NF-e/NFC-e.
+ * Suporta os formatos `chNFe=`, `?p=|...|`, caminho `/<44 dígitos>` e fallback livre.
+ *
+ * @param {string|null} qrData Texto bruto lido do QR Code.
+ * @returns {string|null} Chave de acesso (44 dígitos) ou `null` se não encontrada.
+ */
 function extrairChaveAcesso(qrData) {
   if (!qrData) return null;
   const matchParam = qrData.match(/chNFe=(\d{44})/i);
@@ -81,6 +96,16 @@ function formatCNPJ(cnpj) {
   return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
 }
 
+/**
+ * Decodifica a chave de acesso de 44 dígitos nos seus componentes
+ * (UF, CNPJ do emitente, modelo, série e número da nota).
+ *
+ * @param {string} chave Chave de acesso de 44 dígitos.
+ * @returns {{
+ *   chave_acesso: string, uf: string, data_emissao: string,
+ *   cnpj_emitente: string, modelo: string, serie: string, numero: string
+ * }|null} Dados decodificados, ou `null` se a chave for inválida.
+ */
 function decodificarChave(chave) {
   if (!chave || chave.length !== 44) return null;
 
@@ -105,6 +130,15 @@ function decodificarChave(chave) {
   };
 }
 
+/**
+ * Pipeline completo: recebe uma imagem em base64, lê o QR Code, extrai a chave
+ * de acesso e a decodifica. É o ponto de entrada usado pela rota de extração de NF
+ * como assistente para a transcrição manual.
+ *
+ * @param {string} base64Image Imagem codificada em base64 (sem o prefixo data URI).
+ * @returns {Promise<object|null>} Dados decodificados da chave (ver {@link decodificarChave})
+ *          ou `null` se nenhum QR Code válido for encontrado.
+ */
 async function processarQrCodeImagem(base64Image) {
   try {
     const buffer = Buffer.from(base64Image, 'base64');

@@ -1,9 +1,21 @@
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
+/** @returns {string|null} JWT armazenado no localStorage, ou null. */
 function getToken() {
   return localStorage.getItem("token");
 }
 
+/**
+ * Wrapper central sobre `fetch` para chamadas à API.
+ * Injeta o header `Authorization: Bearer <token>` (exceto FormData, que não
+ * recebe Content-Type manual), faz logout automático em 401 e traduz 429 em
+ * mensagem amigável de rate limit.
+ *
+ * @param {string} path Caminho relativo da API (ex.: `/api/chamados`).
+ * @param {RequestInit} [options={}] Opções do fetch (method, body, headers...).
+ * @returns {Promise<any>} Corpo da resposta já parseado como JSON.
+ * @throws {Error & {status:number}} Em respostas não-OK (a mensagem vem de `error`).
+ */
 async function request(path, options = {}) {
   const token = getToken();
   const res = await fetch(`${API_BASE}${path}`, {
@@ -35,6 +47,10 @@ if (!res.ok) {
   return data;
 }
 
+/**
+ * Cliente da API. Cada método encapsula uma chamada HTTP e devolve o JSON da
+ * resposta (ou lança um Error com `.status`). Ver contratos no README.
+ */
 export const api = {
   // Auth
   login: (email, password) =>

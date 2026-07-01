@@ -1,5 +1,17 @@
 const jwt = require("jsonwebtoken");
 
+/**
+ * Middleware de autenticação/autorização via JWT.
+ *
+ * Valida o header `Authorization: Bearer <token>`, decodifica o JWT e injeta o
+ * payload em `req.user`. Se `roles` for informado, restringe o acesso aos perfis
+ * listados (responde 403 caso o `role` do usuário não esteja na lista).
+ *
+ * @param {Array<'vendedor'|'pos_vendas'|'operacional'|'admin'>} [roles=[]]
+ *        Perfis autorizados. Lista vazia = qualquer usuário autenticado.
+ * @returns {import('express').RequestHandler} Middleware do Express.
+ *          Responde 401 (token ausente/inválido/expirado) ou 403 (perfil sem permissão).
+ */
 function authMiddleware(roles = []) {
   return (req, res, next) => {
     const header = req.headers.authorization;
