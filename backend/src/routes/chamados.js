@@ -7,6 +7,7 @@ const pool = require("../db");
 const authMiddleware = require("../middleware/auth");
 const { generatePDFFromJSON } = require("../utils/pythonBridge");
 const { sendStatusUpdateEmail } = require("../utils/mailer");
+const { canAccessChamadoRow, canAccessChamadoById } = require("../utils/chamadoAccess");
 const cloudinary = require("cloudinary").v2;
 
 const router = express.Router();
@@ -31,6 +32,12 @@ const upload = multer({
   },
 });
 
+/**
+ * Mapeia o mimetype de um arquivo para o `resource_type` do Cloudinary.
+ *
+ * @param {string} mimetype Mimetype do arquivo (ex.: `image/png`, `video/mp4`).
+ * @returns {'image'|'video'|'raw'} Tipo de recurso ('raw' para PDFs e demais documentos).
+ */
 function resolveResourceType(mimetype) {
   if (!mimetype) return 'raw';
   if (mimetype.startsWith('image/')) return 'image';
@@ -38,6 +45,17 @@ function resolveResourceType(mimetype) {
   return 'raw'; // PDFs e outros documentos
 }
 
+/**
+ * Faz upload de um buffer para o Cloudinary (pasta `triagem_posvendas`),
+ * resolvendo o `resource_type` a partir do mimetype. O buffer é convertido para
+ * data URI base64 antes do envio.
+ *
+ * @param {Buffer} buffer Conteúdo binário do arquivo.
+ * @param {object} [options={}] Opções extras do upload (ex.: `public_id`). `resource_type` é ignorado (derivado do mimetype).
+ * @param {string} [mimetype='application/octet-stream'] Mimetype do arquivo.
+ * @returns {Promise<object>} Resultado do Cloudinary (inclui `secure_url`).
+ * @throws Repassa o erro do Cloudinary em caso de falha no upload.
+ */
 async function uploadToCloudinary(buffer, options = {}, mimetype = 'application/octet-stream') {
   const resource_type = resolveResourceType(mimetype);
   const { resource_type: _ignored, ...rest } = options;
@@ -150,13 +168,10 @@ router.get("/meus", authMiddleware(["vendedor", "pos_vendas", "admin"]), async (
   }
 });
 
-// GET /api/chamados/file/:filename — serve uploaded file
-// IMPORTANTE: deve vir ANTES de /:id para não conflitar
-router.get("/file/:filename", authMiddleware(), (req, res) => {
-  const filePath = path.join(uploadDir, req.params.filename);
-  if (!fs.existsSync(filePath)) return res.status(404).json({ error: "Arquivo não encontrado" });
-  res.sendFile(filePath);
-});
+// Rota legada GET /file/:filename removida: `uploadDir` nunca foi declarado
+// (causava ReferenceError/500) e os arquivos hoje ficam no Cloudinary (URLs https
+// completas em nf_file_path/evidence_paths). Servir disco aqui também abria risco
+// de path traversal. O frontend usa diretamente a secure_url do Cloudinary.
 
 // POST /api/chamados — criação (vendedor, pos_vendas, admin)
 router.post(
@@ -317,7 +332,8 @@ router.get("/:id", authMiddleware(), async (req, res) => {
       [req.params.id]
     );
     if (!rows[0]) return res.status(404).json({ error: "Chamado não encontrado" });
-    if (req.user.role === "vendedor" && rows[0].vendedor_id !== req.user.id)
+    // vendedor: acessa apenas chamados próprios OU compartilhados com ele
+    if (!(await canAccessChamadoRow(req.user, rows[0])))
       return res.status(403).json({ error: "Acesso negado" });
     res.json({ chamado: rows[0] });
   } catch (e) {
@@ -396,6 +412,16 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
 // Pós-Vendas pode anexar o PDF original para substituir a foto e gerar o espelho automaticamente
 const { extractNFDeterministic } = require("../utils/pythonBridge");
 
+/**
+ * Normaliza a saída bruta do extrator Python (DANFE) para o formato `nf_data`
+ * usado pelo espelho. Mapeia as linhas de produtos por índice, calcula totais a
+ * partir dos itens quando ausentes, formata valores em padrão BR e filtra
+ * "lixo" de cabeçalho do PDF (lista `INVALIDOS`).
+ *
+ * @param {object} det Objeto bruto retornado por `extractNFDeterministic`.
+ * @returns {object} Dados formatados da NF (campos monetários como string BR,
+ *          array `produtos`, flag `isDeterministic: true`).
+ */
 function cleanAndFormatNfData(det) {
   const produtos = (det.produtos?.rows || []).map(r => {
     const len = r.length;
@@ -644,11 +670,15 @@ router.post("/batch-delete", authMiddleware(["admin"]), async (req, res) => {
 // GET /api/chamados/:id/messages
 router.get("/:id/messages", authMiddleware(), async (req, res) => {
   try {
+    // Controle de acesso: vendedor só lê mensagens de chamados próprios/compartilhados
+    if (!(await canAccessChamadoById(req.user, req.params.id))) {
+      return res.status(403).json({ error: "Acesso negado a este chamado" });
+    }
     const { rows } = await pool.query(
-      `SELECT m.*, u.name as user_name, u.role as user_role 
-       FROM chamado_mensagens m 
-       LEFT JOIN users u ON m.user_id = u.id 
-       WHERE m.chamado_id = $1 
+      `SELECT m.*, u.name as user_name, u.role as user_role
+       FROM chamado_mensagens m
+       LEFT JOIN users u ON m.user_id = u.id
+       WHERE m.chamado_id = $1
        ORDER BY m.created_at ASC`,
       [req.params.id]
     );

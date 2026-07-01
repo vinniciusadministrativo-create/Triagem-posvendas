@@ -12,6 +12,30 @@ const STATUS_LABELS = {
   encerrado: "Encerrado",
 };
 
+/**
+ * Escapa caracteres especiais de HTML para evitar injeção de markup no e-mail
+ * a partir de campos preenchidos pelo usuário (razão social, nome do vendedor).
+ *
+ * @param {*} v Valor a ser escapado (convertido para string; null/undefined → "").
+ * @returns {string}
+ */
+function escapeHtml(v) {
+  if (v === null || v === undefined) return "";
+  return String(v)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Cria um transporter do Nodemailer a partir das variáveis de ambiente SMTP.
+ * O modo seguro (TLS) é ativado automaticamente quando a porta é 465.
+ *
+ * @returns {import('nodemailer').Transporter|null} Transporter configurado,
+ *          ou `null` se as variáveis SMTP obrigatórias não estiverem definidas.
+ */
 function createTransporter() {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
@@ -23,6 +47,20 @@ function createTransporter() {
   });
 }
 
+/**
+ * Envia ao vendedor um e-mail HTML notificando a mudança de status de um chamado.
+ * Não lança erro: se o SMTP não estiver configurado, retorna silenciosamente;
+ * falhas de envio são apenas logadas (não bloqueiam o fluxo do chamado).
+ *
+ * @param {object} params
+ * @param {string} params.toEmail E-mail de destino (vendedor).
+ * @param {string} [params.toName] Nome do destinatário.
+ * @param {number|string} params.chamadoId ID do chamado.
+ * @param {string} [params.razaoSocial] Razão social do cliente.
+ * @param {string} params.oldStatus Status anterior.
+ * @param {string} params.newStatus Novo status.
+ * @returns {Promise<void>}
+ */
 async function sendStatusUpdateEmail({ toEmail, toName, chamadoId, razaoSocial, oldStatus, newStatus }) {
   const transporter = createTransporter();
   if (!transporter) return; // SMTP não configurado — silencioso
@@ -37,13 +75,13 @@ async function sendStatusUpdateEmail({ toEmail, toName, chamadoId, razaoSocial, 
         <h2 style="color:#fff;margin:0;font-size:18px;">Marin Logística — Atualização de Chamado</h2>
       </div>
       <div style="padding:24px 28px;">
-        <p style="margin:0 0 16px;color:#1a1a1a;">Olá, <b>${toName || "Vendedor"}</b>.</p>
+        <p style="margin:0 0 16px;color:#1a1a1a;">Olá, <b>${escapeHtml(toName) || "Vendedor"}</b>.</p>
         <p style="margin:0 0 16px;color:#4b5563;">O seu chamado de pós-vendas foi atualizado:</p>
         <table style="width:100%;border-collapse:collapse;font-size:14px;">
-          <tr><td style="padding:8px 0;color:#9a948d;width:140px;">Chamado</td><td style="padding:8px 0;font-weight:700;">#${chamadoId}</td></tr>
-          <tr><td style="padding:8px 0;color:#9a948d;">Cliente</td><td style="padding:8px 0;">${razaoSocial || "—"}</td></tr>
-          <tr><td style="padding:8px 0;color:#9a948d;">Status anterior</td><td style="padding:8px 0;">${oldLabel}</td></tr>
-          <tr><td style="padding:8px 0;color:#9a948d;">Novo status</td><td style="padding:8px 0;font-weight:700;color:#9B1B30;">${newLabel}</td></tr>
+          <tr><td style="padding:8px 0;color:#9a948d;width:140px;">Chamado</td><td style="padding:8px 0;font-weight:700;">#${escapeHtml(chamadoId)}</td></tr>
+          <tr><td style="padding:8px 0;color:#9a948d;">Cliente</td><td style="padding:8px 0;">${escapeHtml(razaoSocial) || "—"}</td></tr>
+          <tr><td style="padding:8px 0;color:#9a948d;">Status anterior</td><td style="padding:8px 0;">${escapeHtml(oldLabel)}</td></tr>
+          <tr><td style="padding:8px 0;color:#9a948d;">Novo status</td><td style="padding:8px 0;font-weight:700;color:#9B1B30;">${escapeHtml(newLabel)}</td></tr>
         </table>
         <p style="margin:24px 0 0;font-size:12px;color:#9a948d;">Este é um e-mail automático. Não responda esta mensagem.</p>
       </div>
@@ -62,6 +100,14 @@ async function sendStatusUpdateEmail({ toEmail, toName, chamadoId, razaoSocial, 
   }
 }
 
+/**
+ * Diagnóstico de SMTP: valida a configuração, testa a conexão (`verify`) e tenta
+ * enviar um e-mail de teste. Usado pela rota `GET /api/diag-smtp`.
+ *
+ * @param {string} toEmail Endereço para onde enviar o e-mail de teste.
+ * @returns {Promise<{config: object, verify: string|null, send: string|null}>}
+ *          Resultado de cada etapa (a senha é mascarada no retorno).
+ */
 async function testSmtp(toEmail) {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
   const result = {

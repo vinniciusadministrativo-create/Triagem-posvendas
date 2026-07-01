@@ -13,13 +13,16 @@ const limiter = rateLimit({
   }
 });
 const path = require("path");
+const authMiddleware = require("./middleware/auth");
 
 console.log("🛠️ Carregando middlewares...");
 const app = express();
 app.set('trust proxy', 1);
 
 // Middleware
-app.use(cors({ origin: process.env.FRONTEND_URL || "*" }));
+// FRONTEND_URL pode listar múltiplas origens separadas por vírgula. Sem ela, mantém "*".
+const allowedOrigins = (process.env.FRONTEND_URL || "*").split(",").map(s => s.trim()).filter(Boolean);
+app.use(cors({ origin: allowedOrigins.includes("*") ? "*" : allowedOrigins }));
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
@@ -38,10 +41,32 @@ app.use("/api/auth", rateLimit({ ...rlOptions, windowMs: 15 * 60 * 1000, max: 20
 app.use("/api", rateLimit({ ...rlOptions, windowMs: 60 * 1000, max: 100 }));
 
 // Security headers
+const CSP = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "script-src 'self'",
+  "connect-src 'self'",
+  // estilos inline (React style={{}}) + Google Fonts
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  // imagens/vídeos servidos pelo Cloudinary
+  "img-src 'self' data: blob: https://res.cloudinary.com",
+  "media-src 'self' https://res.cloudinary.com",
+  // preview do documento original da NF (iframe apontando para o Cloudinary)
+  "frame-src 'self' https://res.cloudinary.com",
+].join("; ");
+
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Content-Security-Policy", CSP);
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   next();
 });
 
@@ -56,12 +81,12 @@ app.use("/api/chat", require("./routes/chat"));
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "ok", ts: new Date().toISOString(), build: "2026-06-25-smtp-diag" }));
 
-// SMTP diagnostic — testa conexão e envia e-mail de teste
-app.get("/api/diag-smtp", async (req, res) => {
+// SMTP diagnostic — restrito a admin; envia o e-mail de teste apenas para o
+// próprio admin autenticado (sem destinatário arbitrário) para evitar abuso de relay.
+app.get("/api/diag-smtp", authMiddleware(["admin"]), async (req, res) => {
   try {
     const { testSmtp } = require("./utils/mailer");
-    const to = req.query.to || process.env.SMTP_USER;
-    const result = await testSmtp(to);
+    const result = await testSmtp(req.user.email || process.env.SMTP_USER);
     res.json(result);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -97,7 +122,9 @@ app.get(/.*/, (req, res) => {
 // Global error handler
 app.use((err, req, res, next) => {
   console.error("Erro global:", err?.message, err?.stack);
-  res.status(500).json({ error: err?.message || "Erro interno do servidor" });
+  // Em produção não expõe detalhes internos do erro ao cliente.
+  const isProd = process.env.NODE_ENV === "production";
+  res.status(500).json({ error: isProd ? "Erro interno do servidor" : (err?.message || "Erro interno do servidor") });
 });
 
 const PORT = process.env.PORT || 3001;
