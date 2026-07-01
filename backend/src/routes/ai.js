@@ -3,6 +3,14 @@ const router = express.Router();
 const authMiddleware = require("../middleware/auth");
 
 // ── REPAIR TRUNCATED JSON ──
+/**
+ * Tenta parsear uma string JSON possivelmente malformada ou truncada.
+ * Remove cercas markdown (```json), descarta lixo antes do primeiro `{`,
+ * fecha aspas/colchetes/chaves pendentes e remove vírgulas finais.
+ *
+ * @param {string} str Texto a ser interpretado como JSON.
+ * @returns {object|null} Objeto parseado, ou `null` se não for recuperável.
+ */
 function repairJSON(str) {
   let s = str.trim().replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
   const i = s.indexOf("{"); if (i < 0) return null;
@@ -21,6 +29,21 @@ function repairJSON(str) {
 }
 
 // ── DETERMINISTIC TRIAGE FALLBACK ──
+/**
+ * Classifica um chamado de pós-vendas por regras de negócio (sem IA), aplicando a
+ * política de devoluções: define o estágio de destino, elegibilidade, necessidade
+ * de espelho NFD/recolhimento e se exige escalação humana.
+ *
+ * @param {object} formData Dados do formulário do chamado.
+ * @param {string} formData.tipoSolicitacao Tipo da solicitação (um dos 7 tipos).
+ * @param {string} [formData.descricao] Descrição livre (analisada por palavras-chave).
+ * @returns {{
+ *   etapa_destino: string, resumo: string, acoes_automaticas: string[],
+ *   proximas_etapas: string[], precisa_espelho_nfd: boolean, precisa_recolhimento: boolean,
+ *   escalacao_humana: boolean, motivo_escalacao: string,
+ *   elegivel_devolucao: boolean, motivo_inelegibilidade: string, observacoes: string
+ * }} Resultado da triagem (gravado em `chamados.triage_result`).
+ */
 function triageDeterministic(formData) {
   const t = formData.tipoSolicitacao;
   const desc = (formData.descricao || "").toLowerCase();
