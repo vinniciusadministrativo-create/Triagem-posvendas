@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import './index.css'
 import { ToastProvider } from './components/Toast.jsx'
 import LoginPage from './pages/LoginPage.jsx'
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
 import VendedorPage from './pages/VendedorPage.jsx'
 import PosVendasPage from './pages/PosVendasPage.jsx'
 import HistoricoPage from './pages/HistoricoPage.jsx'
@@ -66,7 +67,8 @@ createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+
         {/* ROTAS COM SIDEBAR */}
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route path="/" element={<RootRedirect />} />

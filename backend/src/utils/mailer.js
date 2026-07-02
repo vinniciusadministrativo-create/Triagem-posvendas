@@ -145,4 +145,49 @@ async function testSmtp(toEmail) {
   return result;
 }
 
-module.exports = { sendStatusUpdateEmail, testSmtp };
+/**
+ * Envia o e-mail de redefinição de senha com o código numérico.
+ *
+ * @param {object} params
+ * @param {string} params.toEmail Destino.
+ * @param {string} [params.toName] Nome do destinatário.
+ * @param {string} params.code Código numérico de verificação.
+ * @returns {Promise<boolean>} `true` se enviado; `false` se o SMTP não estiver configurado.
+ */
+async function sendPasswordResetEmail({ toEmail, toName, code }) {
+  const transporter = createTransporter();
+  if (!transporter) return false; // SMTP não configurado — silencioso
+
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;background:#fafafa;border-radius:10px;overflow:hidden;border:1px solid #e5e0db;">
+      <div style="background:#9B1B30;padding:20px 28px;">
+        <h2 style="color:#fff;margin:0;font-size:18px;">Marin Logística — Redefinição de Senha</h2>
+      </div>
+      <div style="padding:24px 28px;">
+        <p style="margin:0 0 16px;color:#1a1a1a;">Olá, <b>${escapeHtml(toName) || "usuário"}</b>.</p>
+        <p style="margin:0 0 16px;color:#4b5563;">Recebemos um pedido para redefinir a sua senha. Use o código abaixo na tela de redefinição para criar uma nova senha:</p>
+        <div style="text-align:center;margin:24px 0;">
+          <div style="display:inline-block;background:#fff;border:1px solid #e5e0db;border-radius:10px;padding:16px 28px;font-size:32px;font-weight:800;letter-spacing:8px;color:#9B1B30;font-family:'Courier New',monospace;">${escapeHtml(code)}</div>
+        </div>
+        <p style="margin:0 0 8px;font-size:12px;color:#9a948d;">O código expira em 15 minutos e só pode ser usado uma vez.</p>
+        <p style="margin:0;font-size:12px;color:#9a948d;">Se você não solicitou esta redefinição, ignore este e-mail — sua senha continua a mesma.</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"Pós-Vendas Marin" <${from}>`,
+      to: toEmail,
+      subject: "Código de redefinição de senha — Pós-Vendas Marin",
+      html,
+    });
+    return true;
+  } catch (err) {
+    console.error("[Mailer] Falha ao enviar e-mail de redefinição:", err.message);
+    return false;
+  }
+}
+
+module.exports = { sendStatusUpdateEmail, testSmtp, sendPasswordResetEmail };

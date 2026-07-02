@@ -56,6 +56,12 @@ export const api = {
   login: (email, password) =>
     request("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
   me: () => request("/api/auth/me"),
+  forgotPassword: (email) =>
+    request("/api/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
+  verifyCode: (email, code) =>
+    request("/api/auth/verify-code", { method: "POST", body: JSON.stringify({ email, code }) }),
+  resetPassword: (email, code, password) =>
+    request("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ email, code, password }) }),
 
   // Chamados
   createChamado: (formData) =>
