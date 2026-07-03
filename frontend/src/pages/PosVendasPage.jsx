@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { api } from "../api";
 import ChamadoDetail from "../components/ChamadoDetail";
+import { useToast } from "../components/Toast";
 
 const M = {
   pri:"#9B1B30",priDk:"#7A1526",bg:"#fafafa",card:"#fff",alt:"#f5f3f0",
@@ -53,6 +54,7 @@ function Badge({label,color}){
 // Removido ChamadoDetail interno, utilizando componente compartilhado
 
 export default function PosVendasPage(){
+  const toast = useToast();
   const[chamados,setChamados]=useState([]);
   const[total,setTotal]=useState(0);
   const[loading,setLoading]=useState(false);
@@ -155,7 +157,7 @@ export default function PosVendasPage(){
       await api.deleteChamado(id);
       load(page);
       setSelected(null);
-    }catch(e){alert("Erro ao excluir. Apenas o Admin tem essa permissão.");}
+    }catch(e){toast.error("Erro ao excluir. Apenas o Admin tem essa permissão.");}
   };
 
   const handleRecolhimentoSubmit = async (e) => {
@@ -165,7 +167,7 @@ export default function PosVendasPage(){
     const { chamadoId, columnId, ch } = pendingRecolhimento;
     
     if (recolhimentoData.tipo_frete === "transportadora" && !recolhimentoData.nome_transportadora.trim()) {
-      alert("Por favor, informe o nome da transportadora.");
+      toast.error("Por favor, informe o nome da transportadora.");
       return;
     }
 
@@ -175,7 +177,7 @@ export default function PosVendasPage(){
       await api.updateStatus(chamadoId, columnId, { recolhimento_data: recolhimentoData });
     } catch(err) {
       setChamados(p => p.map(c => c.id == chamadoId ? { ...c, status: ch.status } : c));
-      alert("Erro ao mudar status.");
+      toast.error("Erro ao mudar status.");
     }
   };
 
@@ -302,7 +304,7 @@ export default function PosVendasPage(){
                     await api.updateStatus(id, column.id);
                   } catch(err) {
                     setChamados(p => p.map(c => c.id == id ? { ...c, status: ch.status } : c));
-                    alert("Erro ao mudar status.");
+                    toast.error("Erro ao mudar status.");
                   }
                 }
               }}

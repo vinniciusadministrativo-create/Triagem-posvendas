@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../api";
+import { useToast } from "./Toast";
+import { useConfirm } from "./Confirm";
 
 const M = {
   pri: "#9B1B30",
@@ -12,6 +14,8 @@ const M = {
 };
 
 export default function ShareChamado({ chamadoId, onShared }) {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [contacts, setContacts] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,14 +40,14 @@ export default function ShareChamado({ chamadoId, onShared }) {
   };
 
   const handleShare = async (userId) => {
-    if (!window.confirm("Deseja compartilhar acesso a este chamado com este usuário?")) return;
+    if (!await confirm("Deseja compartilhar acesso a este chamado com este usuário?", { title: "Compartilhar chamado", confirmLabel: "Compartilhar" })) return;
     try {
       await api.shareChamado(chamadoId, userId);
-      alert("Chamado compartilhado com sucesso!");
+      toast.success("Chamado compartilhado com sucesso!");
       setIsOpen(false);
       if (onShared) onShared();
     } catch (e) {
-      alert("Erro ao compartilhar: " + e.message);
+      toast.error("Erro ao compartilhar: " + e.message);
     }
   };
 

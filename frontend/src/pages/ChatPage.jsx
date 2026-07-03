@@ -1,11 +1,14 @@
 import React,{useState,useEffect,useRef,useCallback}from"react";
 import{M,ROLES,API,tok,me,hdrs,fmtTime,fmtHora,Avatar,Badge,FilePreview}from"../components/ChatUtils";
+import{useToast}from"../components/Toast";
+import{useConfirm}from"../components/Confirm";
 
 const myUser=me();
 const authH=()=>({Authorization:`Bearer ${tok()}`});
 
 // ── Modal criar grupo ──────────────────────────────────────────────
 function NovoGrupoModal({onClose,onCriado}){
+  const toast=useToast();
   const[nome,setNome]=useState("");
   const[desc,setDesc]=useState("");
   const[todos,setTodos]=useState([]);
@@ -14,10 +17,10 @@ function NovoGrupoModal({onClose,onCriado}){
   const toggle=id=>setSel(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);
   const submit=async e=>{
     e.preventDefault();
-    if(!nome.trim()||sel.length<1)return alert("Dê um nome e selecione ao menos 1 membro.");
+    if(!nome.trim()||sel.length<1){toast.warning("Dê um nome e selecione ao menos 1 membro.");return;}
     const r=await fetch(`${API}/grupos`,{method:"POST",headers:hdrs(),body:JSON.stringify({nome,descricao:desc,membros:sel})});
     const d=await r.json();
-    if(r.ok){onCriado(d.grupo);}else alert(d.error||"Erro ao criar grupo.");
+    if(r.ok){onCriado(d.grupo);}else toast.error(d.error||"Erro ao criar grupo.");
   };
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000}}>
@@ -84,6 +87,8 @@ function Balao({msg,isMeu,onEdit,onDelete}){
 
 // ── Página principal ───────────────────────────────────────────────
 export default function ChatPage(){
+  const toast=useToast();
+  const confirm=useConfirm();
   const[contatos,setContatos]=useState([]);
   const[grupos,setGrupos]=useState([]);
   const[ativo,setAtivo]=useState(null); // {tipo:"dm"|"grupo", dados:{...}}
@@ -182,29 +187,29 @@ const enviar=async e=>{
     const r=await fetch(`${API}/mensagens`,{method:"POST",headers:authH(),body:fd});
     const d=await r.json();
     if(r.ok){setMsgs(p=>p.map(m=>m.id===tmp.id?{...m,...d.mensagem}:m));ultimoId.current=Math.max(ultimoId.current,d.mensagem.id);fetchContatos();fetchGrupos(); if(fileRef.current)fileRef.current.value="";}
-    else{setMsgs(p=>p.filter(m=>m.id!==tmp.id));setTexto(textoBackup);setArquivo(arquivoBackup);alert(d.error||"Erro ao enviar mensagem.");}
+    else{setMsgs(p=>p.filter(m=>m.id!==tmp.id));setTexto(textoBackup);setArquivo(arquivoBackup);toast.error(d.error||"Erro ao enviar mensagem.");}
   }catch(e){
     setMsgs(p=>p.filter(m=>m.id!==tmp.id));
     setTexto(textoBackup);
     setArquivo(arquivoBackup);
-    alert("Erro ao enviar mensagem. Tente novamente.");
+    toast.error("Erro ao enviar mensagem. Tente novamente.");
   }
   finally{setEnviando(false);}
 };
   const deletar=async id=>{
-    if(!window.confirm("Apagar mensagem?"))return;
+    if(!await confirm("Apagar mensagem?",{confirmLabel:"Apagar",variant:"danger"}))return;
     await fetch(`${API}/mensagens/${id}`,{method:"DELETE",headers:authH()});
     setMsgs(p=>p.map(m=>m.id===id?{...m,deletada:true,conteudo:"Mensagem apagada"}:m));
   };
   const excluirGrupo=async g=>{
-    if(!window.confirm(`Excluir o grupo "${g.nome}"? Esta ação não pode ser desfeita.`))return;
+    if(!await confirm(`Excluir o grupo "${g.nome}"? Esta ação não pode ser desfeita.`,{title:"Excluir grupo",confirmLabel:"Excluir",variant:"danger"}))return;
     try {
       const r=await fetch(`${API}/grupos/${g.id}`,{method:"DELETE",headers:authH()});
       const d=await r.json().catch(()=>({}));
       if(r.ok){fetchGrupos();if(ativo?.dados?.id===g.id)setAtivo(null);}
-      else alert(d.error||"Erro ao excluir grupo.");
+      else toast.error(d.error||"Erro ao excluir grupo.");
     } catch(e) {
-      alert("Erro ao excluir grupo.");
+      toast.error("Erro ao excluir grupo.");
     }
   };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useToast } from "../components/Toast";
 
 const API_BASE = "/api";
 const token = () => localStorage.getItem("token");
@@ -127,6 +128,7 @@ function Section({ title, children, action }) {
 }
 
 export default function RelatoriosPage() {
+  const toast = useToast();
   const [resumo, setResumo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -212,7 +214,7 @@ export default function RelatoriosPage() {
         await downloadBlob(r, `chamados_${Date.now()}.csv`);
       }
     } catch (e) {
-      alert("Erro ao exportar: " + e.message);
+      toast.error("Erro ao exportar: " + e.message);
     } finally {
       setExportLoading(false);
     }

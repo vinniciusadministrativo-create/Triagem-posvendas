@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../api";
+import { useToast } from "./Toast";
 
 const M = {
   pri: "#9B1B30",
@@ -64,6 +65,7 @@ const BxView = ({ label, value, style = {} }) => (
 // --- COMPONENT ---
 
 export default function DanfeMirror({ nf: nfRaw, chamado }) {
+  const toast = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [localNF, setLocalNF] = useState({});
   const [origProds, setOrigProds] = useState([]);
@@ -165,11 +167,11 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
     setSaving(true);
     try {
       await api.updateNFData(chamado.id, localNF);
-      alert("Sucesso!");
+      toast.success("Dados do espelho salvos com sucesso!");
       setIsEditing(false);
       setOrigProds((localNF.produtos || []).map(p => ({ ...p })));
     } catch (e) {
-      alert("Erro: " + e.message);
+      toast.error("Erro: " + e.message);
     } finally { setSaving(false); }
   };
 
