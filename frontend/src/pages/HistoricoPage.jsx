@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { api } from "../api";
 import ChamadoDetail from "../components/ChamadoDetail";
+import { useToast } from "../components/Toast";
 
 const M = {
   pri:"#9B1B30",
@@ -24,6 +25,7 @@ function Badge({label,color}){
 }
 
 export default function HistoricoPage() {
+  const toast = useToast();
   const [chamados, setChamados] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -57,7 +59,7 @@ export default function HistoricoPage() {
       load(page);
       setSelected(null);
     } catch (e) {
-      alert("Erro ao excluir. Apenas o Admin tem essa permissão.");
+      toast.error("Erro ao excluir. Apenas o Admin tem essa permissão.");
     }
   };
 

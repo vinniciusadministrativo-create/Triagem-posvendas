@@ -104,6 +104,7 @@ export const api = {
   getContacts: () => request("/api/users/contacts"),
   createUser: (data) => request("/api/users", { method: "POST", body: JSON.stringify(data) }),
   updateUser: (id, data) => request(`/api/users/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteUser: (id) => request(`/api/users/${id}`, { method: "DELETE" }),
   changePassword: (id, current_password, new_password) =>
     request(`/api/users/${id}/password`, { method: "PATCH", body: JSON.stringify({ current_password, new_password }) }),
 

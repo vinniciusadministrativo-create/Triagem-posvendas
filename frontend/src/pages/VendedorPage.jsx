@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../api";
 import ChamadoDetail from "../components/ChamadoDetail";
+import { useToast } from "../components/Toast";
 
 const M = {
   pri: "#9B1B30", priDk: "#7A1526", priLt: "#B82840", priDeep: "#5E1220",
@@ -55,6 +56,7 @@ function VInput({ label, value, onChange, placeholder, maxLength, type = "text",
 }
 
 export default function VendedorPage({ defaultTab = "novo" }) {
+  const toast = useToast();
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({ codigo: "", razaoSocial: "", cnpj: "", responsavel: "", nomeVendedor: user.name || "", telefone: "", emailVendedor: user.email || "", tipoSolicitacao: "", descricao: "", nfOriginal: "" });
@@ -172,7 +174,7 @@ export default function VendedorPage({ defaultTab = "novo" }) {
     if (!validate()) return;
 
      if (!navigator.onLine) {
-    alert("Sem conexão com a internet. Verifique sua rede e tente novamente.");
+    toast.warning("Sem conexão com a internet. Verifique sua rede e tente novamente.");
     return;
   }
 
@@ -238,7 +240,7 @@ setAgentStatus(p => ({ ...p, triage: "done" }));
     } catch (e) {
       console.error(e);
       setStep(0);
-      alert(e?.response?.data?.error || e.message || "Erro ao processar chamado. Tente novamente.");
+      toast.error(e?.response?.data?.error || e.message || "Erro ao processar chamado. Tente novamente.");
     } finally {
       clearInterval(timerRef.current);
     }
@@ -401,7 +403,7 @@ if (meusChamados.length === 0) return <p style={{ textAlign: "center", padding: 
                   await api.updateRessalva(savedId, fd);
                   setRessalvaSalva(true);
                 } catch (e) {
-                  alert("Erro ao salvar observação. Tente novamente.");
+                  toast.error("Erro ao salvar observação. Tente novamente.");
                 }
               }}
               style={{ marginTop: 8, padding: "10px 20px", background: M.ok, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 13 }}

@@ -3,6 +3,7 @@ import { api } from "../api";
 import ShareChamado from "./ShareChamado";
 import DanfeMirror from "./DanfeMirror";
 import { useToast } from "./Toast";
+import { useConfirm } from "./Confirm";
 
 const M = {
   pri: "#9B1B30",
@@ -77,6 +78,7 @@ function isLegacyCloudinaryPdf(url) {
 }
 
 function AttachmentCard({ filename, label }) {
+  const toast = useToast();
   if (!filename) return null;
   const url = (filename.startsWith('http://') || filename.startsWith('https://'))
   ? filename
@@ -90,7 +92,7 @@ function AttachmentCard({ filename, label }) {
 
   const handleClick = () => {
     if (isLegacyPdf) {
-      alert("Este PDF foi enviado antes de uma atualização do sistema e não pode ser visualizado. Por favor, reenvie o arquivo neste chamado usando o botão 'Anexar PDF Original'.");
+      toast.warning("Este PDF foi enviado antes de uma atualização do sistema e não pode ser visualizado. Por favor, reenvie o arquivo neste chamado usando o botão 'Anexar PDF Original'.");
       return;
     }
     window.open(url, "_blank");
@@ -126,6 +128,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
   const canDelete = isAdmin;
   const canShare = isOwner || isAdmin;
   const toast = useToast();
+  const confirm = useConfirm();
   const [newStatus, setNewStatus] = useState(chamado.status || "novo");
   const [localRessalva, setLocalRessalva] = useState(chamado.ressalva_vendedor || "");
   const [ressalvaFiles, setRessalvaFiles] = useState([]);
@@ -343,7 +346,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
   const handleRecolhimentoSubmit = async (e) => {
     e.preventDefault();
     if (recolhimentoData.tipo_frete === "transportadora" && !recolhimentoData.nome_transportadora.trim()) {
-      alert("Por favor, informe o nome da transportadora.");
+      toast.error("Por favor, informe o nome da transportadora.");
       return;
     }
     await executeSave(recolhimentoData);
@@ -357,10 +360,10 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
       ressalvaFiles.forEach((file) => fd.append("ressalva_arquivos", file));
       
       await api.updateRessalva(chamado.id, fd);
-      alert("Observação enviada com sucesso!");
+      toast.success("Observação enviada com sucesso!");
       setRessalvaFiles([]);
     } catch (e) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setSavingRessalva(false);
     }
@@ -372,7 +375,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
     const file = e.target.files[0];
     if (!file) return;
     if (file.type !== "application/pdf") {
-      alert("Por favor, selecione apenas arquivos PDF.");
+      toast.error("Por favor, selecione apenas arquivos PDF.");
       return;
     }
 
@@ -387,10 +390,10 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
         setChamado(res.chamado);
       }
       
-      alert("PDF processado com sucesso! O Espelho foi gerado automaticamente.");
+      toast.success("PDF processado com sucesso! O Espelho foi gerado automaticamente.");
       // onStatusChange(chamado.id, chamado.status); // Removido para não fechar o modal
     } catch (err) {
-      alert("Erro ao processar PDF: " + err.message);
+      toast.error("Erro ao processar PDF: " + err.message);
     } finally {
       setUploadingPdf(false);
       e.target.value = null; // reseta input
@@ -411,11 +414,11 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
         setChamado(res.chamado);
       }
 
-      alert("Dados da NF salvos com sucesso! O espelho agora pode ser emitido.");
+      toast.success("Dados da NF salvos com sucesso! O espelho agora pode ser emitido.");
       setShowManualForm(false);
       // if (onStatusChange) onStatusChange(chamado.id, chamado.status);
     } catch (e) {
-      alert("Erro ao salvar dados da NF: " + e.message);
+      toast.error("Erro ao salvar dados da NF: " + e.message);
     }
   };
 
@@ -952,7 +955,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
             {canDelete && (
               <button 
                 className="no-print"
-                onClick={() => { if(window.confirm("Tem certeza que deseja excluir?")) onDelete(chamado.id); }} 
+                onClick={async () => { if(await confirm("Tem certeza que deseja excluir este chamado permanentemente?", { title: "Excluir chamado", confirmLabel: "Excluir", variant: "danger" })) onDelete(chamado.id); }}
                 style={{ marginTop: 30, width: "100%", padding: 12, background: "transparent", color: M.err, border: `1px solid ${M.err}`, borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13 }}
               >
                 🗑️ Excluir Chamado Permanentemente
