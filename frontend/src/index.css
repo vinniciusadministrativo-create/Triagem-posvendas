@@ -86,11 +86,16 @@ p, .selectable-text, .chat-bubble, .danfe-mirror-container {
   cursor: default;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   background-color: var(--bg);
   color: var(--text);
   line-height: 1.5;
+  overflow-x: hidden;
 }
 
 /* Remove o contorno azul "piscante" padrão do Chrome e coloca um glow suave */
@@ -225,6 +230,7 @@ main, .card, .v-container {
 
 .split-left {
   flex: 1.2;
+  min-width: 0;
   padding: 30px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -235,11 +241,17 @@ main, .card, .v-container {
 
 .split-right {
   flex: 0.8;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   background: #fff;
-  min-width: 380px;
   overflow: hidden;
+}
+
+@media (min-width: 851px) {
+  .split-right {
+    min-width: 380px;
+  }
 }
 
 .modal-wrapper {
