@@ -108,9 +108,13 @@ export default function PosVendasPage(){
       rafRef.current = requestAnimationFrame(loop);
     };
 
-    const handleGlobalMouseMove = (e) => {
+    // Só deve auto-rolar durante um arraste real de card (evento "dragover",
+    // que só dispara com um drag HTML5 ativo). Usar "mousemove" aqui fazia o
+    // board rolar sozinho atrás de qualquer modal aberto sempre que o mouse
+    // passava perto da borda da tela, sem nenhum card sendo arrastado.
+    const handleDragOverScroll = (e) => {
       if (!kanbanRef.current) return;
-      
+
       const mouseX = e.clientX;
       const screenWidth = window.innerWidth;
       const edgeSize = 350; // Área de gatilho bem generosa
@@ -133,14 +137,12 @@ export default function PosVendasPage(){
 
     const stop = () => { scrollSpeed.current = 0; };
 
-    window.addEventListener("mousemove", handleGlobalMouseMove);
-    window.addEventListener("dragover", handleGlobalMouseMove); // Para funcionar no arraste também
+    window.addEventListener("dragover", handleDragOverScroll);
     window.addEventListener("mouseup", stop);
     window.addEventListener("dragend", stop);
 
     return () => {
-      window.removeEventListener("mousemove", handleGlobalMouseMove);
-      window.removeEventListener("dragover", handleGlobalMouseMove);
+      window.removeEventListener("dragover", handleDragOverScroll);
       window.removeEventListener("mouseup", stop);
       window.removeEventListener("dragend", stop);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
