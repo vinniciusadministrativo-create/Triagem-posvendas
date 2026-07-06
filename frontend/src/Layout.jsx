@@ -52,8 +52,10 @@ export default function Layout() {
       )}
       <main style={{
         flex: 1,
+        minWidth: 0,
         minHeight: "100vh",
         position: "relative",
+        overflowX: "hidden",
         paddingLeft: isMobile ? "0px" : (isSidebarOpen ? "260px" : "0px"),
         transition: "padding-left 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
       }}>
