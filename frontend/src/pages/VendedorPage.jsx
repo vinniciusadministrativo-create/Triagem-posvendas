@@ -69,7 +69,6 @@ export default function VendedorPage({ defaultTab = "novo" }) {
   const [agentStatus, setAgentStatus] = useState({ triage: "idle", doc: "idle", evidence: "idle" });
   const [animPhase, setAnimPhase] = useState(0);
   const [formErrors, setFormErrors] = useState({});
-  const [elapsed, setElapsed] = useState(0);
   const [savedId, setSavedId] = useState(null);
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [meusChamados, setMeusChamados] = useState([]);
@@ -77,7 +76,6 @@ export default function VendedorPage({ defaultTab = "novo" }) {
   const [selected, setSelected] = useState(null);
   const [erroChamados, setErroChamados] = useState(null);
   const fRef = useRef(null); const evRef = useRef(null);
-  const timerRef = useRef(null);
 
   useEffect(() => {
     setActiveTab(defaultTab);
@@ -178,8 +176,7 @@ export default function VendedorPage({ defaultTab = "novo" }) {
     return;
   }
 
-    setStep(1); setElapsed(0);
-    timerRef.current = setInterval(() => setElapsed(p => p + 1), 1000);
+    setStep(1);
 
     const isTest = false;
 
@@ -241,8 +238,6 @@ setAgentStatus(p => ({ ...p, triage: "done" }));
       console.error(e);
       setStep(0);
       toast.error(e?.response?.data?.error || e.message || "Erro ao processar chamado. Tente novamente.");
-    } finally {
-      clearInterval(timerRef.current);
     }
   };
 
@@ -277,7 +272,7 @@ setAgentStatus(p => ({ ...p, triage: "done" }));
         )}
       </div>
 
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}`}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 
@@ -374,14 +369,10 @@ if (meusChamados.length === 0) return <p style={{ textAlign: "center", padding: 
       </div>
     );
     if (step === 1) return (
-      <div style={{ textAlign: "center", padding: 40 }}>
-        <h2>🤖 Processando Triagem Automática...</h2>
-        <p>{elapsed}s</p>
-        <div style={{ maxWidth: 300, margin: "0 auto", textAlign: "left", marginTop: 20 }}>
-          <div style={{ marginBottom: 10 }}><AgentDot status={agentStatus.triage} /> Classificando Solicitação</div>
-          <div style={{ marginBottom: 10 }}><AgentDot status={agentStatus.doc} /> Analisando Documentos</div>
-          <div style={{ marginBottom: 10 }}><AgentDot status={agentStatus.evidence} /> Verificando Evidências</div>
-        </div>
+      <div style={{ textAlign: "center", padding: "60px 40px" }}>
+        <div style={{ width: 46, height: 46, margin: "0 auto 22px", border: `4px solid ${M.brdN}`, borderTopColor: M.pri, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: M.tx }}>Enviando chamado...</h2>
+        <p style={{ color: M.txM, fontSize: 13, marginTop: 6 }}>Aguarde um instante.</p>
       </div>
     );
     return (
