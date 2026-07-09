@@ -1,5 +1,6 @@
 const express = require("express");
 const multer = require("multer");
+const axios = require("axios");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
@@ -350,15 +351,44 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
 
     // Busca dados atuais para histórico e e-mail
     const oldRes = await pool.query(
-      "SELECT status, email_vendedor, nome_vendedor, razao_social FROM chamados WHERE id = $1",
+      "SELECT status, email_vendedor, nome_vendedor, razao_social, nf_data, nf_file_path FROM chamados WHERE id = $1",
       [req.params.id]
     );
     const oldRow = oldRes.rows[0] || {};
     const oldStatus = oldRow.status;
 
+    // ── Auto-extração do espelho ──
+    // Ao mover para "espelho" sem nf_data utilizável, baixa o PDF já anexado
+    // (Cloudinary, resource_type 'raw') e extrai os dados automaticamente.
+    // Best-effort: falha aqui não bloqueia a mudança de status.
+    let autoNfData = null;
+    let curNfData = oldRow.nf_data;
+    if (typeof curNfData === "string") { try { curNfData = JSON.parse(curNfData); } catch { curNfData = null; } }
+    const fileUrl = oldRow.nf_file_path || "";
+    const isPdfUrl = /^https?:\/\//i.test(fileUrl) && (/\.pdf(\?|$)/i.test(fileUrl) || fileUrl.includes("/raw/upload/"));
+    if (status === "espelho" && (!curNfData || curNfData.manual_required) && isPdfUrl) {
+      const tempPath = path.join(os.tmpdir(), `nf_auto_${Date.now()}.pdf`);
+      try {
+        const dl = await axios.get(fileUrl, { responseType: "arraybuffer", timeout: 30000, maxContentLength: 20 * 1024 * 1024 });
+        fs.writeFileSync(tempPath, dl.data);
+        const rawDet = await extractNFDeterministic(tempPath);
+        autoNfData = cleanAndFormatNfData(rawDet);
+        autoNfData.manual_required = false;
+      } catch (e) {
+        console.warn(`Auto-extração do espelho falhou (chamado ${req.params.id}):`, e.message);
+      } finally {
+        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+      }
+    }
+
     let query = `UPDATE chamados SET status = $1, etapa_destino = $1, updated_at = NOW()`;
     let params = [status, req.params.id];
     let nextParamIndex = 3;
+
+    if (autoNfData) {
+      query += `, nf_data = $${nextParamIndex++}`;
+      params.push(autoNfData);
+    }
 
     if (recolhimento_data !== undefined) {
       query += `, recolhimento_data = $${nextParamIndex++}`;

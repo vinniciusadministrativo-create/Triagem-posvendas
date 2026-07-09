@@ -43,6 +43,10 @@ const STATUSES = [
   { id: "encerrado", label: "Encerrado" },
 ];
 
+// Etapas em que o espelho NFD (e sua UI de apoio, como a transcrição manual)
+// fica visível: de "Emitir Espelho NFD" em diante. Antes disso, nada de espelho.
+const MIRROR_STAGES = ["espelho", "aguardando_nfd", "aguardando_recolhimento", "recolhido", "aguardando_financeiro", "encerrado"];
+
 function Badge({ label, color }) {
   return (
     <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, background: `${color}18`, border: `1px solid ${color}40`, color, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
@@ -834,9 +838,9 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
             </div>
           )}
 
-          {/* TRANSCRIÇÃO MANUAL (AVISO) */}
+          {/* TRANSCRIÇÃO MANUAL (AVISO) — só a partir da etapa de espelho */}
           {(() => {
-            if (canEdit && chamado.nf_data?.manual_required) {
+            if (canEdit && MIRROR_STAGES.includes(chamado.status) && chamado.nf_data?.manual_required) {
               return (
                 <div style={{ background: M.warnS, border: `1px solid ${M.warnB}`, borderRadius: 12, padding: 20, marginBottom: 20 }}>
                   <h3 style={{ color: M.warn, margin: "0 0 10px 0" }}>⚠️ Transcrição Manual Necessária</h3>
@@ -865,16 +869,8 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
             // Se ainda precisa de transcrição manual, não renderiza o espelho
             if (chamado.nf_data?.manual_required) return null;
 
-            // Regra: Mostrar apenas nas etapas específicas solicitadas pelo usuário.
-            // "Aguardando NFD/Espelho", "Aguardando Recolhimento", "Recolhido", "Financeiro" e "Encerrado"
-            const statusStageRequiresMirror = [
-              "espelho", 
-              "aguardando_nfd", 
-              "aguardando_recolhimento", 
-              "recolhido", 
-              "aguardando_financeiro", 
-              "encerrado"
-            ].includes(chamado.status);
+            // Regra: visível apenas da etapa "Emitir Espelho NFD" em diante.
+            const statusStageRequiresMirror = MIRROR_STAGES.includes(chamado.status);
             const showMirrorArea = canEdit && statusStageRequiresMirror;
             
             if (!showMirrorArea) return null;
