@@ -176,7 +176,8 @@ export default function PosVendasPage(){
     setPendingRecolhimento(null);
     setChamados(p => p.map(c => c.id == chamadoId ? { ...c, status: columnId } : c));
     try {
-      await api.updateStatus(chamadoId, columnId, { recolhimento_data: recolhimentoData });
+      const res = await api.updateStatus(chamadoId, columnId, { recolhimento_data: recolhimentoData });
+      if (res?.espelho_gerado) toast.success("✨ Espelho NFD gerado automaticamente a partir do PDF anexado.");
     } catch(err) {
       setChamados(p => p.map(c => c.id == chamadoId ? { ...c, status: ch.status } : c));
       toast.error("Erro ao mudar status.");
@@ -303,7 +304,8 @@ export default function PosVendasPage(){
 
                   setChamados(p => p.map(c => c.id == id ? { ...c, status: column.id } : c));
                   try {
-                    await api.updateStatus(id, column.id);
+                    const res = await api.updateStatus(id, column.id);
+                    if (res?.espelho_gerado) toast.success("✨ Espelho NFD gerado automaticamente a partir do PDF anexado.");
                   } catch(err) {
                     setChamados(p => p.map(c => c.id == id ? { ...c, status: ch.status } : c));
                     toast.error("Erro ao mudar status.");

@@ -361,23 +361,36 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
     // Ao mover para "espelho" sem nf_data utilizável, baixa o PDF já anexado
     // (Cloudinary, resource_type 'raw') e extrai os dados automaticamente.
     // Best-effort: falha aqui não bloqueia a mudança de status.
+    // Quando não há como extrair (sem PDF ou extração falhou) e não existem
+    // dados prévios, grava { manual_required: true } para a UI exibir o aviso
+    // de transcrição manual em vez de um espelho vazio.
     let autoNfData = null;
+    let espelhoGerado = false;
     let curNfData = oldRow.nf_data;
     if (typeof curNfData === "string") { try { curNfData = JSON.parse(curNfData); } catch { curNfData = null; } }
     const fileUrl = oldRow.nf_file_path || "";
     const isPdfUrl = /^https?:\/\//i.test(fileUrl) && (/\.pdf(\?|$)/i.test(fileUrl) || fileUrl.includes("/raw/upload/"));
-    if (status === "espelho" && (!curNfData || curNfData.manual_required) && isPdfUrl) {
-      const tempPath = path.join(os.tmpdir(), `nf_auto_${Date.now()}.pdf`);
-      try {
-        const dl = await axios.get(fileUrl, { responseType: "arraybuffer", timeout: 30000, maxContentLength: 20 * 1024 * 1024 });
-        fs.writeFileSync(tempPath, dl.data);
-        const rawDet = await extractNFDeterministic(tempPath);
-        autoNfData = cleanAndFormatNfData(rawDet);
-        autoNfData.manual_required = false;
-      } catch (e) {
-        console.warn(`Auto-extração do espelho falhou (chamado ${req.params.id}):`, e.message);
-      } finally {
-        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    if (status === "espelho" && (!curNfData || curNfData.manual_required)) {
+      if (isPdfUrl) {
+        const tempPath = path.join(os.tmpdir(), `nf_auto_${Date.now()}.pdf`);
+        try {
+          const dl = await axios.get(fileUrl, { responseType: "arraybuffer", timeout: 30000, maxContentLength: 20 * 1024 * 1024 });
+          fs.writeFileSync(tempPath, dl.data);
+          const rawDet = await extractNFDeterministic(tempPath);
+          autoNfData = cleanAndFormatNfData(rawDet);
+          autoNfData.manual_required = false;
+          espelhoGerado = true;
+        } catch (e) {
+          console.warn(`Auto-extração do espelho falhou (chamado ${req.params.id}):`, e.message);
+          // Preserva dados prévios (ex.: pré-preenchimento via QR Code); só
+          // sinaliza a pendência quando não há nada gravado.
+          if (!curNfData) autoNfData = { manual_required: true };
+        } finally {
+          if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+        }
+      } else if (!curNfData) {
+        // Anexo não é PDF (ex.: foto da NF) — pede transcrição manual.
+        autoNfData = { manual_required: true };
       }
     }
 
@@ -431,7 +444,7 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
       }
     }
 
-    res.json({ chamado: rows[0] });
+    res.json({ chamado: rows[0], espelho_gerado: espelhoGerado });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Erro ao atualizar status" });
@@ -441,82 +454,8 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
 // ── POST /api/chamados/:id/reprocess-pdf ──
 // Pós-Vendas pode anexar o PDF original para substituir a foto e gerar o espelho automaticamente
 const { extractNFDeterministic } = require("../utils/pythonBridge");
-
-/**
- * Normaliza a saída bruta do extrator Python (DANFE) para o formato `nf_data`
- * usado pelo espelho. Mapeia as linhas de produtos por índice, calcula totais a
- * partir dos itens quando ausentes, formata valores em padrão BR e filtra
- * "lixo" de cabeçalho do PDF (lista `INVALIDOS`).
- *
- * @param {object} det Objeto bruto retornado por `extractNFDeterministic`.
- * @returns {object} Dados formatados da NF (campos monetários como string BR,
- *          array `produtos`, flag `isDeterministic: true`).
- */
-function cleanAndFormatNfData(det) {
-  const produtos = (det.produtos?.rows || []).map(r => {
-    const len = r.length;
-    const totalIdx = len >= 11 ? 10 : (len >= 9 ? 8 : len - 1);
-    const unitIdx  = len >= 11 ? 7  : (len >= 9 ? 7 : len - 2);
-    return {
-      codigo:         r[0]  || "",
-      descricao:      r[1]  || "",
-      ncm:            r[2]  || "",
-      cst:            r[3]  || "",
-      cfop:           "5202",
-      unidade:        r[5]  || "UN",
-      quantidade:     r[6]  || "0",
-      valor_unitario: r[unitIdx]  || "0,00",
-      valor_total:    r[totalIdx] || "0,00"
-    };
-  });
-
-  const parseBR = v => parseFloat((v || "0").replace(/\./g,"").replace(",",".")) || 0;
-  const calcTotalProd = produtos.reduce((s, p) => s + parseBR(p.valor_total), 0);
-  const fmtBR = n => n.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
-
-  const totalProd = parseBR(det.valores?.total_produtos) || calcTotalProd;
-  const totalNota = parseBR(det.valores?.total_nota) || totalProd;
-
-  const INVALIDOS = ["bairro", "distrito", "cnpj", "cpf", "protocolo", "data da", "endereço", "inscrição", "município", "fone", "telefone", "emissão", "saída", "entrada"];
-  const isValido = (v) => {
-    if (!v) return false;
-    const val = v.toLowerCase().trim();
-    if (INVALIDOS.some(inv => val.includes(inv))) {
-      if (val.length < 30 && INVALIDOS.filter(inv => val.includes(inv)).length >= 1) return false;
-    }
-    return val.length >= 2;
-  };
-
-  return {
-    numero_nf:            det.numero            || "",
-    data_emissao:         det.data_emissao       || "",
-    natureza_operacao:    (det.natureza_op && isValido(det.natureza_op) && det.natureza_op.length < 100) ? det.natureza_op : "5202 - DEVOLUÇÃO DE COMPRA PARA COMERCIALIZAÇÃO",
-    valor_total_nota:     fmtBR(totalNota),
-    valor_total_produtos: fmtBR(totalProd),
-    base_icms:            det.valores?.base_icms      || "0,00",
-    valor_icms:           det.valores?.valor_icms     || "0,00",
-    base_icms_st:         det.valores?.base_icms_st   || "0,00",
-    valor_icms_st:        det.valores?.valor_icms_st  || "0,00",
-    valor_frete:          det.valores?.frete          || "0,00",
-    valor_seguro:         det.valores?.seguro         || "0,00",
-    valor_ipi:            det.valores?.valor_ipi      || "0,00",
-    peso_bruto:           det.transporte?.peso_bruto  || "0,00",
-    peso_liquido:         det.transporte?.peso_liquido|| "0,00",
-    quantidade_volumes:   det.transporte?.quantidade  || "0",
-    especie_volumes:      det.transporte?.especie     || "",
-    cliente:              (det.destinatario?.nome && isValido(det.destinatario.nome)) ? det.destinatario.nome : "",
-    razao_social_dest:    (det.destinatario?.nome && isValido(det.destinatario.nome)) ? det.destinatario.nome : "",
-    cnpj:                 (det.destinatario?.cnpj_cpf && isValido(det.destinatario.cnpj_cpf)) ? det.destinatario.cnpj_cpf : "",
-    cnpj_dest:            (det.destinatario?.cnpj_cpf && isValido(det.destinatario.cnpj_cpf)) ? det.destinatario.cnpj_cpf : "",
-    endereco_dest:        isValido(det.destinatario?.endereco) ? det.destinatario.endereco : "",
-    bairro_dest:          isValido(det.destinatario?.bairro)   ? det.destinatario.bairro   : "",
-    cep_dest:             isValido(det.destinatario?.cep)      ? det.destinatario.cep      : "",
-    municipio_dest:       isValido(det.destinatario?.municipio) ? det.destinatario.municipio : "",
-    uf_dest:              isValido(det.destinatario?.uf)        ? det.destinatario.uf        : "",
-    produtos,
-    isDeterministic: true
-  };
-}
+// Pós-processamento da extração centralizado (compartilhado com /api/ai/extract-nf)
+const { cleanAndFormatNfData } = require("../utils/nfData");
 
 router.post("/:id/reprocess-pdf", authMiddleware(["pos_vendas", "admin"]), memoryUpload.single("nf_file"), async (req, res) => {
   const tempPath = path.join(os.tmpdir(), `nf_${Date.now()}.pdf`);
@@ -625,23 +564,6 @@ router.patch("/:id/ressalva", authMiddleware(), upload.array("ressalva_arquivos"
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Erro ao atualizar ressalva" });
-  }
-});
-
-// PATCH /api/chamados/:id/nf-data — admin ou pos_vendas salva rascunho da NF
-router.patch("/:id/nf-data", authMiddleware(["admin", "pos_vendas"]), async (req, res) => {
-  try {
-    const { nf_data } = req.body;
-    const { rows } = await pool.query(
-      `UPDATE chamados SET nf_data = $1, updated_at = NOW()
-       WHERE id = $2 RETURNING *`,
-      [nf_data, req.params.id]
-    );
-    if (!rows[0]) return res.status(404).json({ error: "Chamado não encontrado" });
-    res.json({ chamado: rows[0] });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Erro ao salvar rascunho da NF" });
   }
 });
 

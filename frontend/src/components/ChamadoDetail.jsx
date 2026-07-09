@@ -338,7 +338,11 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
       if (res?.chamado) setChamado(res.chamado);
       if (onStatusChange) onStatusChange(chamado.id, newStatus);
       if (isAdmin || isPosVendas) loadHistory();
-      toast.success("Status atualizado!");
+      if (res?.espelho_gerado) {
+        toast.success("✨ Espelho NFD gerado automaticamente a partir do PDF anexado. Confira os dados.");
+      } else {
+        toast.success("Status atualizado!");
+      }
       setPendingRecolhimento(false);
     } catch (e) {
       toast.error(e.message || "Erro ao atualizar status.");
