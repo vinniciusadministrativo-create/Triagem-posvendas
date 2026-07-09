@@ -61,10 +61,11 @@ Plataforma web onde **vendedores abrem chamados** de devolução/reclamação (a
    └─ Sinaliza se precisa de escalação humana
           │
           ▼
-3. EXTRAÇÃO DA NF (se precisar de espelho)
-   ├─ PDF  → script Python lê os dados
-   ├─ Imagem → tenta ler o QR Code da NF-e
-   └─ Falhou → transcrição manual pelo pós-vendas
+3. EXTRAÇÃO DA NF
+   ├─ PDF anexado  → script Python lê os dados já na criação do chamado
+   ├─ Imagem       → tenta ler o QR Code da NF-e
+   ├─ Ao mover p/ "espelho" sem dados → auto-extração do PDF anexado (Cloudinary)
+   └─ Sem PDF ou falhou → aviso de transcrição manual (a partir da etapa espelho)
           │
           ▼
 4. PÓS-VENDAS / OPERACIONAL gerencia no KANBAN
@@ -85,7 +86,7 @@ Aplicação **monolítica**. Em produção, o **backend Express serve a SPA Reac
 
 ```
 ┌──────────────────────── Backend (Node + Express 5) ────────────────────────┐
-│  /api/*   → rotas REST (auth, chamados, users, ai, relatorios, chat)        │
+│  /api/*   → rotas REST (auth, chamados, users, ai, relatorios, chat, admin) │
 │  /*       → serve o frontend/dist (SPA fallback)                            │
 │                                                                             │
 │   PostgreSQL        Cloudinary         Python                SMTP           │
@@ -131,8 +132,8 @@ trabalho/
 │       ├── index.js        # Bootstrap do servidor
 │       ├── db/             # Pool, migrate, seed, migrations/*.sql
 │       ├── middleware/auth.js     # Validação de JWT por role
-│       ├── routes/         # auth, chamados, users, ai, relatorios, chat
-│       └── utils/          # pythonBridge, qrDecoder, mailer
+│       ├── routes/         # auth, chamados, users, ai, relatorios, chat, admin
+│       └── utils/          # pythonBridge, qrDecoder, mailer, nfData, chamadoAccess
 │
 └── frontend/
     ├── dist/               # Build servido em produção (versionado!)
@@ -232,7 +233,7 @@ Frontend (build): `VITE_API_URL` — deixe **vazio** em produção (mesma origem
 | **vendedor** | Abrir chamados; ver/acompanhar **apenas os próprios** (ou compartilhados com ele); chat |
 | **operacional** | Ver e movimentar o **kanban**; sem acesso a histórico/relatórios/usuários |
 | **pos_vendas** | Tudo do operacional + **histórico, relatórios, CSV, editar dados da NF, gerar espelho PDF** |
-| **admin** | Tudo + **gestão de usuários** e **exclusão** de chamados |
+| **admin** | Tudo + **gestão de usuários**, **exclusão** de chamados e **backup/reset do banco** (aba Backup) |
 
 **Regras de visibilidade**
 - Vendedor só enxerga chamados próprios ou **compartilhados** (via "compartilhar chamado").
@@ -266,6 +267,11 @@ novo → avaliacao → avaliado → espelho → aguardando_nfd
 
 > Chamados `encerrado` há mais de **3 dias** são ocultados das listas por padrão.
 > Toda mudança de status é registrada no **histórico** e dispara **e-mail** ao vendedor.
+>
+> **Auto-extração do espelho:** ao mover um chamado para `espelho` sem `nf_data` utilizável,
+> o backend baixa o PDF anexado (Cloudinary) e extrai os dados automaticamente; se o anexo
+> for foto ou a extração falhar, grava `manual_required: true` (a UI mostra o aviso de
+> transcrição manual). O espelho NFD e sua UI de apoio só aparecem da etapa `espelho` em diante.
 
 ---
 
@@ -421,7 +427,7 @@ Base `/api`. Exceto login e health, **todas exigem** `Authorization: Bearer <JWT
 | GET | `/chamados` | pos_vendas, admin, operacional | Lista com filtros |
 | GET | `/chamados/:id` | autenticado | Detalhe (vendedor só os próprios) |
 | POST | `/chamados` | vendedor, pos_vendas, admin | Criar (NF + até 6 evidências) |
-| PATCH | `/chamados/:id/status` | pos_vendas, admin, operacional | Mudar status (+histórico +e-mail) |
+| PATCH | `/chamados/:id/status` | pos_vendas, admin, operacional | Mudar status (+histórico +e-mail; ao mover p/ `espelho`, auto-extrai a NF se necessário) |
 | POST | `/chamados/:id/share` | dono / admin | Compartilhar |
 | POST | `/chamados/:id/reprocess-pdf` | pos_vendas, admin | Reprocessar PDF da NF |
 | PATCH | `/chamados/:id/nf_data` | pos_vendas, admin | Editar dados da NF |
@@ -445,6 +451,15 @@ Base `/api`. Exceto login e health, **todas exigem** `Authorization: Bearer <JWT
 | POST | `/ai/triage` | Triagem determinística |
 | POST | `/ai/extract-nf` | Extrai NF (PDF Python / QR Code / manual) |
 | POST | `/ai/analyze-evidence` | Stub — análise manual |
+
+### Admin — banco de dados (aba Backup)
+| Método | Rota | Acesso | Descrição |
+|--------|------|--------|-----------|
+| GET | `/admin/backup` | admin | Baixa dump SQL completo do banco (schema + dados, gerado em JS puro) |
+| POST | `/admin/reset-chamados` | admin | Zera chamados e dados relacionados (TRUNCATE CASCADE; preserva usuários e chat). Exige `{ "confirmacao": "ZERAR CHAMADOS" }` |
+
+> ⚠️ O backup contém `password_hash` (bcrypt) — trate o arquivo como sensível. A UI só
+> libera o reset após um backup ter sido baixado na mesma sessão.
 
 ### Relatórios
 | Método | Rota | Acesso | Descrição |
@@ -524,7 +539,15 @@ Tipos lógicos: `string`, `int`, `boolean`, `file`, `string[]`. Campos monetári
   "data_previsao_recolhimento": "YYYY-MM-DD",   // opcional (date | null)
   "data_real_recolhimento": "YYYY-MM-DD"        // opcional (date | null)
 }
-// Efeitos colaterais: grava em chamado_historico + dispara e-mail ao vendedor
+
+// Response 200
+{
+  "chamado": { /* registro completo atualizado */ },
+  "espelho_gerado": false   // true quando a auto-extração da NF preencheu o espelho
+}
+// Efeitos colaterais: grava em chamado_historico + dispara e-mail ao vendedor.
+// Ao mover para "espelho" sem nf_data utilizável: baixa o PDF anexado e extrai
+// automaticamente; sem PDF (ou falha), grava { manual_required: true }.
 ```
 
 ### `POST /api/users` — criar usuário (admin)
@@ -574,7 +597,7 @@ Tipos lógicos: `string`, `int`, `boolean`, `file`, `string[]`. Campos monetári
 | `triageDeterministic(formData)` | `routes/ai.js` | Classifica o chamado por regras → `triage_result` |
 | `repairJSON(str)` | `routes/ai.js` | Tenta consertar/parsear JSON truncado |
 | `uploadToCloudinary(buffer, options, mimetype)` | `routes/chamados.js` | Sobe arquivo ao Cloudinary; `resource_type` por mimetype |
-| `cleanAndFormatNfData(det)` | `routes/chamados.js` | Normaliza a saída do Python para o formato `nf_data` (filtra "lixo" de cabeçalho, calcula totais) |
+| `cleanAndFormatNfData(det, fd?)` | `utils/nfData.js` | Normaliza a saída do Python para o formato `nf_data` (filtra "lixo" de cabeçalho, calcula totais; `fd` = fallback do formulário). **Lógica única** usada pela criação, reprocessamento e auto-extração |
 
 ### Frontend — cliente HTTP (`src/api.js`)
 
@@ -592,6 +615,7 @@ Objeto `api` com wrapper único sobre `fetch` (injeta JWT, trata 401/429). Princ
 | `api.shareChamado(id, userId)` | compartilha |
 | `api.getMessages(id)` / `api.sendMessage(id, data)` | chat do chamado |
 | `api.getUsers()` / `api.createUser(data)` / `api.updateUser(id, data)` / `api.changePassword(...)` | usuários |
+| `api.backupDatabase()` / `api.resetChamados(confirmacao)` | backup .sql e reset de chamados (admin) |
 
 ---
 
@@ -625,7 +649,7 @@ Há configuração para três alvos (a imagem Docker é a referência):
 | **"Muitas tentativas" (429)** | Rate limit | Aguarde alguns minutos (`/api/auth`: 20/15min) |
 | **Upload da NF falha** | Cloudinary, tipo ou tamanho do arquivo | Tipos: JPG/PNG/WEBP/PDF; NF ≤ 10 MB, evidências ≤ 20 MB |
 | **Espelho/PDF não gera** | Python ou libs ausentes | `python --version`; `pip install pdfplumber reportlab` |
-| **Extração da NF vem vazia / manual** | PDF não-padrão, protegido ou imagem sem QR | Use PDF de DANFE padrão; ou transcreva manualmente (pos_vendas) |
+| **Extração da NF vem vazia / manual** | PDF não-padrão, protegido ou imagem sem QR | Use PDF de DANFE padrão; ao mover p/ `espelho` a auto-extração tenta de novo; senão use "🔄 Reprocessar PDF" ou transcreva manualmente (pos_vendas) |
 | **Vendedor não enxerga um chamado** | Não é dono nem foi compartilhado | Compartilhe o chamado com o usuário |
 | **E-mail de status não chega** | SMTP não configurado/credencial errada | Logado como admin, acesse `/api/diag-smtp`; confira `SMTP_*` |
 | **Mudanças no front não aparecem em produção** | `frontend/dist` desatualizado | `npm run build` e redeploy |
