@@ -77,6 +77,7 @@ app.use("/api/users", require("./routes/users"));
 app.use("/api/ai", require("./routes/ai"));
 app.use("/api/relatorios", require("./routes/relatorios"));
 app.use("/api/chat", require("./routes/chat"));
+app.use("/api/admin", require("./routes/admin"));
 
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "ok", ts: new Date().toISOString(), build: "2026-06-25-smtp-diag" }));
