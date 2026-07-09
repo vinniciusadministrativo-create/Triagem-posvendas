@@ -72,6 +72,7 @@ router.post("/triage", authMiddleware(), async (req, res) => {
 });
 
 const { extractNFDeterministic } = require("../utils/pythonBridge");
+const { cleanAndFormatNfData } = require("../utils/nfData");
 const { processarQrCodeImagem } = require("../utils/qrDecoder");
 const fs = require("fs");
 const path = require("path");
@@ -92,88 +93,9 @@ router.post("/extract-nf", authMiddleware(), async (req, res) => {
       const det = await extractNFDeterministic(tempPath);
       if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
 
-      // ── Pós-processamento: limpar e validar valores ──
-      const produtos = (det.produtos?.rows || []).map(r => {
-        const len = r.length;
-        // Se a linha tem ~9 colunas (como no print do usuário), o total costuma ser a última ou penúltima.
-        // Índice 10 pode estar fora do range ou ser imposto em tabelas menores.
-        const totalIdx = len >= 11 ? 10 : (len >= 9 ? 8 : len - 1);
-        const unitIdx  = len >= 11 ? 7  : (len >= 9 ? 7 : len - 2);
-        
-        return {
-          codigo:         r[0]  || "",
-          descricao:      r[1]  || "",
-          ncm:            r[2]  || "",
-          cst:            r[3]  || "",
-          cfop:           "5202",
-          unidade:        r[5]  || "UN",
-          quantidade:     r[6]  || "0",
-          valor_unitario: r[unitIdx]  || "0,00",
-          valor_total:    r[totalIdx] || "0,00"
-        };
-      });
-
-      // Calcular total dos produtos a partir dos itens quando valor não extraído
-      const parseBR = v => parseFloat((v || "0").replace(/\./g,"").replace(",",".")) || 0;
-      const calcTotalProd = produtos.reduce((s, p) => s + parseBR(p.valor_total), 0);
-      const fmtBR = n => n.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
-
-      const totalProd = parseBR(det.valores?.total_produtos) || calcTotalProd;
-      const totalNota = parseBR(det.valores?.total_nota) || totalProd; // fallback: total da nota = total dos produtos
-
-      // Detectar strings inválidas do PDF (quando o regex pega o cabeçalho em vez do valor)
-      const INVALIDOS = ["bairro", "distrito", "cnpj", "cpf", "protocolo", "data da", "endereço", "inscrição", "município", "fone", "telefone", "emissão", "saída", "entrada"];
-      const isValido = (v) => {
-        if (!v) return false;
-        const val = v.toLowerCase().trim();
-        // Se a string contiver muitos termos de cabeçalho ou for muito curta, é provável que seja lixo do PDF
-        if (INVALIDOS.some(inv => val.includes(inv))) {
-          // Exceção: se for um endereço legítimo que contém "Bairro" mas também tem números, pode ser válido
-          // Mas aqui os exemplos mostrados ("BAIRRO / DISTRITO") são puramente cabeçalhos
-          if (val.length < 30 && INVALIDOS.filter(inv => val.includes(inv)).length >= 1) return false;
-        }
-        if (val.length < 2) return false;
-        return true;
-      };
-
-      // Natureza: validar que não é um cabeçalho
-      const natureza = (det.natureza_op && isValido(det.natureza_op) && det.natureza_op.length < 100)
-        ? det.natureza_op
-        : (fd.naturezaOperacao || "5202 - DEVOLUÇÃO DE COMPRA PARA COMERCIALIZAÇÃO");
-
-      // Retornar JSON com prioridade para dados extraídos do PDF
-      return res.json({
-        numero_nf:            det.numero            || fd.nfOriginal  || "",
-        data_emissao:         det.data_emissao       || "",
-        natureza_operacao:    natureza,
-        valor_total_nota:     fmtBR(totalNota),
-        valor_total_produtos: fmtBR(totalProd),
-        base_icms:            det.valores?.base_icms      || "0,00",
-        valor_icms:           det.valores?.valor_icms     || "0,00",
-        base_icms_st:         det.valores?.base_icms_st   || "0,00",
-        valor_icms_st:        det.valores?.valor_icms_st  || "0,00",
-        valor_frete:          det.valores?.frete          || "0,00",
-        valor_seguro:         det.valores?.seguro         || "0,00",
-        valor_ipi:            det.valores?.valor_ipi      || "0,00",
-        peso_bruto:           det.transporte?.peso_bruto  || "0,00",
-        peso_liquido:         det.transporte?.peso_liquido|| "0,00",
-        quantidade_volumes:   det.transporte?.quantidade  || "0",
-        especie_volumes:      det.transporte?.especie     || "",
-        
-        // Destinatário: PDF primeiro, Form segundo
-        cliente:              (det.destinatario?.nome && isValido(det.destinatario.nome)) ? det.destinatario.nome : (fd.razaoSocial || ""),
-        razao_social_dest:    (det.destinatario?.nome && isValido(det.destinatario.nome)) ? det.destinatario.nome : (fd.razaoSocial || ""),
-        cnpj:                 (det.destinatario?.cnpj_cpf && isValido(det.destinatario.cnpj_cpf)) ? det.destinatario.cnpj_cpf : (fd.cnpj || ""),
-        cnpj_dest:            (det.destinatario?.cnpj_cpf && isValido(det.destinatario.cnpj_cpf)) ? det.destinatario.cnpj_cpf : (fd.cnpj || ""),
-        endereco_dest:        isValido(det.destinatario?.endereco) ? det.destinatario.endereco : "",
-        bairro_dest:          isValido(det.destinatario?.bairro)   ? det.destinatario.bairro   : "",
-        cep_dest:             isValido(det.destinatario?.cep)      ? det.destinatario.cep      : "",
-        municipio_dest:       isValido(det.destinatario?.municipio) ? det.destinatario.municipio : "",
-        uf_dest:              isValido(det.destinatario?.uf)        ? det.destinatario.uf        : "",
-        
-        produtos,
-        isDeterministic: true
-      });
+      // Pós-processamento centralizado em utils/nfData.js (compartilhado com o
+      // reprocessamento e a auto-extração em routes/chamados.js).
+      return res.json(cleanAndFormatNfData(det, fd));
     } catch (e) {
       console.warn("Extração determinística falhou, usando fallback...", e.message);
     }
