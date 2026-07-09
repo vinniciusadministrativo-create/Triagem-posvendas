@@ -120,6 +120,33 @@ export const api = {
   shareChamado: (id, user_id) =>
     request(`/api/chamados/${id}/share`, { method: "POST", body: JSON.stringify({ user_id }) }),
 
+  // Admin — backup do banco (download de arquivo .sql)
+  backupDatabase: async () => {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/api/admin/backup`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (res.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
+      return;
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Erro ao gerar backup");
+    }
+    const blob = await res.blob();
+    const disposition = res.headers.get("Content-Disposition") || "";
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const filename = match ? match[1] : "backup.sql";
+    return { blob, filename };
+  },
+
+  // Admin — zerar chamados (destrutivo; exige a frase de confirmação exata)
+  resetChamados: (confirmacao) =>
+    request("/api/admin/reset-chamados", { method: "POST", body: JSON.stringify({ confirmacao }) }),
+
   fileUrl: (filename) => {
     if (!filename) return "";
     if (filename.startsWith("http")) return filename;

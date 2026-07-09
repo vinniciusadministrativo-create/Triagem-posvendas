@@ -66,6 +66,15 @@ export default function AdminPage() {
   const [filterRole, setFilterRole] = useState("");
   const [filterStatus, setFilterStatus] = useState(""); // "" | "active" | "inactive"
 
+  // Backup
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [backupDone, setBackupDone] = useState(false);
+
+  // Reset (zerar chamados)
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetPhrase, setResetPhrase] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+
   useEffect(() => { fetchUsers(); }, []);
 
   const fetchUsers = async () => {
@@ -169,6 +178,46 @@ export default function AdminPage() {
     }
   };
 
+  const handleBackup = async () => {
+    setBackupLoading(true);
+    setMessage(null);
+    try {
+      const { blob, filename } = await api.backupDatabase();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setBackupDone(true);
+      setMessage({ type: "success", text: `Backup gerado: ${filename}` });
+    } catch (e) {
+      setMessage({ type: "error", text: e.message || "Erro ao gerar backup." });
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
+  const RESET_PHRASE = "ZERAR CHAMADOS";
+  const handleReset = async () => {
+    if (resetPhrase !== RESET_PHRASE) return;
+    setResetLoading(true);
+    setMessage(null);
+    try {
+      const data = await api.resetChamados(resetPhrase);
+      setMessage({ type: "success", text: data.message || "Chamados zerados com sucesso." });
+      setShowResetModal(false);
+      setResetPhrase("");
+      setBackupDone(false); // exige novo backup antes de um próximo reset
+    } catch (e) {
+      setMessage({ type: "error", text: e.message || "Erro ao zerar os chamados." });
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   const handleDeleteUser = async (u) => {
     if (!await confirm(`Excluir permanentemente o usuário "${u.name}"? Esta ação não pode ser desfeita.`, { title: "Excluir usuário", confirmLabel: "Excluir", variant: "danger" })) return;
     try {
@@ -205,6 +254,7 @@ export default function AdminPage() {
           <button onClick={() => setActiveTab("users")} style={{ paddingBottom: 10, border: "none", background: "none", borderBottom: activeTab === "users" ? `2px solid ${M.pri}` : "none", color: activeTab === "users" ? M.pri : M.txM, fontWeight: 700, cursor: "pointer" }}>Usuários</button>
           <button onClick={() => setActiveTab("sellers")} style={{ paddingBottom: 10, border: "none", background: "none", borderBottom: activeTab === "sellers" ? `2px solid ${M.pri}` : "none", color: activeTab === "sellers" ? M.pri : M.txM, fontWeight: 700, cursor: "pointer" }}>Gestão por Vendedor</button>
           <button onClick={() => setActiveTab("relatorios")} style={{ paddingBottom: 10, border: "none", background: "none", borderBottom: activeTab === "relatorios" ? `2px solid ${M.pri}` : "none", color: activeTab === "relatorios" ? M.pri : M.txM, fontWeight: 700, cursor: "pointer" }}>📊 Relatórios</button>
+          <button onClick={() => setActiveTab("backup")} style={{ paddingBottom: 10, border: "none", background: "none", borderBottom: activeTab === "backup" ? `2px solid ${M.pri}` : "none", color: activeTab === "backup" ? M.pri : M.txM, fontWeight: 700, cursor: "pointer" }}>💾 Backup</button>
         </div>
       </header>
 
@@ -218,9 +268,11 @@ export default function AdminPage() {
       {activeTab === "users" && renderUsersTable()}
       {activeTab === "sellers" && renderSellersManagement()}
       {activeTab === "relatorios" && <RelatoriosPage />}
+      {activeTab === "backup" && renderBackup()}
 
       {editingUser && renderEditModal()}
       {showCreateModal && renderCreateModal()}
+      {showResetModal && renderResetModal()}
     </div>
   );
 
@@ -396,6 +448,94 @@ export default function AdminPage() {
           ) : (
             <p style={{ textAlign: "center", color: M.txM, paddingTop: 100 }}>Selecione um vendedor à esquerda para gerenciar seus chamados.</p>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  function renderBackup() {
+    return (
+      <div style={{ maxWidth: 640 }}>
+        <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${M.brdN}`, padding: 24 }}>
+          <h3 style={{ marginTop: 0, marginBottom: 8, fontSize: 18, color: M.tx }}>Exportar banco de dados</h3>
+          <p style={{ fontSize: 14, color: M.txM, lineHeight: 1.6, marginTop: 0 }}>
+            Gera um arquivo <code style={{ background: M.soft, padding: "1px 6px", borderRadius: 4 }}>.sql</code> com
+            todo o schema e os dados atuais do banco (usuários, chamados, mensagens, chat…). Use-o como backup ou
+            para restaurar o banco manualmente via <code style={{ background: M.soft, padding: "1px 6px", borderRadius: 4 }}>psql</code>.
+          </p>
+          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: "12px 16px", margin: "16px 0", fontSize: 13, color: "#92400e", lineHeight: 1.5 }}>
+            ⚠️ O arquivo contém dados sensíveis (inclusive os hashes de senha). Guarde em local seguro e não compartilhe.
+          </div>
+          <button
+            onClick={handleBackup}
+            disabled={backupLoading}
+            style={{ padding: "12px 24px", background: backupLoading ? M.txM : M.pri, color: "#fff", border: "none", borderRadius: 10, fontWeight: 800, cursor: backupLoading ? "default" : "pointer", display: "flex", alignItems: "center", gap: 8 }}
+          >
+            {backupLoading ? "⏳ Gerando backup…" : "⬇️ Baixar backup (.sql)"}
+          </button>
+        </div>
+
+        {/* Zona de perigo — zerar chamados */}
+        <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #fecaca", padding: 24, marginTop: 20 }}>
+          <h3 style={{ marginTop: 0, marginBottom: 8, fontSize: 18, color: M.err }}>⚠️ Zerar chamados</h3>
+          <p style={{ fontSize: 14, color: M.txM, lineHeight: 1.6, marginTop: 0 }}>
+            Remove <strong>todos os chamados</strong> e seus dados relacionados para começar um novo ciclo do zero.
+          </p>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", margin: "12px 0 16px" }}>
+            <div style={{ flex: 1, minWidth: 220, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: M.err, marginBottom: 6 }}>SERÃO APAGADOS</div>
+              <div style={{ fontSize: 13, color: "#7f1d1d", lineHeight: 1.6 }}>Chamados · histórico · mensagens dos chamados · compartilhamentos</div>
+            </div>
+            <div style={{ flex: 1, minWidth: 220, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: M.ok, marginBottom: 6 }}>SERÃO PRESERVADOS</div>
+              <div style={{ fontSize: 13, color: "#14532d", lineHeight: 1.6 }}>Usuários · chat entre usuários (mensagens diretas e grupos)</div>
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: M.txM, marginBottom: 12 }}>
+            {backupDone
+              ? "✅ Backup baixado nesta sessão — reset liberado."
+              : "🔒 Baixe um backup acima antes de liberar o reset."}
+          </div>
+          <button
+            onClick={() => { setResetPhrase(""); setShowResetModal(true); }}
+            disabled={!backupDone}
+            style={{ padding: "12px 24px", background: backupDone ? M.err : "#f3d4d4", color: "#fff", border: "none", borderRadius: 10, fontWeight: 800, cursor: backupDone ? "pointer" : "not-allowed" }}
+          >
+            🗑 Zerar chamados
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  function renderResetModal() {
+    const match = resetPhrase === RESET_PHRASE;
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100 }}>
+        <div style={{ background: "#fff", padding: 30, borderRadius: 14, width: 460, maxWidth: "92vw" }}>
+          <h2 style={{ marginTop: 0, marginBottom: 12, color: M.err }}>Zerar chamados</h2>
+          <p style={{ fontSize: 14, color: M.txM, lineHeight: 1.6, marginTop: 0 }}>
+            Esta ação é <strong>irreversível</strong>. Todos os chamados, histórico, mensagens de chamado e
+            compartilhamentos serão apagados permanentemente. Usuários e chat serão preservados.
+          </p>
+          <label style={{ ...labelStyle, marginTop: 12 }}>
+            Digite <span style={{ color: M.err, fontWeight: 800 }}>{RESET_PHRASE}</span> para confirmar
+          </label>
+          <input
+            style={inputStyle}
+            value={resetPhrase}
+            onChange={e => setResetPhrase(e.target.value)}
+            placeholder={RESET_PHRASE}
+            autoFocus
+          />
+          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+            <button type="button" onClick={() => { setShowResetModal(false); setResetPhrase(""); }} disabled={resetLoading}
+              style={{ flex: 1, padding: 12, borderRadius: 8, border: `1px solid ${M.brdN}`, background: "#fff", cursor: "pointer" }}>Cancelar</button>
+            <button type="button" onClick={handleReset} disabled={!match || resetLoading}
+              style={{ flex: 1, padding: 12, borderRadius: 8, border: "none", background: (match && !resetLoading) ? M.err : "#f3d4d4", color: "#fff", fontWeight: 700, cursor: (match && !resetLoading) ? "pointer" : "not-allowed" }}>
+              {resetLoading ? "Zerando…" : "Confirmar reset"}
+            </button>
+          </div>
         </div>
       </div>
     );
