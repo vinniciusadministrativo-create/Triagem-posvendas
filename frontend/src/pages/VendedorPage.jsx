@@ -194,8 +194,10 @@ setTriageResult(triageRes);
 setAgentStatus(p => ({ ...p, triage: "done" }));
 
       // 2. Documentação
+      // PDF anexado: extrai sempre (deixa o nf_data pronto para quando o chamado
+      // chegar à etapa de espelho). Outros formatos seguem a decisão da triagem.
       let docRes = null;
-      if (triageRes.precisa_espelho_nfd && nfB64) {
+      if (nfB64 && (nfMime === "application/pdf" || triageRes.precisa_espelho_nfd)) {
         setAgentStatus(p => ({ ...p, doc: "running" }));
         try {
           docRes = await api.extractNF(nfB64, nfMime, isTest, form);
