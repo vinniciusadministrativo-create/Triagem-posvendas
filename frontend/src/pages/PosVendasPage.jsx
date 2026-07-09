@@ -177,6 +177,9 @@ export default function PosVendasPage(){
     setChamados(p => p.map(c => c.id == chamadoId ? { ...c, status: columnId } : c));
     try {
       const res = await api.updateStatus(chamadoId, columnId, { recolhimento_data: recolhimentoData });
+      // Sincroniza o card com o retorno do backend (nf_data pode ter sido
+      // gerado/alterado pela auto-extração do espelho); preserva campos do JOIN.
+      if (res?.chamado) setChamados(p => p.map(c => c.id == chamadoId ? { ...c, ...res.chamado } : c));
       if (res?.espelho_gerado) toast.success("✨ Espelho NFD gerado automaticamente a partir do PDF anexado.");
     } catch(err) {
       setChamados(p => p.map(c => c.id == chamadoId ? { ...c, status: ch.status } : c));
@@ -305,6 +308,9 @@ export default function PosVendasPage(){
                   setChamados(p => p.map(c => c.id == id ? { ...c, status: column.id } : c));
                   try {
                     const res = await api.updateStatus(id, column.id);
+                    // Sincroniza o card com o retorno do backend (nf_data pode ter
+                    // sido gerado/alterado pela auto-extração); preserva campos do JOIN.
+                    if (res?.chamado) setChamados(p => p.map(c => c.id == id ? { ...c, ...res.chamado } : c));
                     if (res?.espelho_gerado) toast.success("✨ Espelho NFD gerado automaticamente a partir do PDF anexado.");
                   } catch(err) {
                     setChamados(p => p.map(c => c.id == id ? { ...c, status: ch.status } : c));
