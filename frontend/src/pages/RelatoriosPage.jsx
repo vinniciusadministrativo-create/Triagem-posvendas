@@ -68,17 +68,17 @@ const CHART_COLORS = [M.chart1, M.chart2, M.chart3, M.chart4, M.chart5, M.chart6
 function KPICard({ label, value, icon, color, bg }) {
   return (
     <div style={{
-      background: M.card, borderRadius: 16, padding: "20px 24px",
+      background: M.card, borderRadius: 16, padding: "20px 20px",
       border: `1px solid ${M.brdN}`, display: "flex", alignItems: "center",
-      gap: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
+      gap: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
     }}>
       <div style={{
         width: 52, height: 52, borderRadius: 14, background: bg || M.priLight,
         display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: 24, flexShrink: 0
       }}>{icon}</div>
-      <div>
-        <div style={{ fontSize: 28, fontWeight: 800, color: color || M.pri, lineHeight: 1 }}>{value}</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 20, fontWeight: 800, color: color || M.pri, lineHeight: 1.1, overflowWrap: "break-word" }}>{value}</div>
         <div style={{ fontSize: 13, color: M.txM, marginTop: 4 }}>{label}</div>
       </div>
     </div>
