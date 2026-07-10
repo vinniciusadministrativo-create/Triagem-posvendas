@@ -204,7 +204,8 @@ main, .card, .v-container {
 .page-container {
   min-height: 100vh;
   background-color: var(--bg);
-  padding: 40px 20px 40px 20px;
+  /* padding-top folgado para o conteúdo não ficar sob o botão de menu fixo (top:20 + 40px) */
+  padding: 72px 20px 40px 20px;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
