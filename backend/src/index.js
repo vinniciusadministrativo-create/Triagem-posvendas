@@ -128,7 +128,12 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: isProd ? "Erro interno do servidor" : (err?.message || "Erro interno do servidor") });
 });
 
+const { startBackupCron } = require("./jobs/backupCron");
+
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`🚀 API rodando na porta ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 API rodando na porta ${PORT}`);
+  startBackupCron();
+});
 
 // Trigger webhook Render

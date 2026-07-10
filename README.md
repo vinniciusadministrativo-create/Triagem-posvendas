@@ -145,7 +145,7 @@ trabalho/
         └── components/     # Sidebar, ChamadoDetail, DanfeMirror, ShareChamado, Toast...
 ```
 
-> ⚠️ **Legado (não usado em produção):** `frontend/src/App.jsx` (demo que chamava a Anthropic direto do browser), `mod.js`, `mod2.js`, `triagem-pos-vendas_5.jsx` (raiz) e `backend/src/db/test-conn.js`. O app real entra por `main.jsx` → `src/pages/`.
+> ℹ️ O app entra por `main.jsx` → `src/pages/`. Arquivos de demo legados (`App.jsx`, `mod.js`, `mod2.js`, `triagem-pos-vendas_5.jsx`) foram removidos.
 
 ---
 
@@ -220,6 +220,12 @@ SEED_ADMIN_EMAIL=admin@marinlog.com.br
 SEED_ADMIN_PASSWORD=...
 SEED_POSVENDAS_EMAIL=posvendas@marinlog.com.br
 SEED_POSVENDAS_PASSWORD=...
+
+# Backup automático (opcional) — envia o dump .sql por e-mail aos admins ativos
+# Desligado por padrão (o anexo contém dados sensíveis). Requer SMTP configurado.
+BACKUP_CRON_ENABLED=false                  # true para ativar
+BACKUP_CRON_SCHEDULE=0 3 * * 1             # cron (padrão: segundas às 03:00)
+TZ=America/Sao_Paulo                        # fuso do agendamento
 ```
 
 Frontend (build): `VITE_API_URL` — deixe **vazio** em produção (mesma origem); aponte para `http://localhost:3001` em dev se necessário.
