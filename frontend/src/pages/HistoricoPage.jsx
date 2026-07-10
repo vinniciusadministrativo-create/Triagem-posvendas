@@ -32,19 +32,24 @@ export default function HistoricoPage() {
   const [selected, setSelected] = useState(null);
   const [page, setPage] = useState(1);
   const [filterText, setFilterText] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
 
   const load = useCallback(async (p = 1) => {
     setLoading(true);
     try {
-      const res = await api.getChamados({ page: p, limit: 200 });
-      setChamados(res.chamados || []); 
+      const params = { page: p, limit: 200 };
+      if (from) params.from = from;                 // início do dia
+      if (to) params.to = `${to} 23:59:59`;         // fim do dia (Até inclusivo)
+      const res = await api.getChamados(params);
+      setChamados(res.chamados || []);
       setTotal(res.total || 0);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [from, to]);
 
   useEffect(() => { load(page); }, [page, load]);
 
@@ -77,13 +82,29 @@ export default function HistoricoPage() {
           <h1 style={{ fontSize: 24, fontWeight: 800, color: M.tx }}>🗃️ Histórico de Chamados</h1>
           <p style={{ color: M.txM }}>Consulta de todos os registros e ferramentas de filtro e exclusão.</p>
         </div>
-        <div>
-          <input 
-             placeholder="Filtrar por Razão Social ou NF..." 
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <label style={{ fontSize: 10, fontWeight: 700, color: M.txM, textTransform: "uppercase" }}>De</label>
+            <input type="date" value={from} onChange={e => setFrom(e.target.value)} max={to || undefined}
+              style={{ padding: "9px 12px", borderRadius: 8, border: `1px solid ${M.brdN}`, fontSize: 13, fontFamily: "inherit" }} />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <label style={{ fontSize: 10, fontWeight: 700, color: M.txM, textTransform: "uppercase" }}>Até</label>
+            <input type="date" value={to} onChange={e => setTo(e.target.value)} min={from || undefined}
+              style={{ padding: "9px 12px", borderRadius: 8, border: `1px solid ${M.brdN}`, fontSize: 13, fontFamily: "inherit" }} />
+          </div>
+          <input
+             placeholder="Filtrar por Razão Social ou NF..."
              value={filterText}
              onChange={e => setFilterText(e.target.value)}
-             style={{ padding: "10px 15px", borderRadius: 8, border: `1px solid ${M.brdN}`, width: 300, fontSize: 13 }}
+             style={{ padding: "10px 15px", borderRadius: 8, border: `1px solid ${M.brdN}`, width: 260, fontSize: 13 }}
           />
+          {(from || to || filterText) && (
+            <button onClick={() => { setFrom(""); setTo(""); setFilterText(""); }}
+              style={{ padding: "10px 14px", borderRadius: 8, border: `1px solid ${M.brdN}`, background: "#fff", color: M.txM, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+              Limpar
+            </button>
+          )}
         </div>
       </header>
 
