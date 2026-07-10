@@ -224,7 +224,7 @@ const enviar=async e=>{
       {/* PAINEL ESQUERDO — oculto no mobile quando conversa está aberta */}
       {(!isMobile||!ativo)&&(
       <div style={{width:isMobile?"100%":300,minWidth:isMobile?"100%":300,background:M.card,borderRight:`1px solid ${M.brdN}`,display:"flex",flexDirection:"column",flexShrink:0}}>
-        <div style={{padding:isMobile?"16px 14px 10px 64px":"16px 14px 10px",borderBottom:`1px solid ${M.brdN}`}}>
+        <div style={{padding:"16px 14px 10px 64px",borderBottom:`1px solid ${M.brdN}`}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
             <span style={{fontWeight:800,fontSize:17,color:M.tx}}>💬 Chat {totalNaoLidas>0&&<Badge count={totalNaoLidas}/>}</span>
             <button onClick={()=>setShowNovoGrupo(true)} title="Novo Grupo" style={{background:M.pri,color:"#fff",border:"none",borderRadius:8,padding:"5px 10px",cursor:"pointer",fontSize:12,fontWeight:700}}>+ Grupo</button>
