@@ -23,7 +23,9 @@ const pool = new Pool({
 pool.on("error", (err) => {
   console.error("PostgreSQL pool error:", err.message);
 });
-pool.query("ALTER TABLE chamados ADD COLUMN IF NOT EXISTS recolhimento_data JSONB;")
-  .then(() => console.log("✅ DB conectado e coluna verificada"))
-  .catch(err => console.error("Erro na inicialização do DB:", err.message));
+// Verificação leve de conectividade no boot. O schema (inclusive a coluna
+// recolhimento_data) é gerenciado pelas migrations em db/migrations/*.sql.
+pool.query("SELECT 1")
+  .then(() => console.log("✅ DB conectado"))
+  .catch(err => console.error("Erro na conexão com o DB:", err.message));
 module.exports = pool;

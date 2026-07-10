@@ -440,7 +440,7 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
           razaoSocial: oldRow.razao_social,
           oldStatus,
           newStatus: status,
-        }).catch(() => {}); // não bloqueia a resposta
+        }).catch((err) => console.error(`[Mailer] Falha ao notificar mudança de status do chamado #${req.params.id}:`, err?.message || err)); // não bloqueia a resposta
       }
     }
 

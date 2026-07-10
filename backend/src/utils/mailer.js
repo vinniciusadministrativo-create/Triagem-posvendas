@@ -190,4 +190,50 @@ async function sendPasswordResetEmail({ toEmail, toName, code }) {
   }
 }
 
-module.exports = { sendStatusUpdateEmail, testSmtp, sendPasswordResetEmail };
+/**
+ * Envia o dump SQL do banco como anexo por e-mail (usado pelo backup agendado).
+ * Destina-se APENAS a administradores — o arquivo contém `password_hash`.
+ *
+ * @param {string[]|string} toEmails Destinatário(s).
+ * @param {string} filename Nome do arquivo `.sql`.
+ * @param {string} sqlContent Conteúdo do dump.
+ * @returns {Promise<boolean>} `true` se enviado; `false` se SMTP ausente ou falha.
+ */
+async function sendBackupEmail(toEmails, filename, sqlContent) {
+  const transporter = createTransporter();
+  if (!transporter) return false; // SMTP não configurado — silencioso
+
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const to = Array.isArray(toEmails) ? toEmails.join(", ") : toEmails;
+  const sizeKb = (Buffer.byteLength(sqlContent, "utf8") / 1024).toFixed(1);
+  const quando = new Date().toLocaleString("pt-BR");
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;background:#fafafa;border-radius:10px;overflow:hidden;border:1px solid #e5e0db;">
+      <div style="background:#9B1B30;padding:20px 28px;">
+        <h2 style="color:#fff;margin:0;font-size:18px;">Marin Logística — Backup do Banco</h2>
+      </div>
+      <div style="padding:24px 28px;">
+        <p style="margin:0 0 16px;color:#1a1a1a;">Backup automático do banco de dados gerado em <b>${escapeHtml(quando)}</b>.</p>
+        <p style="margin:0 0 16px;color:#4b5563;">O arquivo <b>${escapeHtml(filename)}</b> (${escapeHtml(sizeKb)} KB) segue em anexo.</p>
+        <p style="margin:24px 0 0;font-size:12px;color:#9a948d;">⚠️ Este arquivo contém dados sensíveis (incluindo hashes de senha). Guarde em local seguro e não compartilhe.</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"Backup Marin" <${from}>`,
+      to,
+      subject: `Backup do banco — ${new Date().toLocaleDateString("pt-BR")}`,
+      html,
+      attachments: [{ filename, content: sqlContent, contentType: "application/sql" }],
+    });
+    return true;
+  } catch (err) {
+    console.error("[Mailer] Falha ao enviar backup:", err.message);
+    return false;
+  }
+}
+
+module.exports = { sendStatusUpdateEmail, testSmtp, sendPasswordResetEmail, sendBackupEmail };
