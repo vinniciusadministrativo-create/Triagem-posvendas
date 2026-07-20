@@ -279,10 +279,23 @@ def _extrair_produtos(texto, tabelas):
 
     # Fallback: regex no texto bruto — corrigido [A-Z0-9]
     if not rows:
-        p_regex = r"(\d{3,7})\s+([A-Z0-9\s\*./:-]+?)\s+(\d{8})\s+(\d{3})\s+(\d{4})\s+([A-Z]{2,4})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)"
-        linhas = re.findall(p_regex, texto, re.MULTILINE)
+        # Restringe a busca às seções de produtos (podem ser várias em NF
+        # multi-página). Necessário porque a classe da descrição abaixo é
+        # permissiva e, no texto completo, poderia "atravessar" dados do
+        # cabeçalho da NF e engolir itens.
+        secoes = re.findall(
+            r"DADOS\s+D[OE]S?\s+PRODUTOS?[\s/]*SERVI[ÇC]OS?(.*?)(?=DADOS\s+ADICIONAIS|INFORMA[ÇC][ÕO]ES\s+COMPLEMENTARES|C[ÁA]LCULO\s+DO\s+ISSQN|RESERVADO\s+AO\s+FISCO|\Z)",
+            texto, re.IGNORECASE | re.DOTALL)
+        texto_busca = "\n".join(secoes) if secoes else texto
+        # A descrição aceita vírgula, acentos e pontuação comum (ex.:
+        # "RESOLUCAO DO SENADO FEDERAL N. 13/12," em NF de importado com
+        # FCI) e pode atravessar quebras de linha quando os valores vêm
+        # depois das linhas de continuação da descrição.
+        p_regex = r"(\d{3,7})\s+([A-Za-zÀ-ÿ0-9\s\*.,;/:()%&º°ª'+#-]+?)\s+(\d{8})\s+(\d{3})\s+(\d{4})\s+([A-Z]{2,4})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)"
+        linhas = re.findall(p_regex, texto_busca, re.MULTILINE)
         for l in linhas:
             r = list(l)
+            r[1] = " ".join(r[1].split())  # normaliza espaços/quebras de linha na descrição
             r[4] = "5202"
             rows.append([r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], "0,00", r[7], r[8]])
 
