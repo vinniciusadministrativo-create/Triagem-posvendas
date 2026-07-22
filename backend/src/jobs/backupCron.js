@@ -10,15 +10,30 @@ const { sendBackupEmail } = require("../utils/mailer");
  * `BACKUP_CRON_SCHEDULE` (cron, padrão: toda segunda às 03:00).
  */
 
+/**
+ * Resolve os destinatários do backup.
+ * Se `BACKUP_RECIPIENTS` estiver definida (lista de e-mails separados por
+ * vírgula), usa exatamente esses endereços. Caso contrário, cai no padrão:
+ * todos os admins ativos com e-mail.
+ * @returns {Promise<string[]>}
+ */
+async function resolveRecipients() {
+  const override = (process.env.BACKUP_RECIPIENTS || "").trim();
+  if (override) {
+    return override.split(",").map((e) => e.trim()).filter(Boolean);
+  }
+  const { rows } = await pool.query(
+    "SELECT email FROM users WHERE role = 'admin' AND active = true AND email IS NOT NULL"
+  );
+  return rows.map((r) => r.email).filter(Boolean);
+}
+
 /** Executa o backup e envia por e-mail. Exportado para permitir disparo manual/teste. */
 async function runBackupJob() {
   try {
-    const { rows } = await pool.query(
-      "SELECT email FROM users WHERE role = 'admin' AND active = true AND email IS NOT NULL"
-    );
-    const recipients = rows.map((r) => r.email).filter(Boolean);
+    const recipients = await resolveRecipients();
     if (!recipients.length) {
-      console.warn("[BackupCron] Nenhum admin ativo com e-mail — backup não enviado.");
+      console.warn("[BackupCron] Nenhum destinatário — backup não enviado. Configure BACKUP_RECIPIENTS ou tenha um admin ativo com e-mail.");
       return;
     }
 
@@ -26,8 +41,8 @@ async function runBackupJob() {
     const ok = await sendBackupEmail(recipients, backupFilename(), sql);
     console.log(
       ok
-        ? `[BackupCron] Backup enviado a ${recipients.length} admin(s).`
-        : "[BackupCron] SMTP não configurado — backup gerado mas não enviado."
+        ? `[BackupCron] Backup enviado a ${recipients.length} destinatário(s): ${recipients.join(", ")}.`
+        : "[BackupCron] Backup gerado mas NÃO enviado (SMTP ausente ou falha no envio — veja logs [Mailer] acima)."
     );
   } catch (e) {
     console.error("[BackupCron] Falha ao gerar/enviar backup:", e.message);
