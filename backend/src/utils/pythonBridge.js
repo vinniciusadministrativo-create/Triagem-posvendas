@@ -15,7 +15,11 @@ async function extractNFDeterministic(pdfPath) {
     // No Linux (Render/produção): usa python3. No Windows (dev local): usa python.
     const pythonCmd = process.platform === "win32" ? "python" : "python3";
     
-    const child = spawn(pythonCmd, [scriptPath, pdfPath, "--json"]);
+    // PYTHONIOENCODING garante stdout em UTF-8 também no Windows (dev),
+    // onde o padrão cp1252 corromperia acentos no JSON parseado abaixo.
+    const child = spawn(pythonCmd, [scriptPath, pdfPath, "--json"], {
+      env: { ...process.env, PYTHONIOENCODING: "utf-8" }
+    });
     
     let stdout = "";
     let stderr = "";

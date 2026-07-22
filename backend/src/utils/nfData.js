@@ -35,8 +35,47 @@ function isValido(v) {
  * @returns {object} Dados formatados da NF (campos monetários como string BR,
  *          array `produtos`, flag `isDeterministic: true`).
  */
+// Junta dígitos/valores quebrados por \n em células estreitas (ex.: "3209101\n0").
+const dg = s => String(s ?? "").replace(/\s+/g, "");
+const isNumCell = s => /^[\d.,]+$/.test(dg(s));
+
+/**
+ * Mapeia uma linha de produto localizando as colunas pelo CONTEÚDO: o NCM
+ * (8 dígitos) ancora o mapeamento; CST/CFOP/UN vêm em seguida e
+ * qtd/unit/total são os 3 numéricos seguintes. DANFEs variam de 9 a 14
+ * colunas e índices fixos liam a coluna errada em layouts maiores
+ * (ex.: VALOR ICMS no lugar do total do item).
+ * @returns {object|null} produto mapeado, ou null se não achou âncora NCM.
+ */
+function mapProdutoByContent(r) {
+  const cells = r.map(c => String(c ?? ""));
+  const ncmIdx = cells.findIndex((c, i) => i >= 2 && /^\d{8}$/.test(dg(c)));
+  if (ncmIdx < 2) return null;
+  let j = ncmIdx + 1;
+  let cst = "";
+  if (j < cells.length && /^\d{2,3}$/.test(dg(cells[j]))) { cst = dg(cells[j]); j++; }
+  if (j < cells.length && /^\d{4}$/.test(dg(cells[j]))) j++; // CFOP original (espelho força 5202)
+  let un = "";
+  if (j < cells.length && /^[A-Za-z]{1,4}$/.test(dg(cells[j]))) { un = dg(cells[j]); j++; }
+  const nums = cells.slice(j).filter(isNumCell).map(dg);
+  return {
+    codigo:         dg(cells[0]),
+    descricao:      cells[1].replace(/\s+/g, " ").trim(),
+    ncm:            dg(cells[ncmIdx]),
+    cst:            cst || "000",
+    cfop:           "5202",
+    unidade:        un || "UN",
+    quantidade:     nums[0] || "0",
+    valor_unitario: nums[1] || "0,00",
+    valor_total:    nums[2] || "0,00"
+  };
+}
+
 function cleanAndFormatNfData(det, fd = {}) {
   const produtos = (det.produtos?.rows || []).map(r => {
+    const porConteudo = mapProdutoByContent(r);
+    if (porConteudo) return porConteudo;
+    // Fallback (linha sem célula de NCM detectável): heurística por índice.
     const len = r.length;
     // Se a linha tem ~9 colunas, o total costuma ser a última ou penúltima.
     // Índice 10 pode estar fora do range ou ser imposto em tabelas menores.
@@ -60,8 +99,14 @@ function cleanAndFormatNfData(det, fd = {}) {
   const calcTotalProd = produtos.reduce((s, p) => s + parseBR(p.valor_total), 0);
   const fmtBR = n => n.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
 
-  const totalProd = parseBR(det.valores?.total_produtos) || calcTotalProd;
+  const extTotalProd = parseBR(det.valores?.total_produtos);
+  const totalProd = extTotalProd || calcTotalProd;
   const totalNota = parseBR(det.valores?.total_nota) || totalProd; // fallback: total da nota = total dos produtos
+
+  // Soma dos itens diferente do total extraído da NF é indício de item
+  // perdido na extração — a UI exibe um aviso de conferência.
+  const totalDivergente = extTotalProd > 0 && calcTotalProd > 0 &&
+    Math.abs(extTotalProd - calcTotalProd) > 0.02;
 
   const natureza = (det.natureza_op && isValido(det.natureza_op) && det.natureza_op.length < 100)
     ? det.natureza_op
@@ -95,6 +140,7 @@ function cleanAndFormatNfData(det, fd = {}) {
     municipio_dest:       isValido(det.destinatario?.municipio) ? det.destinatario.municipio : "",
     uf_dest:              isValido(det.destinatario?.uf)        ? det.destinatario.uf        : "",
     produtos,
+    total_divergente: totalDivergente,
     isDeterministic: true
   };
 }

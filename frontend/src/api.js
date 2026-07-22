@@ -147,6 +147,28 @@ export const api = {
   resetChamados: (confirmacao) =>
     request("/api/admin/reset-chamados", { method: "POST", body: JSON.stringify({ confirmacao }) }),
 
+  // Exporta chamados em CSV respeitando os filtros (from/to/status/tipo/vendedor_id)
+  exportChamadosCSV: async (params = {}) => {
+    const token = getToken();
+    const qs = new URLSearchParams({ formato: "csv", ...Object.fromEntries(Object.entries(params).filter(([, v]) => v)) }).toString();
+    const res = await fetch(`${API_BASE}/api/relatorios/chamados?${qs}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (res.status === 401) {
+      localStorage.removeItem("token"); localStorage.removeItem("user"); window.location.href = "/login"; return;
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Erro ao exportar CSV");
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `chamados_${Date.now()}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  },
+
   fileUrl: (filename) => {
     if (!filename) return "";
     if (filename.startsWith("http")) return filename;
