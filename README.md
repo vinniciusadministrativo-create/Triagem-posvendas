@@ -1,8 +1,8 @@
 <div align="center">
 
-#  Triagem Pós-Vendas — Marin
+#  Vtrix · Triagem Pós-Vendas
 
-**Sistema interno de triagem e gestão de chamados de pós-vendas (devoluções/reclamações)**
+**Módulo de triagem e gestão de chamados de pós-vendas (devoluções/reclamações) da plataforma Vtrix — Marin Logística**
 
 
 </div>
@@ -42,6 +42,8 @@ Plataforma web onde **vendedores abrem chamados** de devolução/reclamação (a
 | **Formato** | Web app (SPA) — monolito: o backend serve o frontend já compilado |
 
 > ℹ️ **Importante:** apesar de a interface citar "Agentes de IA", **a IA está desligada no backend**. A triagem é **determinística (por regras)** e a leitura de NF é feita por um **script Python** (`pdfplumber`/`reportlab`) — não há chamada a LLM no fluxo de produção.
+
+> 🎨 **Marca:** o produto é a plataforma **Vtrix** (a **Marin** é a empresa-mãe). A interface exibe a coassinatura **Vtrix ┃ Marin** (tela de login e barra lateral), o **título/favicon da aba** são do Vtrix, e o **símbolo fica fixo no topo-direito** das páginas do app. Kit de marca em `frontend/src/assets/vtrix/` (símbolo, lockups, favicon e paleta — cor primária `#9B1B30`). O Vtrix nasce aqui na triagem pós-vendas e deve crescer para outros setores/automações.
 
 ---
 
@@ -133,6 +135,7 @@ trabalho/
 │       ├── db/             # Pool, migrate, seed, migrations/*.sql
 │       ├── middleware/auth.js     # Validação de JWT por role
 │       ├── routes/         # auth, chamados, users, ai, relatorios, chat, admin
+│       ├── jobs/           # backupCron (backup agendado por e-mail)
 │       └── utils/          # pythonBridge, qrDecoder, mailer, nfData, chamadoAccess
 │
 └── frontend/
@@ -142,6 +145,8 @@ trabalho/
         ├── api.js          # Cliente HTTP central (fetch + JWT)
         ├── Layout.jsx
         ├── pages/          # Login, Vendedor, PosVendas, Historico, Admin, Relatorios, Chat
+        ├── constants/      # rótulos/cores canônicos dos chamados (chamado.js)
+        ├── assets/vtrix/   # kit de marca Vtrix (símbolo, lockups, favicon)
         └── components/     # Sidebar, ChamadoDetail, DanfeMirror, ShareChamado, Toast...
 ```
 
@@ -221,11 +226,14 @@ SEED_ADMIN_PASSWORD=...
 SEED_POSVENDAS_EMAIL=posvendas@marinlog.com.br
 SEED_POSVENDAS_PASSWORD=...
 
-# Backup automático (opcional) — envia o dump .sql por e-mail aos admins ativos
+# Backup automático (opcional) — envia o dump .sql por e-mail em um agendamento.
 # Desligado por padrão (o anexo contém dados sensíveis). Requer SMTP configurado.
-BACKUP_CRON_ENABLED=false                  # true para ativar
-BACKUP_CRON_SCHEDULE=0 3 * * 1             # cron (padrão: segundas às 03:00)
+# ⚠️ node-cron é IN-PROCESS: o app precisa estar ativo no horário (ex.: "Always On"
+#    no Azure). Execuções perdidas (app dormindo) NÃO são recuperadas.
+BACKUP_CRON_ENABLED=false                   # true para ativar
+BACKUP_CRON_SCHEDULE=0 3 * * 1              # cron (padrão: segundas às 03:00)
 TZ=America/Sao_Paulo                        # fuso do agendamento
+BACKUP_RECIPIENTS=posvendas@marinlog.com.br # destinatários (vírgula); vazio = todos os admins ativos
 ```
 
 Frontend (build): `VITE_API_URL` — deixe **vazio** em produção (mesma origem); aponte para `http://localhost:3001` em dev se necessário.
@@ -399,6 +407,7 @@ PostgreSQL. Schema versionado em `backend/src/db/migrations/*.sql` (aplicado em 
     }
   ],
   "manual_required": false,             // boolean (true = digitar à mão)
+  "total_divergente": false,            // boolean (soma dos itens ≠ total da NF → aviso de conferência)
   "isDeterministic": true               // boolean (extraído via Python)
 }
 ```
@@ -466,6 +475,12 @@ Base `/api`. Exceto login e health, **todas exigem** `Authorization: Bearer <JWT
 
 > ⚠️ O backup contém `password_hash` (bcrypt) — trate o arquivo como sensível. A UI só
 > libera o reset após um backup ter sido baixado na mesma sessão.
+>
+> 🗓️ **Backup agendado:** além do endpoint manual acima, há um job (`jobs/backupCron.js`)
+> que, com `BACKUP_CRON_ENABLED=true`, gera o dump e o envia por e-mail no cron configurado
+> (`BACKUP_CRON_SCHEDULE`) para os endereços de `BACKUP_RECIPIENTS` (ou, se vazio, a todos os
+> admins ativos). Usa `node-cron` **in-process** → exige o app rodando continuamente
+> (ex.: "Always On" no Azure); logs saem com o prefixo `[BackupCron]`.
 
 ### Relatórios
 | Método | Rota | Acesso | Descrição |
@@ -603,7 +618,7 @@ Tipos lógicos: `string`, `int`, `boolean`, `file`, `string[]`. Campos monetári
 | `triageDeterministic(formData)` | `routes/ai.js` | Classifica o chamado por regras → `triage_result` |
 | `repairJSON(str)` | `routes/ai.js` | Tenta consertar/parsear JSON truncado |
 | `uploadToCloudinary(buffer, options, mimetype)` | `routes/chamados.js` | Sobe arquivo ao Cloudinary; `resource_type` por mimetype |
-| `cleanAndFormatNfData(det, fd?)` | `utils/nfData.js` | Normaliza a saída do Python para o formato `nf_data` (filtra "lixo" de cabeçalho, calcula totais; `fd` = fallback do formulário). **Lógica única** usada pela criação, reprocessamento e auto-extração |
+| `cleanAndFormatNfData(det, fd?)` | `utils/nfData.js` | Normaliza a saída do Python para o formato `nf_data`: **mapeia as colunas do produto por conteúdo** (âncora no NCM de 8 dígitos — cobre DANFEs de 9 a 14 colunas), filtra "lixo" de cabeçalho, calcula totais e sinaliza `total_divergente` (`fd` = fallback do formulário). **Lógica única** usada pela criação, reprocessamento e auto-extração |
 
 ### Frontend — cliente HTTP (`src/api.js`)
 
@@ -622,6 +637,7 @@ Objeto `api` com wrapper único sobre `fetch` (injeta JWT, trata 401/429). Princ
 | `api.getMessages(id)` / `api.sendMessage(id, data)` | chat do chamado |
 | `api.getUsers()` / `api.createUser(data)` / `api.updateUser(id, data)` / `api.changePassword(...)` | usuários |
 | `api.backupDatabase()` / `api.resetChamados(confirmacao)` | backup .sql e reset de chamados (admin) |
+| `api.exportChamadosCSV(params)` | exporta os chamados filtrados (from/to/status/tipo/vendedor) em CSV |
 
 ---
 
@@ -656,6 +672,8 @@ Há configuração para três alvos (a imagem Docker é a referência):
 | **Upload da NF falha** | Cloudinary, tipo ou tamanho do arquivo | Tipos: JPG/PNG/WEBP/PDF; NF ≤ 10 MB, evidências ≤ 20 MB |
 | **Espelho/PDF não gera** | Python ou libs ausentes | `python --version`; `pip install pdfplumber reportlab` |
 | **Extração da NF vem vazia / manual** | PDF não-padrão, protegido ou imagem sem QR | Use PDF de DANFE padrão; ao mover p/ `espelho` a auto-extração tenta de novo; senão use "🔄 Reprocessar PDF" ou transcreva manualmente (pos_vendas) |
+| **Espelho com item faltando / valor errado** | Layout de DANFE fora do previsto na extração | Confira o banner "⚠️ Conferir Itens" (`total_divergente`); edite/adicione o item no espelho e salve |
+| **Backup automático não chega** | App dormindo no horário, `BACKUP_CRON_ENABLED≠true` ou SMTP | Ative "Always On"; confirme `BACKUP_CRON_ENABLED=true` e `BACKUP_RECIPIENTS`; veja logs `[BackupCron]` |
 | **Vendedor não enxerga um chamado** | Não é dono nem foi compartilhado | Compartilhe o chamado com o usuário |
 | **E-mail de status não chega** | SMTP não configurado/credencial errada | Logado como admin, acesse `/api/diag-smtp`; confira `SMTP_*` |
 | **Mudanças no front não aparecem em produção** | `frontend/dist` desatualizado | `npm run build` e redeploy |
@@ -681,6 +699,6 @@ Há configuração para três alvos (a imagem Docker é a referência):
 
 <div align="center">
 
-**Marin Logística e Comércio LTDA** — Sistema de Triagem Automática Pós-Vendas
+**Vtrix** — plataforma de automação da **Marin Logística e Comércio LTDA** · módulo Triagem Pós-Vendas
 
 </div>
