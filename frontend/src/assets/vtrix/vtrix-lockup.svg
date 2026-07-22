@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 72" width="210" height="72" role="img" aria-label="Vtrix">
+  <title>Vtrix</title>
+  <!-- Lockup horizontal para fundo claro. O wordmark é TEXTO ao vivo (fonte Arial);
+       para produção final, converta para contornos (outlines) num editor vetorial. -->
+  <g transform="translate(4 6) scale(0.9)" fill="none" stroke="#9B1B30" stroke-width="6.5" stroke-linejoin="miter" stroke-miterlimit="6">
+    <path d="M13 19 L32 49 L51 19"/>
+    <path d="M24 17 L32 31 L40 17"/>
+  </g>
+  <text x="74" y="50" font-family="Arial, 'Helvetica Neue', sans-serif" font-weight="900" font-size="44" letter-spacing="-0.5">
+    <tspan fill="#9B1B30">V</tspan><tspan fill="#1a1a1a">trix</tspan>
+  </text>
+</svg>
