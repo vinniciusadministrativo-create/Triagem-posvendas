@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import logoMarin from "../assets/logo_marin.png";
+import vtrixSymbol from "../assets/vtrix/vtrix-symbol.svg";
 
 const M = {
   pri: "#9B1B30",
@@ -106,7 +107,20 @@ export default function Sidebar({ user, onLogout, onSwitchUser, isOpen, onToggle
       <div className={`sidebar-container ${isOpen ? 'open' : ''}`} style={sidebarStyle}>
         <div style={{ padding: "80px 20px 30px", opacity: isOpen ? 1 : 0, transition: "opacity 0.3s" }}>
           <div style={{ marginBottom: 20 }}>
-            <img src={logoMarin} alt="Marin" style={{ width: 120, height: "auto", borderRadius: 4, marginBottom: 6, display: "block" }} />
+            {/* Vtrix ┃ Marin — plataforma + empresa-mãe, separadas por divisor */}
+            <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 12 }}>
+              {/* Vtrix (plataforma) */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <img src={vtrixSymbol} alt="" style={{ width: 30, height: 30, display: "block" }} />
+                <span style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-0.01em", color: M.tx, lineHeight: 1 }}>
+                  <span style={{ color: M.pri }}>V</span>trix
+                </span>
+              </div>
+              {/* divisor */}
+              <div style={{ width: 1, height: 22, background: M.brdN }} />
+              {/* Marin (empresa-mãe) */}
+              <img src={logoMarin} alt="Marin" style={{ height: 17, width: "auto", borderRadius: 2, display: "block" }} />
+            </div>
             <div style={{ fontSize: 10, color: M.txM, textTransform: "uppercase", letterSpacing: 1 }}>{user?.role}</div>
           </div>
         </div>
