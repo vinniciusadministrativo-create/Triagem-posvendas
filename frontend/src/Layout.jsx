@@ -1,6 +1,7 @@
 import React from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
+import vtrixSymbol from "./assets/vtrix/vtrix-symbol.svg";
 
 export default function Layout() {
   const location = useLocation();
@@ -37,6 +38,21 @@ export default function Layout() {
         onSwitchUser={handleSwitchUser}
         isOpen={isSidebarOpen}
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+      />
+      {/* Marca Vtrix fixa no topo-direito, alinhada ao botão de menu (mesma altura/linha) */}
+      <img
+        src={vtrixSymbol}
+        alt="Vtrix"
+        className="no-print"
+        style={{
+          position: "fixed",
+          top: 20,
+          right: 20,
+          height: 40,
+          width: "auto",
+          zIndex: 1001,
+          pointerEvents: "none",
+        }}
       />
       {/* Overlay escurece fundo quando sidebar abre no mobile */}
       {isMobile && isSidebarOpen && (
