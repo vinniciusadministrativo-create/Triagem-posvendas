@@ -868,6 +868,24 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
             return null;
           })()}
 
+          {/* DIVERGÊNCIA DE TOTAIS (AVISO) — soma dos itens ≠ total da NF */}
+          {(() => {
+            if (canEdit && MIRROR_STAGES.includes(chamado.status)
+                && chamado.nf_data?.total_divergente && !chamado.nf_data?.manual_required) {
+              return (
+                <div style={{ background: M.warnS, border: `1px solid ${M.warnB}`, borderRadius: 12, padding: 20, marginBottom: 20 }}>
+                  <h3 style={{ color: M.warn, margin: "0 0 8px 0" }}>⚠️ Conferir Itens do Espelho</h3>
+                  <p style={{ margin: 0, fontSize: 13, color: M.txM }}>
+                    A soma dos itens extraídos não bate com o valor total dos produtos da nota original.
+                    Pode haver item faltando ou valor lido incorretamente — confira e edite o espelho abaixo.
+                    Ao salvar, este aviso desaparece.
+                  </p>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           {/* ESPELHO DA NFD (GERADO) */}
           {(() => {
             // Se ainda precisa de transcrição manual, não renderiza o espelho

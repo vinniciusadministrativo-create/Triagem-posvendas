@@ -166,7 +166,9 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
   const save = async () => {
     setSaving(true);
     try {
-      await api.updateNFData(chamado.id, localNF);
+      // Ao salvar, o usuário conferiu os itens → limpa o aviso de divergência.
+      const payload = { ...localNF, total_divergente: false };
+      await api.updateNFData(chamado.id, payload);
       toast.success("Dados do espelho salvos com sucesso!");
       setIsEditing(false);
       setOrigProds((localNF.produtos || []).map(p => ({ ...p })));

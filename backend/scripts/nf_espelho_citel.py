@@ -234,6 +234,10 @@ def _extrair_produtos(texto, tabelas):
     def _linha_valida(cells):
         cod = cells[0].replace(".", "").strip()
         if not cod.isdigit(): return False
+        # Linha com célula de NCM (8 dígitos) é produto legítimo mesmo que a
+        # descrição contenha palavra da lista (ex.: "TINTA C/ DESCONTO").
+        if any(re.fullmatch(r"\d{8}", re.sub(r"\s+", "", c)) for c in cells[1:]):
+            return True
         linha_texto = " ".join(cells).lower()
         if any(inv in linha_texto for inv in LINHAS_INVALIDAS): return False
         return True
@@ -297,9 +301,113 @@ def _extrair_produtos(texto, tabelas):
             r = list(l)
             r[1] = " ".join(r[1].split())  # normaliza espaços/quebras de linha na descrição
             r[4] = "5202"
-            rows.append([r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], "0,00", r[7], r[8]])
+            # Linha natural de 9 colunas: cod, desc, ncm, cst, cfop, un, qtd, unit, total
+            rows.append(r)
 
     return {"rows": rows}
+
+
+def _mapear_produto(r):
+    """Mapeia uma linha de produto (dict do nf_data ou lista de células com
+    contagem de colunas variável — DANFEs têm de 9 a 14 colunas) para os
+    campos do espelho. Localiza as colunas pelo conteúdo: o NCM (8 dígitos)
+    ancora o mapeamento; CST/CFOP/UN vêm em seguida e qtd/unit/total são os
+    3 numéricos seguintes. Índices fixos liam a coluna errada em layouts
+    maiores (ex.: VALOR ICMS no lugar do total do item)."""
+    if isinstance(r, dict):
+        return {
+            "codigo":         str(r.get("codigo", "")),
+            "descricao":      str(r.get("descricao", "")),
+            "ncm":            str(r.get("ncm", "")),
+            "cfop":           str(r.get("cfop", "5202")),
+            "unidade":        str(r.get("unidade", "UN")),
+            "quantidade":     str(r.get("quantidade", "0")),
+            "valor_unitario": str(r.get("valor_unitario", "0,00")),
+            "valor_total":    str(r.get("valor_total", "0,00")),
+        }
+    cells = [str(c) if c is not None else "" for c in r]
+    dg = lambda s: re.sub(r"\s+", "", s)  # junta dígitos quebrados por \n
+    num = lambda s: re.fullmatch(r"[\d.,]+", dg(s)) is not None
+
+    ncm_i = next((i for i in range(2, len(cells)) if re.fullmatch(r"\d{8}", dg(cells[i]))), None)
+    if ncm_i is not None:
+        resto = cells[ncm_i + 1:]
+        j = 0
+        if j < len(resto) and re.fullmatch(r"\d{2,3}", dg(resto[j])): j += 1  # CST
+        if j < len(resto) and re.fullmatch(r"\d{4}", dg(resto[j])):   j += 1  # CFOP original
+        un = ""
+        if j < len(resto) and re.fullmatch(r"[A-Za-z]{1,4}", dg(resto[j])):
+            un = dg(resto[j]); j += 1
+        nums = [dg(c) for c in resto[j:] if num(c)]
+        return {
+            "codigo":         dg(cells[0]),
+            "descricao":      " ".join(cells[1].split()),
+            "ncm":            dg(cells[ncm_i]),
+            "cfop":           "5202",
+            "unidade":        un or "UN",
+            "quantidade":     nums[0] if len(nums) > 0 else "0",
+            "valor_unitario": nums[1] if len(nums) > 1 else "0,00",
+            "valor_total":    nums[2] if len(nums) > 2 else "0,00",
+        }
+    # Fallback: layout de 9 colunas do extrator (cod, desc, ncm, cst, cfop, un, qtd, unit, total)
+    get = lambda i, dflt="": cells[i] if i < len(cells) else dflt
+    return {
+        "codigo":         get(0),
+        "descricao":      " ".join(get(1).split()),
+        "ncm":            get(2),
+        "cfop":           "5202",
+        "unidade":        get(5, "UN"),
+        "quantidade":     get(6, "0"),
+        "valor_unitario": get(7, "0,00"),
+        "valor_total":    get(8, "0,00"),
+    }
+
+
+def _norm_dados(d):
+    """Aceita tanto a saída bruta de extrair_dados quanto o formato plano
+    nf_data salvo pelo backend (produtos = lista de dicts), usado pela rota
+    GET /api/chamados/:id/danfe-pdf."""
+    if not isinstance(d.get("produtos"), list):
+        return d  # formato bruto (produtos = {"rows": [...]})
+    g = d.get
+    return {
+        "numero":        g("numero_nf", ""),
+        "natureza_op":   g("natureza_operacao", ""),
+        "data_emissao":  g("data_emissao", ""),
+        "emitente":      {},
+        "duplicatas":    [],
+        "info_complementar": "",
+        "destinatario": {
+            "nome":      g("razao_social_dest") or g("cliente", ""),
+            "cnpj_cpf":  g("cnpj_dest") or g("cnpj", ""),
+            "endereco":  g("endereco_dest", ""),
+            "bairro":    g("bairro_dest", ""),
+            "cep":       g("cep_dest", ""),
+            "municipio": g("municipio_dest", ""),
+            "uf":        g("uf_dest", ""),
+            "ie":        "",
+        },
+        "valores": {
+            "base_icms":       g("base_icms", "0,00"),
+            "valor_icms":      g("valor_icms", "0,00"),
+            "base_icms_st":    g("base_icms_st", "0,00"),
+            "valor_icms_st":   g("valor_icms_st", "0,00"),
+            "total_produtos":  g("valor_total_produtos", "0,00"),
+            "total_nota":      g("valor_total_nota", "0,00"),
+            "frete":           g("valor_frete", "0,00"),
+            "seguro":          g("valor_seguro", "0,00"),
+            "desconto":        "0,00",
+            "outras_despesas": "0,00",
+            "valor_ipi":       g("valor_ipi", "0,00"),
+        },
+        "transporte": {
+            "peso_bruto":   g("peso_bruto", "0,00"),
+            "peso_liquido": g("peso_liquido", "0,00"),
+            "quantidade":   g("quantidade_volumes", "0"),
+            "especie":      g("especie_volumes", ""),
+        },
+        "produtos": {"rows": g("produtos", [])},
+    }
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -346,7 +454,7 @@ def _sec(title):
     return (Spacer(1, 2.5 * mm), Paragraph(f"<u><b>{title}</b></u>", S_SECTION), Spacer(1, 0.5 * mm))
 
 def gerar_espelho(dados, output_path):
-    d = dados; emit = d.get("emitente", {}); dest = d.get("destinatario", {}); val = d.get("valores", {}); transp = d.get("transporte", {}); prods = d.get("produtos", {}); dups = d.get("duplicatas", []); info = d.get("info_complementar", "")
+    d = _norm_dados(dados); emit = d.get("emitente", {}); dest = d.get("destinatario", {}); val = d.get("valores", {}); transp = d.get("transporte", {}); prods = d.get("produtos", {}); dups = d.get("duplicatas", []); info = d.get("info_complementar", "")
     story = []
     
     # ── HEADER ──
@@ -395,16 +503,16 @@ def gerar_espelho(dados, output_path):
     p_cols = [UW*0.1, UW*0.38, UW*0.1, UW*0.08, UW*0.06, UW*0.08, UW*0.1, UW*0.1]
     
     for r in prods.get("rows", []):
-        # r[0]=cod, r[1]=desc, r[2]=ncm, r[3]=cst, r[4]=cfop, r[5]=un, r[6]=qtd, l[7]=unit, l[8]=base, l[9]=unit, l[10]=total
+        p = _mapear_produto(r)
         rows.append([
-            Paragraph(str(r[0]), S_CPROD), 
-            Paragraph(str(r[1]), S_CPROD_L), 
-            Paragraph(str(r[2]), S_CPROD),
-            Paragraph(str(r[4]), S_CPROD),
-            Paragraph(str(r[5]), S_CPROD),
-            Paragraph(str(r[6]), S_CPROD_R),
-            Paragraph(str(r[7]), S_CPROD_R),
-            Paragraph(str(r[10]), S_CPROD_R)
+            Paragraph(p["codigo"], S_CPROD),
+            Paragraph(p["descricao"], S_CPROD_L),
+            Paragraph(p["ncm"], S_CPROD),
+            Paragraph(p["cfop"], S_CPROD),
+            Paragraph(p["unidade"], S_CPROD),
+            Paragraph(p["quantidade"], S_CPROD_R),
+            Paragraph(p["valor_unitario"], S_CPROD_R),
+            Paragraph(p["valor_total"], S_CPROD_R)
         ])
     
     if len(rows) > 1:
@@ -457,7 +565,9 @@ if __name__ == "__main__":
             sys.exit(1)
         sys.exit(0)
 
-    # Modo Extração (Padrão)
+    # Modo Extração (Padrão) — com 2º argumento posicional, também gera o espelho
     out_json = "--json" in sys.argv
-    pdf_in = sys.argv[1]
-    processar(pdf_in, json_output=out_json)
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    pdf_in = args[0]
+    pdf_out = args[1] if len(args) > 1 else None
+    processar(pdf_in, pdf_out, json_output=out_json)
