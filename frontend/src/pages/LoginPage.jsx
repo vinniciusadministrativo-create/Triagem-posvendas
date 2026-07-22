@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import logoMarin from "../assets/logo_marin.png";
+import vtrixSymbol from "../assets/vtrix/vtrix-symbol.svg";
 
 const M = {
   pri: "#9B1B30", priDk: "#7A1526", bg: "#fafafa",
@@ -76,9 +77,18 @@ export default function LoginPage() {
     <div style={{ minHeight: "100vh", background: `linear-gradient(160deg, ${M.pri} 0%, #5E1220 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Plus Jakarta Sans', sans-serif", padding: 16 }}>
       <div style={{ background: "#fff", borderRadius: 16, padding: "36px 32px", width: "100%", maxWidth: 400, boxShadow: "0 24px 80px rgba(0,0,0,0.25)" }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <img src={logoMarin} alt="Marin Logística" style={{ width: 200, height: "auto", borderRadius: 6, marginBottom: 16 }} />
-          <div style={{ fontSize: 18, fontWeight: 800, color: M.tx }}>Triagem Pós-Vendas</div>
-          <div style={{ fontSize: 12, color: M.txM, marginTop: 4 }}>
+          {/* Vtrix ┃ Marin — plataforma + empresa-mãe */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+              <img src={vtrixSymbol} alt="" style={{ width: 38, height: 38, display: "block" }} />
+              <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.01em", color: M.tx, lineHeight: 1 }}>
+                <span style={{ color: M.pri }}>V</span>trix
+              </span>
+            </div>
+            <div style={{ width: 1, height: 28, background: M.brdN }} />
+            <img src={logoMarin} alt="Marin Logística" style={{ height: 22, width: "auto", borderRadius: 2, display: "block" }} />
+          </div>
+          <div style={{ fontSize: 12, color: M.txM, marginTop: 6 }}>
             {mode === "login" ? "Faça login para continuar" : "Recupere o acesso à sua conta"}
           </div>
         </div>
