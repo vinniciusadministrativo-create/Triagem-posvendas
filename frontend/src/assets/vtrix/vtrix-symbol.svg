@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Vtrix">
+  <title>Vtrix</title>
+  <!-- Símbolo: V de duas chevrons empilhadas (camadas), pontas retas (miter). Cor de marca #9B1B30. -->
+  <g fill="none" stroke="#9B1B30" stroke-width="6.5" stroke-linejoin="miter" stroke-miterlimit="6">
+    <path d="M13 19 L32 49 L51 19"/>
+    <path d="M24 17 L32 31 L40 17"/>
+  </g>
+</svg>
