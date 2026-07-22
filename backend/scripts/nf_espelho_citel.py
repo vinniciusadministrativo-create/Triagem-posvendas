@@ -249,6 +249,21 @@ def _extrair_produtos(texto, tabelas):
             if _linha_valida(cells):
                 rows.append(cells)
 
+    def _linha_dados_do_cabecalho(header_row):
+        """Alguns DANFEs (ex.: layout Citel) fundem o cabeçalho das colunas com
+        o PRIMEIRO item na mesma linha da tabela: cada célula vem como
+        'RÓTULO\\nvalor' (não há linha de grade separando rótulo e dado). Ao
+        pular o cabeçalho, esse primeiro produto era descartado. Remove o
+        rótulo (1ª linha textual) de cada célula e devolve a linha só com os
+        valores — ou None se o restante não formar um produto (código não
+        numérico), que é o caso de um cabeçalho puro."""
+        dados = []
+        for c in header_row:
+            partes = str(c).split("\n", 1) if c else [""]
+            dados.append(partes[1].strip() if len(partes) > 1 else "")
+        cod = dados[0].replace(".", "").strip() if dados else ""
+        return dados if cod.isdigit() else None
+
     # Primeira passagem: tabelas com cabeçalho reconhecível
     found_product_table = False
     product_col_count = 0
@@ -267,6 +282,10 @@ def _extrair_produtos(texto, tabelas):
         if tem_header_valido:
             found_product_table = True
             product_col_count = len(header)
+            # Recupera o 1º item quando ele está fundido na linha do cabeçalho.
+            embutida = _linha_dados_do_cabecalho(tabela[0])
+            if embutida and _linha_valida(embutida):
+                rows.append(embutida)
             _extrair_linhas(tabela, 1)
         elif is_continuacao:
             _extrair_linhas(tabela, 0)
