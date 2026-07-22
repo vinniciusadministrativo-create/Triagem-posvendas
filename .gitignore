@@ -2,3 +2,9 @@ node_modules/
 .env
 .DS_Store
 uploads/
+
+# Config local do Claude Code
+.claude/
+
+# Planilhas de trabalho soltas na raiz (não versionar)
+/*.xlsx
