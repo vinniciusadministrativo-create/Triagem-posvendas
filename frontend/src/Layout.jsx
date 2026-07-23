@@ -31,7 +31,7 @@ export default function Layout() {
   };
 
   return (
-    <div style={{ display: "flex" }}>
+    <div style={{ display: "flex", position: "relative" }}>
       <Sidebar
         user={user}
         onLogout={handleLogout}
@@ -39,13 +39,14 @@ export default function Layout() {
         isOpen={isSidebarOpen}
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
       />
-      {/* Marca Vtrix fixa no topo-direito, alinhada ao botão de menu (mesma altura/linha) */}
+      {/* Marca Vtrix no topo-direito da página: ancorada ao topo (absolute) —
+          sai de vista ao rolar para baixo; alinhada ao botão de menu no topo. */}
       <img
         src={vtrixSymbol}
         alt="Vtrix"
         className="no-print"
         style={{
-          position: "fixed",
+          position: "absolute",
           top: 20,
           right: 20,
           height: 40,
