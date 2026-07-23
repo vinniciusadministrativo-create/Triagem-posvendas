@@ -194,14 +194,14 @@ Crie `backend/.env` (não versionado):
 # Ambiente
 NODE_ENV=production                       # em prod, oculta detalhes de erro no response
 
-# Banco
+# Banco — OBRIGATÓRIO (servidor encerra no boot se ausente)
 DATABASE_URL=postgres://user:senha@host:5432/banco
 # SSL do banco (opcional):
 #   DATABASE_CA=<cert PEM>   → valida a cadeia (recomendado em produção)
 #   DATABASE_SSL=disable     → desliga SSL (apenas local)
 # Sem nenhuma das duas, usa SSL permissivo (rejectUnauthorized:false)
 
-# Autenticação
+# Autenticação — OBRIGATÓRIO (servidor encerra no boot se ausente)
 JWT_SECRET=um-segredo-bem-forte
 
 # Servidor
@@ -225,6 +225,10 @@ SEED_ADMIN_EMAIL=admin@marinlog.com.br
 SEED_ADMIN_PASSWORD=...
 SEED_POSVENDAS_EMAIL=posvendas@marinlog.com.br
 SEED_POSVENDAS_PASSWORD=...
+
+# Extração de NF (script Python) — opcional. Protege de PDFs travados/picos.
+PYTHON_TIMEOUT_MS=30000                     # timeout por processo (mata ao exceder)
+PYTHON_MAX_CONCURRENCY=4                    # máx. de processos Python simultâneos
 
 # Backup automático (opcional) — envia o dump .sql por e-mail em um agendamento.
 # Desligado por padrão (o anexo contém dados sensíveis). Requer SMTP configurado.
@@ -604,7 +608,7 @@ Tipos lógicos: `string`, `int`, `boolean`, `file`, `string[]`. Campos monetári
 | Função | Arquivo | Assinatura | O que faz |
 |--------|---------|-----------|-----------|
 | `authMiddleware(roles)` | `middleware/auth.js` | `(roles: string[] = []) → (req,res,next)` | Valida o JWT (`Bearer`), injeta `req.user`; bloqueia 403 se `role` ∉ `roles`. Lista vazia = qualquer autenticado |
-| `extractNFDeterministic(pdfPath)` | `utils/pythonBridge.js` | `(pdfPath: string) → Promise<object>` | Faz `spawn` do Python e devolve o JSON extraído do PDF |
+| `extractNFDeterministic(pdfPath)` | `utils/pythonBridge.js` | `(pdfPath: string) → Promise<object>` | Faz `spawn` do Python e devolve o JSON extraído do PDF. Aplica **timeout** (mata o processo) e **teto de concorrência** (`PYTHON_TIMEOUT_MS`/`PYTHON_MAX_CONCURRENCY`) |
 | `generatePDFFromJSON(data, outputPath)` | `utils/pythonBridge.js` | `(data: object, outputPath: string) → Promise<string>` | Gera o espelho PDF a partir de `nf_data` |
 | `processarQrCodeImagem(base64Image)` | `utils/qrDecoder.js` | `(base64Image: string) → Promise<object\|null>` | Lê o QR Code de NF-e e decodifica a chave de 44 dígitos |
 | `decodificarChave(chave)` | `utils/qrDecoder.js` | `(chave: string) → object\|null` | Quebra a chave de acesso (UF, CNPJ, modelo, série, número) |
@@ -672,6 +676,7 @@ Há configuração para três alvos (a imagem Docker é a referência):
 | **Upload da NF falha** | Cloudinary, tipo ou tamanho do arquivo | Tipos: JPG/PNG/WEBP/PDF; NF ≤ 10 MB, evidências ≤ 20 MB |
 | **Espelho/PDF não gera** | Python ou libs ausentes | `python --version`; `pip install pdfplumber reportlab` |
 | **Extração da NF vem vazia / manual** | PDF não-padrão, protegido ou imagem sem QR | Use PDF de DANFE padrão; ao mover p/ `espelho` a auto-extração tenta de novo; senão use "🔄 Reprocessar PDF" ou transcreva manualmente (pos_vendas) |
+| **Extração/reprocessamento "pendura"** | PDF travado ou muitos processos Python simultâneos | O Python é encerrado após `PYTHON_TIMEOUT_MS` (padrão 30s) e limitado a `PYTHON_MAX_CONCURRENCY` simultâneos; confira o erro no log do servidor |
 | **Espelho com item faltando / valor errado** | Layout de DANFE fora do previsto na extração | Confira o banner "⚠️ Conferir Itens" (`total_divergente`); edite/adicione o item no espelho e salve |
 | **Backup automático não chega** | App dormindo no horário, `BACKUP_CRON_ENABLED≠true` ou SMTP | Ative "Always On"; confirme `BACKUP_CRON_ENABLED=true` e `BACKUP_RECIPIENTS`; veja logs `[BackupCron]` |
 | **Vendedor não enxerga um chamado** | Não é dono nem foi compartilhado | Compartilhe o chamado com o usuário |

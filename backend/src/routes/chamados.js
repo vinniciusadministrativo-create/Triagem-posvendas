@@ -420,31 +420,49 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
 
     query += ` WHERE id = $2 RETURNING *`;
 
-    const { rows } = await pool.query(query, params);
-    if (!rows[0]) return res.status(404).json({ error: "Chamado não encontrado" });
-
-
-    // Grava no histórico e envia e-mail se mudou
-    if (oldStatus !== status) {
-      await pool.query(
-        `INSERT INTO chamado_historico (chamado_id, user_id, status_anterior, status_novo)
-         VALUES ($1, $2, $3, $4)`,
-        [req.params.id, req.user.id, oldStatus, status]
-      );
-
-      if (oldRow.email_vendedor) {
-        sendStatusUpdateEmail({
-          toEmail: oldRow.email_vendedor,
-          toName: oldRow.nome_vendedor,
-          chamadoId: req.params.id,
-          razaoSocial: oldRow.razao_social,
-          oldStatus,
-          newStatus: status,
-        }).catch((err) => console.error(`[Mailer] Falha ao notificar mudança de status do chamado #${req.params.id}:`, err?.message || err)); // não bloqueia a resposta
+    // Transação: o UPDATE do chamado e o INSERT no histórico precisam ser
+    // atômicos — senão uma falha entre os dois deixa o status mudado sem trilha
+    // de auditoria (ou vice-versa). O e-mail é disparado só após o COMMIT.
+    const client = await pool.connect();
+    let updatedRow;
+    try {
+      await client.query("BEGIN");
+      const upd = await client.query(query, params);
+      if (!upd.rows[0]) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Chamado não encontrado" });
       }
+      updatedRow = upd.rows[0];
+
+      if (oldStatus !== status) {
+        await client.query(
+          `INSERT INTO chamado_historico (chamado_id, user_id, status_anterior, status_novo)
+           VALUES ($1, $2, $3, $4)`,
+          [req.params.id, req.user.id, oldStatus, status]
+        );
+      }
+
+      await client.query("COMMIT");
+    } catch (txErr) {
+      await client.query("ROLLBACK").catch(() => {});
+      throw txErr; // cai no catch externo → 500
+    } finally {
+      client.release();
     }
 
-    res.json({ chamado: rows[0], espelho_gerado: espelhoGerado });
+    // E-mail fora da transação (fire-and-forget): não bloqueia nem desfaz o commit.
+    if (oldStatus !== status && oldRow.email_vendedor) {
+      sendStatusUpdateEmail({
+        toEmail: oldRow.email_vendedor,
+        toName: oldRow.nome_vendedor,
+        chamadoId: req.params.id,
+        razaoSocial: oldRow.razao_social,
+        oldStatus,
+        newStatus: status,
+      }).catch((err) => console.error(`[Mailer] Falha ao notificar mudança de status do chamado #${req.params.id}:`, err?.message || err));
+    }
+
+    res.json({ chamado: updatedRow, espelho_gerado: espelhoGerado });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Erro ao atualizar status" });

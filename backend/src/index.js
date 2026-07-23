@@ -1,5 +1,16 @@
 console.log("🎬 Iniciando servidor...");
 require("dotenv").config();
+
+// Fail-fast: sobe com erro claro no boot se faltar env obrigatória, em vez de
+// falhar de forma confusa em runtime (ex.: JWT_SECRET só quebraria no primeiro
+// login). Cloudinary é validado em routes/chamados.js.
+const REQUIRED_ENV = ["DATABASE_URL", "JWT_SECRET"];
+const missingEnv = REQUIRED_ENV.filter((k) => !process.env[k]);
+if (missingEnv.length) {
+  console.error(`❌ ERRO: variáveis de ambiente obrigatórias ausentes: ${missingEnv.join(", ")}`);
+  process.exit(1);
+}
+
 const express = require("express");
 const cors = require("cors");
 const { rateLimit } = require("express-rate-limit");
