@@ -28,6 +28,11 @@ RUN VITE_API_URL="" npm run build
 WORKDIR /app/backend
 COPY backend/ ./
 
+# Garante que o entrypoint seja executável (o bit +x pode não sobreviver ao
+# checkout no Windows). Rodamos via `sh` no CMD, então isto é defensivo.
+RUN chmod +x docker-entrypoint.sh
+
 EXPOSE 8080
 
-CMD ["node", "src/index.js"]
+# Aplica migrations e sobe o servidor (ver docker-entrypoint.sh).
+CMD ["sh", "docker-entrypoint.sh"]
