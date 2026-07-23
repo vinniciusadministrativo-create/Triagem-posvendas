@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { api } from "../api";
 import ShareChamado from "./ShareChamado";
 import DanfeMirror from "./DanfeMirror";
+import EncerramentoModal from "./EncerramentoModal";
 import { useToast } from "./Toast";
 import { useConfirm } from "./Confirm";
 
@@ -148,6 +149,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
   const [savingRessalva, setSavingRessalva] = useState(false);
   const [history, setHistory] = useState([]);
   const [pendingRecolhimento, setPendingRecolhimento] = useState(false);
+  const [pendingEncerramento, setPendingEncerramento] = useState(false);
   const [recolhimentoData, setRecolhimentoData] = useState({
     tipo_frete: chamado.recolhimento_data?.tipo_frete || "proprio",
     nome_transportadora: chamado.recolhimento_data?.nome_transportadora || "",
@@ -324,19 +326,24 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
       setPendingRecolhimento(true);
       return;
     }
+    if (newStatus === "encerrado" && chamado.status !== "encerrado") {
+      setPendingEncerramento(true);
+      return;
+    }
     await executeSave();
   };
 
-  const executeSave = async (data = undefined) => {
+  const executeSave = async (extra = {}) => {
     setSaving(true);
     try {
       const res = await api.updateStatus(chamado.id, newStatus, {
-        recolhimento_data: data,
+        recolhimento_data: extra.recolhimento_data,
         data_previsao_recolhimento: dataPrevisao,
-        data_real_recolhimento: dataReal
+        data_real_recolhimento: dataReal,
+        encerramento_data: extra.encerramento_data
       });
       if (res?.chamado) setChamado(res.chamado);
-      if (onStatusChange) onStatusChange(chamado.id, newStatus);
+      if (onStatusChange) onStatusChange(chamado.id, newStatus, res?.chamado);
       if (isAdmin || isPosVendas) loadHistory();
       if (res?.espelho_gerado) {
         toast.success("✨ Espelho NFD gerado automaticamente a partir do PDF anexado. Confira os dados.");
@@ -344,6 +351,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
         toast.success("Status atualizado!");
       }
       setPendingRecolhimento(false);
+      setPendingEncerramento(false);
     } catch (e) {
       toast.error(e.message || "Erro ao atualizar status.");
     } finally {
@@ -357,7 +365,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
       toast.error("Por favor, informe o nome da transportadora.");
       return;
     }
-    await executeSave(recolhimentoData);
+    await executeSave({ recolhimento_data: recolhimentoData });
   };
 
   const handleSaveRessalva = async () => {
@@ -453,6 +461,13 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
     <div className="modal-wrapper">
       <div className="modal-content" style={{ position: "relative" }}>
         
+        {pendingEncerramento && (
+          <EncerramentoModal
+            onConfirm={(data) => executeSave({ encerramento_data: data })}
+            onCancel={() => setPendingEncerramento(false)}
+            saving={saving}
+          />
+        )}
         {pendingRecolhimento && (
           <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"rgba(255,255,255,0.9)",display:"flex",justifyContent:"center",alignItems:"center",zIndex:999,borderRadius:12}}>
             <div style={{background:M.card || "#fff",padding:25,borderRadius:12,width:400,maxWidth:"90%",boxShadow:"0 10px 25px rgba(0,0,0,0.2)",border:`1px solid ${M.brdN}`}}>
@@ -569,6 +584,29 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
               CNPJ: {chamado.cnpj} | Vendedor: <b>{chamado.vendedor_nome || chamado.nome_vendedor}</b>
             </p>
           </div>
+
+          {/* PAINEL DE RESOLUÇÃO — chamado encerrado (atendido/indeferido) */}
+          {chamado.status === "encerrado" && chamado.encerramento_data && (() => {
+            const enc = chamado.encerramento_data;
+            const atend = enc.resolucao === "atendido";
+            const cor = atend ? "#16a34a" : "#dc2626";
+            const corS = atend ? "rgba(22,163,74,0.08)" : "rgba(220,38,38,0.08)";
+            return (
+              <div style={{ background: corS, border: `1px solid ${cor}55`, borderLeft: `5px solid ${cor}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, color: cor }}>
+                    {atend ? "✓ Atendido" : "✕ Indeferido"}
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: M.txM, textTransform: "uppercase", letterSpacing: 0.5 }}>· Resolução</span>
+                </div>
+                {enc.descricao && <p style={{ margin: "0 0 8px", fontSize: 14, lineHeight: 1.6, color: M.tx }}>{enc.descricao}</p>}
+                <div style={{ fontSize: 11, color: M.txM }}>
+                  {enc.encerrado_por_nome ? `Encerrado por ${enc.encerrado_por_nome}` : "Encerrado"}
+                  {enc.encerrado_em ? ` · ${new Date(enc.encerrado_em).toLocaleString("pt-BR")}` : ""}
+                </div>
+              </div>
+            );
+          })()}
 
           <div style={{ background: M.bg, padding: 20, borderRadius: 12, marginBottom: 20, border: `1px solid ${M.brdN}` }}>
             <div style={{ fontSize: 11, fontWeight: 800, color: M.txM, textTransform: "uppercase", marginBottom: 8 }}>Descrição da Solicitação</div>
