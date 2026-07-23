@@ -123,11 +123,13 @@ Aplicação **monolítica**. Em produção, o **backend Express serve a SPA Reac
 trabalho/
 ├── Dockerfile              # Imagem de produção (Node 22 + Python)
 ├── startup.sh              # Boot no Azure App Service
+├── .gitattributes          # Força LF nos *.sh (não quebrar no container Linux)
 ├── README.md               # Este arquivo
 │
 ├── backend/
 │   ├── requirements.txt    # Python: pdfplumber, reportlab
 │   ├── railway.toml        # Config Railway
+│   ├── docker-entrypoint.sh # Boot do container: aplica migrations e sobe o servidor
 │   ├── scripts/
 │   │   └── nf_espelho_citel.py   # Extrai NF (PDF) e gera espelho PDF
 │   └── src/
@@ -316,7 +318,7 @@ novo → avaliacao → avaliado → espelho → aguardando_nfd
 
 ## 🗄 Banco de dados
 
-PostgreSQL. Schema versionado em `backend/src/db/migrations/*.sql` (aplicado em ordem por `npm run migrate`).
+PostgreSQL. Schema versionado em `backend/src/db/migrations/*.sql` (aplicado em ordem por `npm run migrate`). As migrations são **idempotentes** (`ADD COLUMN IF NOT EXISTS`, etc.). No deploy **Docker**, o `docker-entrypoint.sh` roda `npm run migrate` **automaticamente no boot** do container, antes de o servidor subir — não é preciso migrar à mão.
 
 | Tabela | Função |
 |--------|--------|
@@ -329,7 +331,7 @@ PostgreSQL. Schema versionado em `backend/src/db/migrations/*.sql` (aplicado em 
 | `chat_grupos` / `chat_grupo_membros` | Grupos de conversa e membros |
 | `chat_reacoes` / `chat_leituras_grupo` | Reações e controle de leitura |
 
-> ⚠️ A coluna `chamados.recolhimento_data` (JSONB) é criada **no boot** (`db/index.js`), fora das migrations.
+> ℹ️ Todo o schema (inclusive `recolhimento_data` e `encerramento_data`) vive nas migrations. No boot, `db/index.js` faz apenas uma checagem leve de conectividade (`SELECT 1`).
 
 ### Schema detalhado — `users`
 
@@ -506,7 +508,7 @@ Base `/api`. Exceto login e health, **todas exigem** `Authorization: Bearer <JWT
 ### Relatórios
 | Método | Rota | Acesso | Descrição |
 |--------|------|--------|-----------|
-| GET | `/relatorios/resumo` | pos_vendas, admin | KPIs e SLA |
+| GET | `/relatorios/resumo` | pos_vendas, admin | KPIs, SLA e encerramentos (atendidos/indeferidos) — respeita o filtro de período |
 | GET | `/relatorios/chamados?formato=csv` | pos_vendas, admin | Exporta chamados |
 | GET | `/relatorios/historico?formato=csv` | pos_vendas, admin | Exporta histórico |
 
@@ -668,13 +670,13 @@ Há configuração para três alvos (a imagem Docker é a referência):
 
 | Alvo | Arquivo | Observação |
 |------|---------|-----------|
-| **Docker** | `Dockerfile` | `node:22-slim` + Python + deps; builda o front e roda `node src/index.js`. `EXPOSE 8080` (defina `PORT=8080`). |
+| **Docker** | `Dockerfile` | `node:22-slim` + Python + deps; builda o front. O boot chama `docker-entrypoint.sh` → **aplica as migrations** e então `node src/index.js`. `EXPOSE 8080` (defina `PORT=8080`). |
 | **Railway** | `backend/railway.toml` | Nixpacks; `npm start`; healthcheck `/api/health`. |
 | **Azure App Service** | `startup.sh` | Instala Python e inicia o Node. |
 
 **Checklist de deploy**
 1. Configurar todas as variáveis de ambiente (especialmente **Cloudinary**).
-2. Rodar `npm run migrate` contra o banco de produção.
+2. **Migrations**: rodam **automaticamente no boot** do container (`docker-entrypoint.sh`) — vale para a produção atual (imagem Docker no **Azure Web App**, ver `.github/workflows/azure-deploy.yml`). Só um deploy **não-containerizado** (ex.: Node puro via `startup.sh`) exige rodar `npm run migrate` à mão.
 3. Na primeira vez, rodar `npm run seed` e **trocar as senhas**.
 4. Garantir **Python + pdfplumber + reportlab** no ambiente.
 5. **Rebuildar `frontend/dist`** após qualquer mudança no frontend (é servido diretamente).
@@ -696,6 +698,7 @@ Há configuração para três alvos (a imagem Docker é a referência):
 | **Extração/reprocessamento "pendura"** | PDF travado ou muitos processos Python simultâneos | O Python é encerrado após `PYTHON_TIMEOUT_MS` (padrão 30s) e limitado a `PYTHON_MAX_CONCURRENCY` simultâneos; confira o erro no log do servidor |
 | **Espelho com item faltando / valor errado** | Layout de DANFE fora do previsto na extração | Confira o banner "⚠️ Conferir Itens" (`total_divergente`); edite/adicione o item no espelho e salve |
 | **Backup automático não chega** | App dormindo no horário, `BACKUP_CRON_ENABLED≠true` ou SMTP | Ative "Always On"; confirme `BACKUP_CRON_ENABLED=true` e `BACKUP_RECIPIENTS`; veja logs `[BackupCron]` |
+| **"Erro ao encerrar o chamado"** | Coluna `encerramento_data` ausente no banco **ou** `frontend/dist` desatualizado (não enviava o campo) | Confirme que as migrations rodaram (auto no boot do container); rebuild/redeploy do front. É um **400 de validação** — não gera stack trace no log |
 | **Vendedor não enxerga um chamado** | Não é dono nem foi compartilhado | Compartilhe o chamado com o usuário |
 | **E-mail de status não chega** | SMTP não configurado/credencial errada | Logado como admin, acesse `/api/diag-smtp`; confira `SMTP_*` |
 | **Mudanças no front não aparecem em produção** | `frontend/dist` desatualizado | `npm run build` e redeploy |
