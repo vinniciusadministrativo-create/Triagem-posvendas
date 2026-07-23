@@ -16,7 +16,7 @@ router.get("/resumo", authMiddleware(["admin", "pos_vendas"]), async (req, res) 
 
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
-    const [total, porStatus, porTipo, porCliente, slaRecolhimento, porVendedorMotivo] = await Promise.all([
+    const [total, porStatus, porTipo, porCliente, slaRecolhimento, porVendedorMotivo, encerramentos] = await Promise.all([
       // Total de chamados
       pool.query(`SELECT COUNT(*) as total FROM chamados c ${where}`, params),
 
@@ -63,6 +63,13 @@ router.get("/resumo", authMiddleware(["admin", "pos_vendas"]), async (req, res) 
         GROUP BY u.name, c.tipo_solicitacao
         ORDER BY u.name ASC, qtd DESC
       `, params),
+      // Encerramentos por resolução (atendido/indeferido)
+      pool.query(`
+        SELECT
+          COUNT(*) FILTER (WHERE encerramento_data->>'resolucao' = 'atendido')   as atendidos,
+          COUNT(*) FILTER (WHERE encerramento_data->>'resolucao' = 'indeferido') as indeferidos
+        FROM chamados c ${where}
+      `, params),
     ]);
 
     res.json({
@@ -72,6 +79,7 @@ router.get("/resumo", authMiddleware(["admin", "pos_vendas"]), async (req, res) 
       por_cliente: porCliente.rows, 
       por_vendedor_motivo: porVendedorMotivo.rows,
       sla_recolhimento: slaRecolhimento.rows[0],
+      encerramentos: encerramentos.rows[0],
     });
   } catch (e) {
     console.error("Erro ao gerar resumo:", e);
