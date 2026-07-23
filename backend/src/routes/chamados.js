@@ -345,7 +345,7 @@ router.get("/:id", authMiddleware(), async (req, res) => {
 // PATCH /api/chamados/:id/status — pos_vendas/admin/operacional atualiza etapa
 router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"]), async (req, res) => {
   try {
-    const { status, recolhimento_data, data_previsao_recolhimento, data_real_recolhimento } = req.body;
+    const { status, recolhimento_data, data_previsao_recolhimento, data_real_recolhimento, encerramento_data } = req.body;
     console.log("STATUS UPDATE:", JSON.stringify({ status, recolhimento_data }));
     if (!status) return res.status(400).json({ error: "Status obrigatório" });
 
@@ -356,6 +356,19 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
     );
     const oldRow = oldRes.rows[0] || {};
     const oldStatus = oldRow.status;
+
+    // ── Encerramento: resolução + descrição obrigatórias ao mover p/ "encerrado" ──
+    // Validado no servidor (não só na UI), sanitizado e carimbado com autor/data.
+    let encToStore;
+    if (status === "encerrado" && oldStatus !== "encerrado") {
+      const enc = encerramento_data || {};
+      const resolucaoOk = enc.resolucao === "atendido" || enc.resolucao === "indeferido";
+      const descricao = typeof enc.descricao === "string" ? enc.descricao.trim() : "";
+      if (!resolucaoOk || !descricao) {
+        return res.status(400).json({ error: "Encerramento requer resolução (atendido/indeferido) e descrição." });
+      }
+      encToStore = { resolucao: enc.resolucao, descricao, encerrado_por: req.user.id, encerrado_por_nome: req.user.name, encerrado_em: new Date().toISOString() };
+    }
 
     // ── Auto-extração do espelho ──
     // Ao mover para "espelho" sem nf_data utilizável, baixa o PDF já anexado
@@ -406,6 +419,11 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
     if (recolhimento_data !== undefined) {
       query += `, recolhimento_data = $${nextParamIndex++}`;
       params.push(recolhimento_data);
+    }
+
+    if (encToStore !== undefined) {
+      query += `, encerramento_data = $${nextParamIndex++}`;
+      params.push(encToStore);
     }
 
     if (data_previsao_recolhimento !== undefined) {

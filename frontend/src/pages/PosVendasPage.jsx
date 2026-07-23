@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { api } from "../api";
 import ChamadoDetail from "../components/ChamadoDetail";
+import EncerramentoModal from "../components/EncerramentoModal";
 import { useToast } from "../components/Toast";
 
 const M = {
@@ -61,6 +62,7 @@ export default function PosVendasPage(){
   const[selected,setSelected]=useState(null);
   const[page,setPage]=useState(1);
   const[pendingRecolhimento, setPendingRecolhimento]=useState(null);
+  const[pendingEncerramento, setPendingEncerramento]=useState(null);
   const[recolhimentoData, setRecolhimentoData]=useState({
     tipo_frete: "proprio",
     nome_transportadora: "",
@@ -149,8 +151,10 @@ export default function PosVendasPage(){
     };
   }, []);
 
-  const handleStatusChange=(id,newStatus)=>{
-    setChamados(p=>p.map(c=>c.id===id?{...c,status:newStatus}:c));
+  const handleStatusChange=(id,newStatus,full)=>{
+    // Mescla res.chamado (full) para trazer campos como encerramento_data ao card;
+    // spread sobre c preserva os campos de JOIN (vendedor_nome, mensagens_count).
+    setChamados(p=>p.map(c=>c.id===id?{...c,...(full||{}),status:newStatus}:c));
     setSelected(null);
   };
 
@@ -187,10 +191,31 @@ export default function PosVendasPage(){
     }
   };
 
+  const handleEncerramentoConfirm = async (data) => {
+    if (!pendingEncerramento) return;
+    const { chamadoId, columnId, ch } = pendingEncerramento;
+    setPendingEncerramento(null);
+    setChamados(p => p.map(c => c.id == chamadoId ? { ...c, status: columnId } : c));
+    try {
+      const res = await api.updateStatus(chamadoId, columnId, { encerramento_data: data });
+      if (res?.chamado) setChamados(p => p.map(c => c.id == chamadoId ? { ...c, ...res.chamado } : c));
+    } catch(err) {
+      setChamados(p => p.map(c => c.id == chamadoId ? { ...c, status: ch.status } : c));
+      toast.error("Erro ao encerrar o chamado.");
+    }
+  };
+
   return(
     <div className="page-container">
       {selected&&<ChamadoDetail chamado={selected} onClose={()=>setSelected(null)} onStatusChange={handleStatusChange} onDelete={handleDeleteSingle} />}
-      
+
+      {pendingEncerramento && (
+        <EncerramentoModal
+          onConfirm={handleEncerramentoConfirm}
+          onCancel={() => setPendingEncerramento(null)}
+        />
+      )}
+
       {pendingRecolhimento && (
         <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.6)",display:"flex",justifyContent:"center",alignItems:"center",zIndex:9999}}>
           <div style={{background:M.card,padding:25,borderRadius:12,width:400,maxWidth:"90%",boxShadow:"0 10px 25px rgba(0,0,0,0.2)"}}>
@@ -299,6 +324,10 @@ export default function PosVendasPage(){
                 if(!id) return;
                 const ch = chamados.find(c => c.id == id);
                 if(ch && ch.status !== column.id) {
+                  if (column.id === "encerrado") {
+                    setPendingEncerramento({ chamadoId: id, columnId: column.id, ch });
+                    return;
+                  }
                   if (isOperacional && column.id === "recolhido") {
                     setPendingRecolhimento({ chamadoId: id, columnId: column.id, ch });
                     setRecolhimentoData({ tipo_frete: "proprio", nome_transportadora: "", valor_frete: "", despesas: "", observacoes: "" });
@@ -324,9 +353,12 @@ export default function PosVendasPage(){
                 <span style={{ background: M.brdL, padding: "2px 8px", borderRadius: 12, fontSize: 11 }}>{colChamados.length}</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 15, flex: 1, minHeight: 200 }}>
-                {colChamados.map(c => (
-                  <div 
-                    key={c.id} 
+                {colChamados.map(c => {
+                  const enc = c.status === "encerrado" ? c.encerramento_data : null;
+                  const encCor = enc?.resolucao === "atendido" ? M.ok : enc?.resolucao === "indeferido" ? M.err : null;
+                  return (
+                  <div
+                    key={c.id}
                     className="kanban-card"
                     draggable 
                     onDragStart={e => {
@@ -337,8 +369,13 @@ export default function PosVendasPage(){
                       e.currentTarget.classList.remove("dragging");
                     }}
                     onClick={() => setSelected(c)}
-                    style={{ background: M.card, padding: 15, borderRadius: 10, border: `1px solid ${M.brdN}`, cursor: "grab", boxShadow: "0 4px 10px rgba(0,0,0,0.02)" }}
+                    style={{ background: M.card, padding: 15, borderRadius: 10, border: `1px solid ${M.brdN}`, borderLeft: encCor ? `5px solid ${encCor}` : `1px solid ${M.brdN}`, cursor: "grab", boxShadow: "0 4px 10px rgba(0,0,0,0.02)" }}
                   >
+                    {enc?.resolucao && (
+                      <span style={{ display: "inline-block", marginBottom: 8, padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, background: `${encCor}18`, border: `1px solid ${encCor}40`, color: encCor }}>
+                        {enc.resolucao === "atendido" ? "✓ Atendido" : "✕ Indeferido"}
+                      </span>
+                    )}
                     <div style={{ fontSize: 15, fontWeight: 800, color: M.tx, marginBottom: 5, letterSpacing: "-0.01em" }}>{c.razao_social}</div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: M.tx, marginBottom: 10 }}>NF {c.nf_original} <span style={{color: M.txM, fontWeight: 500}}>| #{c.id}</span></div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: M.tx, marginBottom: 15, display: "flex", gap: 8, alignItems: "center" }}>
@@ -357,7 +394,8 @@ export default function PosVendasPage(){
                       <span style={{ fontSize: 10, background: M.soft, color: M.pri, padding: "4px 8px", borderRadius: 6, fontWeight: 700 }}>Ver Detalhes</span>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
                 {colChamados.length === 0 && <div style={{ textAlign: "center", padding: 20, color: M.txD, fontSize: 12, fontStyle: "italic", border: `1px dashed ${M.brdL}`, borderRadius: 10 }}>Arraste um card para cá</div>}
               </div>
             </div>

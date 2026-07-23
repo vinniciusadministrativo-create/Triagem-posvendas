@@ -147,7 +147,7 @@ trabalho/
         ├── pages/          # Login, Vendedor, PosVendas, Historico, Admin, Relatorios, Chat
         ├── constants/      # rótulos/cores canônicos dos chamados (chamado.js)
         ├── assets/vtrix/   # kit de marca Vtrix (símbolo, lockups, favicon)
-        └── components/     # Sidebar, ChamadoDetail, DanfeMirror, ShareChamado, Toast...
+        └── components/     # Sidebar, ChamadoDetail, DanfeMirror, EncerramentoModal, ShareChamado, Toast...
 ```
 
 > ℹ️ O app entra por `main.jsx` → `src/pages/`. Arquivos de demo legados (`App.jsx`, `mod.js`, `mod2.js`, `triagem-pos-vendas_5.jsx`) foram removidos.
@@ -286,6 +286,11 @@ novo → avaliacao → avaliado → espelho → aguardando_nfd
 > Chamados `encerrado` há mais de **3 dias** são ocultados das listas por padrão.
 > Toda mudança de status é registrada no **histórico** e dispara **e-mail** ao vendedor.
 >
+> **Encerramento:** mover um chamado para `encerrado` exige um formulário
+> (**ATENDIDO** ou **INDEFERIDO** + descrição da resolução) — um modal aparece no
+> Kanban e no detalhe do chamado, e o backend rejeita encerrar sem esses dados. O
+> card ganha um selo + faixa colorida (verde = atendido, vermelho = indeferido).
+>
 > **Auto-extração do espelho:** ao mover um chamado para `espelho` sem `nf_data` utilizável,
 > o backend baixa o PDF anexado (Cloudinary) e extrai os dados automaticamente; se o anexo
 > for foto ou a extração falhar, grava `manual_required: true` (a UI mostra o aviso de
@@ -365,6 +370,7 @@ PostgreSQL. Schema versionado em `backend/src/db/migrations/*.sql` (aplicado em 
 | `ressalva_vendedor` | `TEXT` | string | observação do vendedor |
 | `ressalva_arquivos` | `TEXT[]` | string[] | anexos da ressalva |
 | `recolhimento_data` | `JSONB` | object | frete/transportadora/despesas |
+| `encerramento_data` | `JSONB` | object | resolução (atendido/indeferido) + descrição (ver abaixo) |
 | `data_previsao_recolhimento` | `DATE` | date | usado no SLA |
 | `data_real_recolhimento` | `DATE` | date | usado no SLA |
 
@@ -427,6 +433,17 @@ PostgreSQL. Schema versionado em `backend/src/db/migrations/*.sql` (aplicado em 
 }
 ```
 
+**`encerramento_data`** — resolução do chamado (obrigatória ao encerrar):
+```jsonc
+{
+  "resolucao": "atendido",         // string: "atendido" | "indeferido"
+  "descricao": "Crédito gerado.",  // string (não vazia)
+  "encerrado_por": 3,              // int (user.id — carimbado pelo backend)
+  "encerrado_por_nome": "Fulano",  // string (nome — carimbado pelo backend)
+  "encerrado_em": "2026-07-23T..." // string ISO (carimbado pelo backend)
+}
+```
+
 ---
 
 ## 🌐 API REST (principais rotas)
@@ -446,7 +463,7 @@ Base `/api`. Exceto login e health, **todas exigem** `Authorization: Bearer <JWT
 | GET | `/chamados` | pos_vendas, admin, operacional | Lista com filtros |
 | GET | `/chamados/:id` | autenticado | Detalhe (vendedor só os próprios) |
 | POST | `/chamados` | vendedor, pos_vendas, admin | Criar (NF + até 6 evidências) |
-| PATCH | `/chamados/:id/status` | pos_vendas, admin, operacional | Mudar status (+histórico +e-mail; ao mover p/ `espelho`, auto-extrai a NF se necessário) |
+| PATCH | `/chamados/:id/status` | pos_vendas, admin, operacional | Mudar status (+histórico +e-mail; ao mover p/ `espelho`, auto-extrai a NF; ao mover p/ `encerrado`, **exige** `encerramento_data`) |
 | POST | `/chamados/:id/share` | dono / admin | Compartilhar |
 | POST | `/chamados/:id/reprocess-pdf` | pos_vendas, admin | Reprocessar PDF da NF |
 | PATCH | `/chamados/:id/nf_data` | pos_vendas, admin | Editar dados da NF |
