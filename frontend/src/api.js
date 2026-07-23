@@ -86,6 +86,7 @@ export const api = {
     recolhimento_data: extraData.recolhimento_data,
     data_previsao_recolhimento: extraData.data_previsao_recolhimento || null,
     data_real_recolhimento: extraData.data_real_recolhimento || null,
+    encerramento_data: extraData.encerramento_data,
   }) }),
 
   deleteChamado: (id) => request(`/api/chamados/${id}`, { method: "DELETE" }),
