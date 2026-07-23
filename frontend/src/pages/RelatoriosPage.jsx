@@ -314,6 +314,15 @@ export default function RelatoriosPage() {
                 <KPICard label="Atrasados no Recolhimento" value={resumo.sla_recolhimento?.atrasados ?? "—"} icon="⚠️" color={M.warn} bg={M.warnBg} />
                 <KPICard label="Média de Atraso" value={resumo.sla_recolhimento?.media_atraso_dias ? `${resumo.sla_recolhimento.media_atraso_dias} dias` : "0 dias"} icon="⏳" color={M.warn} bg={M.warnBg} />
                 <KPICard label="Custo de Desvio (Frete + Despesas)" value={resumo.sla_recolhimento?.desvio_reais ? `R$ ${Number(resumo.sla_recolhimento.desvio_reais).toLocaleString('pt-BR', {minimumFractionDigits: 2})}` : "R$ 0,00"} icon="💸" color={resumo.sla_recolhimento?.desvio_reais > 0 ? M.err : M.ok} bg={resumo.sla_recolhimento?.desvio_reais > 0 ? M.errBg : M.okBg} />
+                <KPICard label="Atendidos" value={resumo.encerramentos?.atendidos ?? "—"} icon="✅" color={M.ok} bg={M.okBg} />
+                <KPICard label="Indeferidos" value={resumo.encerramentos?.indeferidos ?? "—"} icon="🚫" color={M.err} bg={M.errBg} />
+                {(() => {
+                  const at = parseInt(resumo.encerramentos?.atendidos) || 0;
+                  const ind = parseInt(resumo.encerramentos?.indeferidos) || 0;
+                  const tot = at + ind;
+                  const taxa = tot > 0 ? Math.round((at / tot) * 100) : null;
+                  return <KPICard label="Taxa de Atendimento" value={taxa === null ? "—" : `${taxa}%`} icon="📈" color={M.info} bg={M.infoBg} />;
+                })()}
               </div>
 
               {/* Charts row */}
