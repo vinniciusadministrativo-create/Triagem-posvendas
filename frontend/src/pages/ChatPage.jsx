@@ -305,10 +305,6 @@ const enviar=async e=>{
                 <div style={{fontSize:12,color:M.txM}}>{ativo.tipo==="grupo"?`${ativo.dados.membros} membros`:ROLES[ativo.dados.role]||ativo.dados.role}</div>
 {reconectando&&<div style={{fontSize:11,color:"#f59e0b",fontWeight:700}}>⚠️ Reconectando...</div>}
               </div>
-              {ativo.tipo==="dm"&&ativo.dados.telefone&&(
-                <a href={`https://wa.me/55${ativo.dados.telefone.replace(/\D/g,"")}`} target="_blank" rel="noreferrer"
-                  style={{padding:"7px 12px",borderRadius:8,background:"#25D366",color:"#fff",fontWeight:700,fontSize:12,textDecoration:"none"}}>💬 WhatsApp</a>
-              )}
             </div>
 
             {/* Mensagens */}
