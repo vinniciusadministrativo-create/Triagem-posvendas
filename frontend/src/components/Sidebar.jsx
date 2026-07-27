@@ -90,15 +90,17 @@ export default function Sidebar({ user, onLogout, onSwitchUser, isOpen, onToggle
           color: "#fff",
           border: "none",
           borderRadius: 8,
-          width: 40,
-          height: 40,
+          width: 44,
+          height: 44,
+          fontSize: 18,
+          lineHeight: 1,
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           boxShadow: `0 4px 12px rgba(155,27,48,0.3)`,
           transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-          transform: isOpen ? "translateX(210px)" : "translateX(0)",
+          transform: isOpen ? "translateX(206px)" : "translateX(0)",
         }}
       >
         {isOpen ? "✕" : "☰"}
