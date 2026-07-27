@@ -78,7 +78,7 @@ export default function LoginPage() {
       <div style={{ background: "#fff", borderRadius: 16, padding: "36px 32px", width: "100%", maxWidth: 400, boxShadow: "0 24px 80px rgba(0,0,0,0.25)" }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           {/* Vtrix ┃ Marin — plataforma + empresa-mãe */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginBottom: 14 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 14, marginBottom: 14 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
               <img src={vtrixSymbol} alt="" style={{ width: 38, height: 38, display: "block" }} />
               <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.01em", color: M.tx, lineHeight: 1 }}>

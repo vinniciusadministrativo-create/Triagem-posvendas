@@ -289,12 +289,12 @@ setAgentStatus(p => ({ ...p, triage: "done" }));
 );
 if (meusChamados.length === 0) return <p style={{ textAlign: "center", padding: 40, color: M.txM }}>Nenhum chamado encontrado.</p>;
     return meusChamados.map(c => (
-      <div key={c.id} onClick={() => setSelected(c)} style={{ padding: 15, borderBottom: `1px solid ${M.brdN}`, display: "flex", justifyContent: "space-between", cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = M.bg} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-        <div>
-          <div style={{ fontWeight: 700 }}>{c.razao_social}</div>
+      <div key={c.id} onClick={() => setSelected(c)} style={{ padding: 15, borderBottom: `1px solid ${M.brdN}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = M.bg} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+        <div style={{ minWidth: 0, flex: "1 1 180px" }}>
+          <div style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.razao_social}</div>
           <div style={{ fontSize: 12, color: M.txM }}>NF {c.nf_original} | #{c.id}</div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", flexShrink: 0 }}>
           {c.vendedor_id !== user.id && <span style={{ fontSize: 9, fontWeight: 800, background: M.blueS, color: M.blue, padding: "3px 8px", borderRadius: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Compartilhado</span>}
           {c.mensagens_count > 0 && <span title="Mensagens do Chat" style={{ fontSize: 11, fontWeight: 800, background: M.blueS, color: M.blue, padding: "3px 8px", borderRadius: 10 }}>💬 {c.mensagens_count}</span>}
           <span style={{ 

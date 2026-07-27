@@ -201,7 +201,7 @@ export default function HistoricoPage() {
             {vendedores.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
           </select>
           <input placeholder="Razão Social ou NF..." value={filterText} onChange={e => setFilterText(e.target.value)}
-            style={{ ...inputStyle, width: 200 }} />
+            style={{ ...inputStyle, flex: "1 1 200px", minWidth: 0 }} />
           {temFiltro && (
             <button onClick={limpar} style={{ ...inputStyle, cursor: "pointer", fontWeight: 700, color: M.txM }}>Limpar</button>
           )}

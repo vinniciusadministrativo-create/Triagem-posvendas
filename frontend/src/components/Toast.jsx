@@ -52,7 +52,7 @@ export function ToastProvider({ children }) {
                 borderLeft: `4px solid ${c.bg}`,
                 borderRadius: 10,
                 padding: "12px 14px",
-                minWidth: 260, maxWidth: 360,
+                minWidth: 0, maxWidth: "min(360px, calc(100vw - 48px))",
                 boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
                 fontSize: 13,

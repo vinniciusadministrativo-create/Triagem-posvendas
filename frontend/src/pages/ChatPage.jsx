@@ -23,8 +23,8 @@ function NovoGrupoModal({onClose,onCriado}){
     if(r.ok){onCriado(d.grupo);}else toast.error(d.error||"Erro ao criar grupo.");
   };
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000}}>
-      <div style={{background:"#fff",borderRadius:16,padding:28,width:420,maxHeight:"80vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16}}>
+      <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:420,maxHeight:"80vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
           <h3 style={{margin:0,fontSize:16,fontWeight:800,color:M.tx}}>👥 Novo Grupo</h3>
           <button onClick={onClose} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:M.txM}}>✕</button>

@@ -250,7 +250,7 @@ export default function AdminPage() {
             <span>+</span> Novo Usuário
           </button>
         </div>
-        <div style={{ display: "flex", gap: 20, marginTop: 20, borderBottom: `1px solid ${M.brdN}` }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 20, marginTop: 20, borderBottom: `1px solid ${M.brdN}` }}>
           <button onClick={() => setActiveTab("users")} style={{ paddingBottom: 10, border: "none", background: "none", borderBottom: activeTab === "users" ? `2px solid ${M.pri}` : "none", color: activeTab === "users" ? M.pri : M.txM, fontWeight: 700, cursor: "pointer" }}>Usuários</button>
           <button onClick={() => setActiveTab("sellers")} style={{ paddingBottom: 10, border: "none", background: "none", borderBottom: activeTab === "sellers" ? `2px solid ${M.pri}` : "none", color: activeTab === "sellers" ? M.pri : M.txM, fontWeight: 700, cursor: "pointer" }}>Gestão por Vendedor</button>
           <button onClick={() => setActiveTab("relatorios")} style={{ paddingBottom: 10, border: "none", background: "none", borderBottom: activeTab === "relatorios" ? `2px solid ${M.pri}` : "none", color: activeTab === "relatorios" ? M.pri : M.txM, fontWeight: 700, cursor: "pointer" }}>📊 Relatórios</button>
@@ -431,12 +431,12 @@ export default function AdminPage() {
               {loadingSeller ? <p>Carregando...</p> : (
                 sellerChamados.length === 0 ? <p>Nenhum chamado para este vendedor.</p> : (
                   sellerChamados.map(c => (
-                    <div key={c.id} style={{ padding: "12px 15px", borderBottom: `1px solid ${M.brdN}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div>
-                        <div style={{ fontWeight: 700 }}>{c.razao_social}</div>
+                    <div key={c.id} style={{ padding: "12px 15px", borderBottom: `1px solid ${M.brdN}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                      <div style={{ minWidth: 0, flex: "1 1 160px" }}>
+                        <div style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.razao_social}</div>
                         <div style={{ fontSize: 12, color: M.txM }}>NF {c.nf_original} | #{c.id}</div>
                       </div>
-                      <div style={{ display: "flex", gap: 10 }}>
+                      <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
                         <button onClick={() => setSelectedChamado(c)} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${M.pri}`, color: M.pri, background: "none", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>Ver/Gestão</button>
                         <button onClick={() => handleDeleteChamado(c.id)} style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: M.err, color: "#fff", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>Excluir</button>
                       </div>
