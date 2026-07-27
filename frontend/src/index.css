@@ -218,7 +218,10 @@ main, .card, .v-container {
 
 .responsive-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0,1fr) em vez de 1fr: sem o mínimo 'auto', a trilha do grid não
+     expande até o max-content dos filhos (ex.: razão social longa sem quebra +
+     botões), o que empurrava o conteúdo para fora da tela. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 20px;
 }
 
@@ -331,7 +334,7 @@ main, .card, .v-container {
     padding: 80px 15px 40px 15px !important;
   }
   .responsive-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
   }
   .responsive-header {
     flex-direction: column;
