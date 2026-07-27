@@ -64,6 +64,10 @@ export default function Sidebar({ user, onLogout, onSwitchUser, isOpen, onToggle
     left: 0,
     top: 0,
     bottom: 0,
+    // 100dvh = viewport dinâmica: acompanha a barra inferior do navegador mobile,
+    // senão o fim da sidebar (botão Sair) fica escondido atrás dela. Navegadores
+    // sem suporte a dvh ignoram esta linha e caem no top:0/bottom:0 acima.
+    height: "100dvh",
     width: isOpen ? "260px" : "0px",
     background: "rgba(255, 255, 255, 0.95)",
     backdropFilter: "blur(12px)",
@@ -72,7 +76,12 @@ export default function Sidebar({ user, onLogout, onSwitchUser, isOpen, onToggle
     zIndex: 1000,
     display: "flex",
     flexDirection: "column",
-    overflow: "hidden",
+    // rola verticalmente quando o conteúdo não cabe (telas baixas); contain impede
+    // o scroll de "vazar" para a página atrás quando a sidebar está aberta.
+    overflowX: "hidden",
+    overflowY: "auto",
+    overscrollBehavior: "contain",
+    WebkitOverflowScrolling: "touch",
     boxShadow: isOpen ? "10px 0 30px rgba(0,0,0,0.03)" : "none",
   };
 
@@ -166,7 +175,7 @@ export default function Sidebar({ user, onLogout, onSwitchUser, isOpen, onToggle
           ))}
         </nav>
 
-        <div style={{ padding: "20px 0", borderTop: `1px solid ${M.brdN}`, opacity: isOpen ? 1 : 0 }}>
+        <div style={{ padding: "20px 0 calc(20px + env(safe-area-inset-bottom))", borderTop: `1px solid ${M.brdN}`, opacity: isOpen ? 1 : 0, flexShrink: 0 }}>
           <button
             onClick={onLogout}
             className="nav-item no-print"
