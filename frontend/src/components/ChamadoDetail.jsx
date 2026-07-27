@@ -1136,7 +1136,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
                 <textarea
                   ref={inputRef}
                   rows={1}
-                  placeholder="Mensagem... (Enter para enviar)"
+                  placeholder="Digite aqui..."
                   style={{ flex: 1, padding: "9px 12px", borderRadius: 10, border: `1px solid ${M.brdN}`, fontSize: 13, outline: "none", resize: "none", fontFamily: "inherit", lineHeight: 1.5, maxHeight: 100, overflowY: "auto" }}
                   onFocus={e => e.target.style.borderColor = M.pri}
                   onBlur={e => { e.target.style.borderColor = M.brdN; setTimeout(() => setShowMentions(false), 200); }}
