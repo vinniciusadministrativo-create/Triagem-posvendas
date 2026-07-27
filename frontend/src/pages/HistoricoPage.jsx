@@ -174,7 +174,7 @@ export default function HistoricoPage() {
           </div>
           <button onClick={handleExport} disabled={exporting}
             style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: exporting ? M.txD : M.pri, color: "#fff", fontWeight: 800, fontSize: 13, cursor: exporting ? "default" : "pointer", whiteSpace: "nowrap" }}>
-            {exporting ? "Exportando…" : "⬇️ Exportar CSV"}
+            {exporting ? "Exportando…" : "Exportar CSV"}
           </button>
         </div>
 
@@ -247,7 +247,7 @@ export default function HistoricoPage() {
                 <td data-label="Status" style={{ padding: 15 }}><Badge label={statusLabel(c.status)} color={statusColor(c.status)} /></td>
                 <td data-label="Data" style={{ padding: 15, fontSize: 12, color: M.txD }}>{new Date(c.created_at).toLocaleDateString()}</td>
                 <td data-label="Ação" style={{ padding: 15 }}>
-                  <button onClick={() => setSelected(c)} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${M.pri}`, background: "none", color: M.pri, fontWeight: 700, cursor: "pointer" }}>Ver →</button>
+                  <button onClick={() => setSelected(c)} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${M.pri}`, background: "none", color: M.pri, fontWeight: 700, cursor: "pointer" }}>Ver</button>
                 </td>
               </tr>
             ))}
