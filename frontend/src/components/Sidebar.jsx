@@ -15,6 +15,22 @@ const M = {
 export default function Sidebar({ user, onLogout, onSwitchUser, isOpen, onToggle }) {
   const navigate = useNavigate();
   const [naoLidas, setNaoLidas] = useState(0);
+  // Esconde o botão ao rolar para baixo (evita sobrepor conteúdo rolado, ex.: a
+  // 2ª linha de abas do admin) e revela ao rolar para cima ou no topo.
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y <= 80) setHidden(false);
+      else if (y > last + 4) setHidden(true);
+      else if (y < last - 4) setHidden(false);
+      last = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   // Polling de mensagens não lidas (badge)
   useEffect(() => {
@@ -100,7 +116,9 @@ export default function Sidebar({ user, onLogout, onSwitchUser, isOpen, onToggle
           justifyContent: "center",
           boxShadow: `0 4px 12px rgba(155,27,48,0.3)`,
           transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-          transform: isOpen ? "translateX(206px)" : "translateX(0)",
+          transform: `translate(${isOpen ? 206 : 0}px, ${hidden && !isOpen ? -80 : 0}px)`,
+          opacity: hidden && !isOpen ? 0 : 1,
+          pointerEvents: hidden && !isOpen ? "none" : "auto",
         }}
       >
         {isOpen ? "✕" : "☰"}
