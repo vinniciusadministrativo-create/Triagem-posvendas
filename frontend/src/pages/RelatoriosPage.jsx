@@ -95,7 +95,7 @@ function MiniBarChart({ data, labelKey, valueKey, colors }) {
         const barColor = colors ? colors[i % colors.length] : CHART_COLORS[i % CHART_COLORS.length];
         return (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 130, fontSize: 12, color: M.tx, fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={d[labelKey]}>
+            <div style={{ width: "clamp(70px, 32%, 130px)", fontSize: 12, color: M.tx, fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={d[labelKey]}>
               {d[labelKey] || "—"}
             </div>
             <div style={{ flex: 1, background: "#f0eeec", borderRadius: 6, height: 18, position: "relative", overflow: "hidden" }}>
@@ -307,7 +307,7 @@ export default function RelatoriosPage() {
           {resumo && !loading && (
             <>
               {/* KPI Cards */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 28 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: 16, marginBottom: 28 }}>
                 <KPICard label="Total de Chamados" value={resumo.total} icon="📬" color={M.pri} bg={M.priLight} />
                 <KPICard label="Com Previsão Recolhimento" value={resumo.sla_recolhimento?.com_previsao ?? "—"} icon="📦" color="#2563eb" bg="#dbeafe" />
                 <KPICard label="Recolhidos" value={resumo.sla_recolhimento?.recolhidos ?? "—"} icon="✅" color={M.ok} bg={M.okBg} />
@@ -326,7 +326,7 @@ export default function RelatoriosPage() {
               </div>
 
               {/* Charts row */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20, marginBottom: 20 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 20, marginBottom: 20 }}>
                 <Section title="Chamados por Status">
                   <MiniBarChart
                     data={resumo.por_status.map(d => ({ ...d, label: STATUS_LABELS[d.status] || d.status }))}

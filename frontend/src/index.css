@@ -300,6 +300,27 @@ main, .card, .v-container {
   border-collapse: collapse;
 }
 
+/* Modal de transcrição manual da NF (ChamadoDetail): em telas onde o visualizador
+   do documento + o formulário de 600px não cabem lado a lado, empilha e deixa o
+   corpo do modal rolar verticalmente. No desktop mantém o split original. */
+@media (max-width: 900px) {
+  .manual-nf-body {
+    flex-direction: column !important;
+    overflow-y: auto !important;
+  }
+  .manual-nf-doc {
+    flex: none !important;
+    height: 40vh !important;
+    min-height: 240px !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border) !important;
+  }
+  .manual-nf-form {
+    width: 100% !important;
+    flex: none !important;
+  }
+}
+
 @media (max-width: 850px) {
   .page-container {
     padding: 80px 15px 40px 15px !important;

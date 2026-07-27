@@ -486,7 +486,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
                   </select>
                 </div>
 
-                <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
+                <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))", gap:10}}>
                   <div>
                     <label style={{display:"block",fontSize:13,fontWeight:700,color:M.txM,marginBottom:5}}>Data Previsão</label>
                     <input 
@@ -639,7 +639,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
           {(chamado.recolhimento_data || chamado.data_previsao_recolhimento || chamado.data_real_recolhimento) && (
             <div style={{ background: "#f8f9fa", padding: 20, borderRadius: 12, marginBottom: 20, border: `1px solid ${M.brdN}` }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: M.txM, textTransform: "uppercase", marginBottom: 12 }}>🚚 Detalhes do Recolhimento</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 13, color: M.tx }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, fontSize: 13, color: M.tx }}>
                 {chamado.data_previsao_recolhimento && (
                   <div style={{ color: M.pri, fontWeight: 700 }}>
                     📅 Previsão: {new Date(chamado.data_previsao_recolhimento.split('T')[0] + 'T12:00:00').toLocaleDateString('pt-BR')}
@@ -756,10 +756,10 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
           {/* MODAL DE PREENCHIMENTO MANUAL DA NF */}
           {showManualForm && (
             <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.7)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-              <div style={{ background: "#fff", borderRadius: 12, width: "100%", maxWidth: 1400, height: "100%", maxHeight: 900, display: "flex", overflow: "hidden", boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>
-                
+              <div className="manual-nf-body" style={{ background: "#fff", borderRadius: 12, width: "100%", maxWidth: 1400, height: "100%", maxHeight: 900, display: "flex", overflow: "hidden", boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>
+
                 {/* LADO ESQUERDO: Visualizador do Documento */}
-                <div style={{ flex: 1, background: M.bg, borderRight: `1px solid ${M.brdN}`, display: "flex", flexDirection: "column" }}>
+                <div className="manual-nf-doc" style={{ flex: 1, minWidth: 0, background: M.bg, borderRight: `1px solid ${M.brdN}`, display: "flex", flexDirection: "column" }}>
                   <div style={{ padding: 15, borderBottom: `1px solid ${M.brdN}`, fontWeight: 800, color: M.txM, fontSize: 13 }}>
                     📄 Documento Original
                   </div>
@@ -777,7 +777,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
                 </div>
 
                 {/* LADO DIREITO: Formulário */}
-                <div style={{ width: 600, display: "flex", flexDirection: "column", background: "#fff" }}>
+                <div className="manual-nf-form" style={{ width: 600, maxWidth: "100%", flexShrink: 0, display: "flex", flexDirection: "column", background: "#fff" }}>
                   <div style={{ padding: "15px 20px", borderBottom: `1px solid ${M.brdN}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <h3 style={{ margin: 0, fontSize: 16, color: M.pri }}>✍️ Transcrição Manual</h3>
                     <button onClick={() => setShowManualForm(false)} style={{ border: "none", background: "none", fontSize: 24, cursor: "pointer", color: M.txM }}>×</button>
@@ -793,7 +793,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
                       </div>
                     )}
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20, fontSize: 12 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, marginBottom: 20, fontSize: 12 }}>
                       <div style={{ gridColumn: "1 / -1" }}>
                         <label style={{ fontWeight: 800 }}>Natureza da Operação</label>
                         <input value={manualNfData.natureza_operacao} onChange={e => setManualNfData({...manualNfData, natureza_operacao: e.target.value})} style={{ width: "100%", padding: "10px", borderRadius: 6, border: `1px solid ${M.brdN}`, fontSize: 13 }} />
@@ -831,40 +831,40 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
                       </div>
                       
                       {manualNfData.produtos.map((p, i) => (
-                        <div key={i} style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 15, padding: 10, background: M.bg, borderRadius: 8, border: `1px solid ${M.brdN}`, position: "relative" }}>
+                        <div key={i} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))", gap: 8, marginBottom: 15, padding: 10, paddingRight: 24, background: M.bg, borderRadius: 8, border: `1px solid ${M.brdN}`, position: "relative" }}>
                           <button onClick={() => removeManualProd(i)} style={{ position: "absolute", top: 5, right: 5, background: "none", border: "none", color: M.err, cursor: "pointer", fontSize: 16, fontWeight: 800 }}>×</button>
-                          
-                          <div style={{ width: "20%" }}>
+
+                          <div>
                             <div style={{ fontSize: 10, color: M.txM, marginBottom: 2 }}>Cód.</div>
-                            <input value={p.codigo} onChange={e => updateManualProd(i, 'codigo', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                            <input value={p.codigo} onChange={e => updateManualProd(i, 'codigo', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4, boxSizing: "border-box" }} />
                           </div>
-                          <div style={{ width: "70%" }}>
+                          <div style={{ gridColumn: "1 / -1" }}>
                             <div style={{ fontSize: 10, color: M.txM, marginBottom: 2 }}>Descrição</div>
-                            <input value={p.descricao} onChange={e => updateManualProd(i, 'descricao', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                            <input value={p.descricao} onChange={e => updateManualProd(i, 'descricao', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4, boxSizing: "border-box" }} />
                           </div>
-                          <div style={{ width: "30%" }}>
+                          <div>
                             <div style={{ fontSize: 10, color: M.txM, marginBottom: 2 }}>NCM</div>
-                            <input value={p.ncm} onChange={e => updateManualProd(i, 'ncm', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                            <input value={p.ncm} onChange={e => updateManualProd(i, 'ncm', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4, boxSizing: "border-box" }} />
                           </div>
-                          <div style={{ width: "20%" }}>
+                          <div>
                             <div style={{ fontSize: 10, color: M.txM, marginBottom: 2 }}>CST</div>
-                            <input value={p.cst} onChange={e => updateManualProd(i, 'cst', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                            <input value={p.cst} onChange={e => updateManualProd(i, 'cst', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4, boxSizing: "border-box" }} />
                           </div>
-                          <div style={{ width: "20%" }}>
+                          <div>
                             <div style={{ fontSize: 10, color: M.txM, marginBottom: 2 }}>CFOP</div>
-                            <input value={p.cfop} onChange={e => updateManualProd(i, 'cfop', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                            <input value={p.cfop} onChange={e => updateManualProd(i, 'cfop', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4, boxSizing: "border-box" }} />
                           </div>
-                          <div style={{ width: "20%" }}>
+                          <div>
                             <div style={{ fontSize: 10, color: M.txM, marginBottom: 2 }}>Qtd</div>
-                            <input value={p.quantidade} onChange={e => updateManualProd(i, 'quantidade', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                            <input value={p.quantidade} onChange={e => updateManualProd(i, 'quantidade', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4, boxSizing: "border-box" }} />
                           </div>
-                          <div style={{ width: "40%" }}>
+                          <div>
                             <div style={{ fontSize: 10, color: M.txM, marginBottom: 2 }}>V. Unitário</div>
-                            <input value={p.valor_unitario} onChange={e => updateManualProd(i, 'valor_unitario', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                            <input value={p.valor_unitario} onChange={e => updateManualProd(i, 'valor_unitario', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4, boxSizing: "border-box" }} />
                           </div>
-                          <div style={{ width: "40%" }}>
+                          <div>
                             <div style={{ fontSize: 10, color: M.txM, marginBottom: 2 }}>V. Total</div>
-                            <input value={p.valor_total} onChange={e => updateManualProd(i, 'valor_total', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4 }} />
+                            <input value={p.valor_total} onChange={e => updateManualProd(i, 'valor_total', e.target.value)} style={{ width: "100%", padding: 6, fontSize: 12, border: `1px solid ${M.brdN}`, borderRadius: 4, boxSizing: "border-box" }} />
                           </div>
                         </div>
                       ))}
@@ -963,7 +963,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
           {canEdit ? (
             <div style={{ borderTop: `1px solid ${M.brdN}`, paddingTop: 20 }}>
               
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 15 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 15 }}>
                 <div>
                   <label style={{ display: "block", fontSize: 11, fontWeight: 800, marginBottom: 5 }}>DATA PREVISÃO:</label>
                   <input 
@@ -985,11 +985,11 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
               </div>
 
               <label style={{ display: "block", fontSize: 12, fontWeight: 800, marginBottom: 10 }}>ALTERAR TRIAGEM (ETAPA):</label>
-              <div style={{ display: "flex", gap: 10 }}>
-                <select 
-                  value={newStatus} 
-                  onChange={e => setNewStatus(e.target.value)} 
-                  style={{ flex: 1, padding: "12px", borderRadius: 8, border: `1px solid ${M.brdN}`, fontSize: 14 }}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                <select
+                  value={newStatus}
+                  onChange={e => setNewStatus(e.target.value)}
+                  style={{ flex: "1 1 180px", minWidth: 0, padding: "12px", borderRadius: 8, border: `1px solid ${M.brdN}`, fontSize: 14 }}
                 >
                   {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                 </select>

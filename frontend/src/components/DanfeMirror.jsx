@@ -191,7 +191,7 @@ export default function DanfeMirror({ nf: nfRaw, chamado }) {
 
   return (
     <div className="danfe-container" style={{ marginTop: 20 }}>
-      <div className="no-print" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12, gap: 10 }}>
+      <div className="no-print" style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", marginBottom: 12, gap: 10 }}>
         {isEditing ? (
           <>
             <button onClick={() => setIsEditing(false)} style={{ padding: "8px 20px", background: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>Cancelar</button>
