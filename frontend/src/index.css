@@ -149,7 +149,12 @@ h1, h2, h3 {
 }
 
 main, .card, .v-container {
-  animation: fadeIn 0.4s ease-out forwards;
+  /* sem 'forwards': uma animação em fill-mode forwards permanece "ativa" e mantém
+     um stacking context, o que prende modais (position:fixed, z-index alto) ABAIXO
+     do menu/logo fixos (z-index 1001) — o cabeçalho do modal aparecia sob o botão
+     hambúrguer. Sem forwards a animação fica idle após 0.4s e some o stacking context.
+     Mesmo motivo já documentado em .page-enter. */
+  animation: fadeIn 0.4s ease-out;
 }
 
 /* KANBAN E CHAT - FLUIDEZ E ANIMAÇÕES */
