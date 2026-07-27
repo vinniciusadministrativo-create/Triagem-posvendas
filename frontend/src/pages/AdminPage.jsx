@@ -379,7 +379,7 @@ export default function AdminPage() {
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         <button onClick={() => setEditingUser({ ...u, password: "" })}
                           style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${M.brdN}`, background: "#fff", color: M.tx, fontWeight: 700, cursor: "pointer", fontSize: 12 }}>
-                          ✏️ Editar
+                           Editar
                         </button>
                         {/* Ações destrutivas escondidas na própria conta */}
                         {!isSelf && (
@@ -390,7 +390,7 @@ export default function AdminPage() {
                             </button>
                             <button onClick={() => handleDeleteUser(u)}
                               style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: M.err, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>
-                              🗑 Excluir
+                               Excluir
                             </button>
                           </>
                         )}

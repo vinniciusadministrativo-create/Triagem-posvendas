@@ -142,7 +142,7 @@ export default function VendedorPage({ defaultTab = "novo" }) {
     
     if (!form.tipoSolicitacao) e.tipoSolicitacao = "Selecione";
     if (!form.nfOriginal) e.nfOriginal = "Obrigatório";
-    if (!form.descricao || form.descricao.length < 20) e.descricao = "Mín. 20 caracteres";
+    if (!form.descricao || form.descricao.length < 3) e.descricao = "Mín. 3 caracteres";
     if (!nfFile) e.nfFile = "Anexe a Nota Fiscal";
     setFormErrors(e);
     return Object.keys(e).length === 0;
@@ -367,7 +367,7 @@ if (meusChamados.length === 0) return <p style={{ textAlign: "center", padding: 
           <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 5 }}>Descrição</label>
           <textarea value={form.descricao} onChange={e => upd("descricao", e.target.value)} style={{ width: "100%", padding: 10, borderRadius: 8, border: `1px solid ${M.brdN}`, minHeight: 100 }} />
         </div>
-        <button onClick={submit} className="responsive-grid-full" style={{ padding: 15, background: M.pri, color: "#fff", border: "none", borderRadius: 10, fontWeight: 800, cursor: "pointer" }}>⚡ Enviar Chamado</button>
+        <button onClick={submit} className="responsive-grid-full" style={{ padding: 15, background: M.pri, color: "#fff", border: "none", borderRadius: 10, fontWeight: 800, cursor: "pointer" }}>Enviar Chamado</button>
       </div>
     );
     if (step === 1) return (

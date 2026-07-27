@@ -893,11 +893,11 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
 
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <label style={{ padding: "12px 24px", background: M.blue, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: uploadingPdf ? "not-allowed" : "pointer", opacity: uploadingPdf ? 0.7 : 1, display: "flex", alignItems: "center", gap: 8 }}>
-                      {uploadingPdf ? "⏳ Processando PDF..." : "📄 Anexar PDF Original (Automático)"}
+                      {uploadingPdf ? "⏳ Processando PDF..." : "📄 Anexar PDF Original"}
                       <input type="file" accept="application/pdf" style={{ display: "none" }} onChange={handleUploadPdf} disabled={uploadingPdf} />
                     </label>
                     <button onClick={() => setShowManualForm(true)} style={{ padding: "12px 24px", background: "#fff", color: M.pri, border: `2px solid ${M.pri}`, borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
-                      ✍️ Preencher Manualmente
+                       Preencher Manualmente
                     </button>
                   </div>
                 </div>
@@ -1004,7 +1004,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
             </div>
           ) : (
             <div style={{ borderTop: `1px solid ${M.brdN}`, paddingTop: 15, fontSize: 12, color: M.txM, fontStyle: "italic" }}>
-              * Você está em modo de visualização. Apenas o Admin ou Pós-Vendas podem alterar este chamado.
+              * Apenas o Admin ou Pós-Vendas podem alterar este chamado.
             </div>
           )}
 
@@ -1014,7 +1014,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
                 onClick={async () => { if(await confirm("Tem certeza que deseja excluir este chamado permanentemente?", { title: "Excluir chamado", confirmLabel: "Excluir", variant: "danger" })) onDelete(chamado.id); }}
                 style={{ marginTop: 30, width: "100%", padding: 12, background: "transparent", color: M.err, border: `1px solid ${M.err}`, borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13 }}
               >
-                🗑️ Excluir Chamado Permanentemente
+                 Excluir Chamado Permanentemente
               </button>
             )}
           </div> {/* FIM DO LADO ESQUERDO */}
