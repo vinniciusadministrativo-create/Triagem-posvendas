@@ -682,7 +682,7 @@ export default function ChamadoDetail({ chamado: initialChamado, onClose, onStat
                   multiple 
                   accept="image/*,application/pdf,video/*"
                   onChange={e => setRessalvaFiles(Array.from(e.target.files).slice(0, 3))}
-                  style={{ fontSize: 12 }}
+                  style={{ fontSize: 12, maxWidth: "100%", boxSizing: "border-box" }}
                 />
                 {ressalvaFiles.length > 0 && <div style={{ fontSize: 11, color: M.txM, marginTop: 4 }}>{ressalvaFiles.length} arquivo(s) selecionado(s)</div>}
               </div>
