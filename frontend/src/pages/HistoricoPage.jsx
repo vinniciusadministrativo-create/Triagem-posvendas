@@ -237,16 +237,16 @@ export default function HistoricoPage() {
             {loading ? <tr><td colSpan="8" style={{ padding: 40, textAlign: "center" }}>Carregando...</td></tr> :
              rows.map(c => (
               <tr key={c.id} style={{ borderTop: `1px solid ${M.brdN}` }}>
-                <td style={{ padding: 15, fontSize: 14, fontWeight: 700 }}>{c.razao_social}</td>
-                <td style={{ padding: 15, fontSize: 13 }}>{c.nf_original}</td>
-                <td style={{ padding: 15, fontSize: 12, color: M.txM }}>{tipoLabel(c.tipo_solicitacao)}</td>
-                <td style={{ padding: 15, fontSize: 12 }}>{c.vendedor_nome || c.nome_vendedor}</td>
-                <td style={{ padding: 15, fontSize: 12 }}>
+                <td data-label="Cliente" style={{ padding: 15, fontSize: 14, fontWeight: 700 }}>{c.razao_social}</td>
+                <td data-label="NF" style={{ padding: 15, fontSize: 13 }}>{c.nf_original}</td>
+                <td data-label="Tipo" style={{ padding: 15, fontSize: 12, color: M.txM }}>{tipoLabel(c.tipo_solicitacao)}</td>
+                <td data-label="Vendedor" style={{ padding: 15, fontSize: 12 }}>{c.vendedor_nome || c.nome_vendedor}</td>
+                <td data-label="Mensagens" style={{ padding: 15, fontSize: 12 }}>
                    {c.mensagens_count > 0 ? <span style={{ fontWeight: 800 }}>💬 {c.mensagens_count}</span> : "-"}
                 </td>
-                <td style={{ padding: 15 }}><Badge label={statusLabel(c.status)} color={statusColor(c.status)} /></td>
-                <td style={{ padding: 15, fontSize: 12, color: M.txD }}>{new Date(c.created_at).toLocaleDateString()}</td>
-                <td style={{ padding: 15 }}>
+                <td data-label="Status" style={{ padding: 15 }}><Badge label={statusLabel(c.status)} color={statusColor(c.status)} /></td>
+                <td data-label="Data" style={{ padding: 15, fontSize: 12, color: M.txD }}>{new Date(c.created_at).toLocaleDateString()}</td>
+                <td data-label="Ação" style={{ padding: 15 }}>
                   <button onClick={() => setSelected(c)} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${M.pri}`, background: "none", color: M.pri, fontWeight: 700, cursor: "pointer" }}>Ver →</button>
                 </td>
               </tr>

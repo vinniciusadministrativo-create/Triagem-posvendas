@@ -358,15 +358,15 @@ export default function AdminPage() {
                 const isSelf = u.id === currentUser.id;
                 return (
                   <tr key={u.id} style={{ borderTop: `1px solid ${M.brdN}`, opacity: u.active ? 1 : 0.55 }}>
-                    <td style={{ padding: "16px", fontSize: 14, fontWeight: 600, color: u.active ? M.tx : M.txM }}>
+                    <td data-label="Nome" style={{ padding: "16px", fontSize: 14, fontWeight: 600, color: u.active ? M.tx : M.txM }}>
                       {u.name}{isSelf && <span style={{ fontSize: 10, color: M.pri, marginLeft: 6, fontWeight: 700 }}>(você)</span>}
                     </td>
-                    <td style={{ padding: "16px", fontSize: 14, color: M.txM }}>{u.email}</td>
-                    <td style={{ padding: "16px", fontSize: 14, color: M.txM }}>{u.telefone || "—"}</td>
-                    <td style={{ padding: "16px" }}>
+                    <td data-label="E-mail" style={{ padding: "16px", fontSize: 14, color: M.txM }}>{u.email}</td>
+                    <td data-label="Telefone" style={{ padding: "16px", fontSize: 14, color: M.txM }}>{u.telefone || "—"}</td>
+                    <td data-label="Função" style={{ padding: "16px" }}>
                       <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 8px", borderRadius: 4, background: "#f5f3f0", color: M.txM }}>{ROLE_LABEL[u.role] || u.role}</span>
                     </td>
-                    <td style={{ padding: "16px" }}>
+                    <td data-label="Status" style={{ padding: "16px" }}>
                       <span style={{
                         fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 20,
                         background: u.active ? "#dcfce7" : "#fee2e2",
@@ -375,7 +375,7 @@ export default function AdminPage() {
                         {u.active ? "● Ativo" : "● Inativo"}
                       </span>
                     </td>
-                    <td style={{ padding: "16px" }}>
+                    <td data-label="Ações" style={{ padding: "16px" }}>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         <button onClick={() => setEditingUser({ ...u, password: "" })}
                           style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${M.brdN}`, background: "#fff", color: M.tx, fontWeight: 700, cursor: "pointer", fontSize: 12 }}>

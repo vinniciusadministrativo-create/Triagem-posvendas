@@ -357,11 +357,62 @@ main, .card, .v-container {
     min-width: 85vw !important;
     max-width: 85vw !important;
   }
+  /* Tabelas viram cards empilhados no mobile: esconde o cabeçalho e transforma
+     cada linha num cartão, com o rótulo da coluna (data-label) à esquerda. */
   .table-wrapper {
-    overflow-x: auto !important;
+    overflow-x: visible !important;
+    border: none;
+    box-shadow: none;
+    background: transparent;
   }
   .table-responsive {
-    min-width: 800px;
+    min-width: 0;
+  }
+  .table-responsive thead {
+    display: none;
+  }
+  .table-responsive tbody,
+  .table-responsive tr,
+  .table-responsive td {
+    display: block;
+    width: 100%;
+  }
+  .table-responsive tr {
+    border: 1px solid var(--border) !important;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    padding: 4px 2px;
+    background: var(--card);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .table-responsive td {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    text-align: right;
+    border: none !important;
+    padding: 9px 14px !important;
+    overflow-wrap: anywhere;
+  }
+  .table-responsive td:not(:last-child) {
+    border-bottom: 1px solid var(--border-soft) !important;
+  }
+  .table-responsive td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text);
+    text-align: left;
+  }
+  /* Células sem rótulo (estados de carregando / vazio) ocupam a linha inteira */
+  .table-responsive td:not([data-label]) {
+    justify-content: center;
+    text-align: center;
   }
   .sidebar-container {
     width: 0px !important;
