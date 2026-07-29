@@ -128,7 +128,6 @@ trabalho/
 │
 ├── backend/
 │   ├── requirements.txt    # Python: pdfplumber, reportlab
-│   ├── railway.toml        # Config Railway
 │   ├── docker-entrypoint.sh # Boot do container: aplica migrations e sobe o servidor
 │   ├── scripts/
 │   │   └── nf_espelho_citel.py   # Extrai NF (PDF) e gera espelho PDF
@@ -710,12 +709,11 @@ Objeto `api` com wrapper único sobre `fetch` (injeta JWT, trata 401/429). Princ
 
 ## 🚀 Deploy
 
-Há configuração para três alvos (a imagem Docker é a referência):
+Há configuração para dois alvos (a imagem Docker é a referência):
 
 | Alvo | Arquivo | Observação |
 |------|---------|-----------|
 | **Docker** | `Dockerfile` | `node:22-slim` + Python + deps; builda o front. O boot chama `docker-entrypoint.sh` → **aplica as migrations** e então `node src/index.js`. `EXPOSE 8080` (defina `PORT=8080`). |
-| **Railway** | `backend/railway.toml` | Nixpacks; `npm start`; healthcheck `/api/health`. |
 | **Azure App Service** | `startup.sh` | Instala Python e inicia o Node. |
 
 **Checklist de deploy**
