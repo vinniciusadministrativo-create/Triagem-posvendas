@@ -146,5 +146,3 @@ app.listen(PORT, () => {
   console.log(`🚀 API rodando na porta ${PORT}`);
   startBackupCron();
 });
-
-// Trigger webhook Render
