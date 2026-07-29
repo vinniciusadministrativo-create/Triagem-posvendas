@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useToast } from "../components/Toast";
+import { STATUS_OPTIONS, TIPO_OPTIONS, statusLabel, tipoLabel } from "../constants/chamado";
 
 const API_BASE = "/api";
 const token = () => localStorage.getItem("token");
@@ -29,28 +30,8 @@ const M = {
   chart6: "#ec4899",
 };
 
-const STATUS_LABELS = {
-  novo: "Novo",
-  avaliacao: "Avaliação",
-  avaliado: "Avaliado",
-  espelho: "Emitir Espelho NFD",
-  aguardando_nfd: "Aguard. NFD",
-  aguardando_recolhimento: "Ag. Recolhimento",
-  recolhido: "Recolhido",
-  aguardando_financeiro: "Aguard. Financeiro",
-  encerrado: "Encerrado",
-};
-
-const TIPO_LABELS = {
-  preco_errado: "Preço Errado",
-  produto_avariado: "Produto Avariado",
-  erro_pigmentacao: "Erro de Pigmentação",
-  produto_defeito: "Produto com Defeito",
-  qtd_errada: "Quantidade Errada",
-  arrependimento: "Arrependimento / Troca",
-  recusa_entrega: "Recusa na Entrega",
-};
-
+// Rótulos de status/tipo vêm de constants/chamado.js (fonte única).
+// Aqui ficam só os pares bg/cor usados nos badges e barras desta página.
 const STATUS_COLORS = {
   novo: { bg: "#f3f4f6", color: "#374151" },
   avaliacao: { bg: "#fef3c7", color: "#92400e" },
@@ -65,7 +46,13 @@ const STATUS_COLORS = {
 
 const CHART_COLORS = [M.chart1, M.chart2, M.chart3, M.chart4, M.chart5, M.chart6];
 
-function KPICard({ label, value, icon, color, bg }) {
+// Página da listagem de chamados. Deve caber em CHAMADOS_LIMIT_MAX do backend (200).
+const PAGE_SIZE = 50;
+
+// Formata dias vindos do backend (numeric → string) no padrão BR: "1,5 dias".
+const formatDias = (v) => `${Number(v ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} dias`;
+
+function KPICard({ label, value, sub, icon, color, bg }) {
   return (
     <div style={{
       background: M.card, borderRadius: 16, padding: "20px 20px",
@@ -80,6 +67,7 @@ function KPICard({ label, value, icon, color, bg }) {
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 20, fontWeight: 800, color: color || M.pri, lineHeight: 1.1, overflowWrap: "break-word" }}>{value}</div>
         <div style={{ fontSize: 13, color: M.txM, marginTop: 4 }}>{label}</div>
+        {sub && <div style={{ fontSize: 11, color: M.txM, marginTop: 3, opacity: 0.8 }}>{sub}</div>}
       </div>
     </div>
   );
@@ -139,6 +127,8 @@ export default function RelatoriosPage() {
 
   // --- Lista paginada para aba "Chamados" ---
   const [chamadosList, setChamadosList] = useState([]);
+  const [chamadosTotal, setChamadosTotal] = useState(0);
+  const [chamadosOffset, setChamadosOffset] = useState(0);
   const [chamadosFilters, setChamadosFilters] = useState({ from: "", to: "", status: "", tipo: "", vendedor_id: "" });
   const [chamadosLoading, setChamadosLoading] = useState(false);
   const [users, setUsers] = useState([]);
@@ -161,14 +151,18 @@ export default function RelatoriosPage() {
     }
   }, []);
 
-  const fetchChamados = useCallback(async (f) => {
+  const fetchChamados = useCallback(async (f, offset = 0) => {
     setChamadosLoading(true);
     try {
       const params = new URLSearchParams();
       Object.entries(f).forEach(([k, v]) => { if (v) params.set(k, v); });
+      params.set("limit", String(PAGE_SIZE));
+      params.set("offset", String(offset));
       const r = await fetch(`${API_BASE}/relatorios/chamados?${params}`, { headers: authHeaders() });
       const data = await r.json();
       setChamadosList(data.chamados || []);
+      setChamadosTotal(data.total ?? 0);
+      setChamadosOffset(offset);
     } catch (e) {
       console.error(e);
     } finally {
@@ -189,8 +183,11 @@ export default function RelatoriosPage() {
     fetchUsers();
   }, [fetchResumo, fetchUsers]);
 
+  // Carrega a lista ao entrar na aba. O onClick da tab não refaz o fetch —
+  // este efeito é a única origem, senão a troca de aba disparava 2 requisições.
   useEffect(() => {
     if (activeTab === "chamados") fetchChamados(chamadosFilters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const handleApplyFilters = () => {
@@ -201,18 +198,11 @@ export default function RelatoriosPage() {
   const handleExportCSV = async (tipo) => {
     setExportLoading(true);
     try {
-      const params = new URLSearchParams({ formato: "csv", ...appliedFilters });
-      if (tipo === "historico") {
-        const r = await fetch(`${API_BASE}/relatorios/historico?${params}`, { headers: authHeaders() });
-        await downloadBlob(r, `historico_${Date.now()}.csv`);
-      } else if (tipo === "chamados") {
-        const p = new URLSearchParams({ formato: "csv", ...chamadosFilters });
-        const r = await fetch(`${API_BASE}/relatorios/chamados?${p}`, { headers: authHeaders() });
-        await downloadBlob(r, `chamados_${Date.now()}.csv`);
-      } else {
-        const r = await fetch(`${API_BASE}/relatorios/chamados?${params}`, { headers: authHeaders() });
-        await downloadBlob(r, `chamados_${Date.now()}.csv`);
-      }
+      // Aba "Chamados" exporta com os filtros da própria lista; o dashboard
+      // exporta com o período aplicado nos KPIs.
+      const p = new URLSearchParams({ formato: "csv", ...(tipo === "chamados" ? chamadosFilters : appliedFilters) });
+      const r = await fetch(`${API_BASE}/relatorios/chamados?${p}`, { headers: authHeaders() });
+      await downloadBlob(r, `chamados_${Date.now()}.csv`);
     } catch (e) {
       toast.error("Erro ao exportar: " + e.message);
     } finally {
@@ -244,7 +234,7 @@ export default function RelatoriosPage() {
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button
-            onClick={() => handleExportCSV(activeTab === "chamados" ? "chamados" : activeTab === "historico" ? "historico" : "chamados")}
+            onClick={() => handleExportCSV(activeTab)}
             disabled={exportLoading}
             style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: M.pri, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13, opacity: exportLoading ? 0.6 : 1 }}
           >📊 Exportar Excel</button>
@@ -259,7 +249,7 @@ export default function RelatoriosPage() {
         ].map(t => (
           <button
             key={t.key}
-            onClick={() => { setActiveTab(t.key); if (t.key === "chamados") fetchChamados(chamadosFilters); }}
+            onClick={() => setActiveTab(t.key)}
             style={{
               padding: "10px 20px", border: "none", background: "none", cursor: "pointer",
               fontWeight: 700, fontSize: 13,
@@ -311,8 +301,23 @@ export default function RelatoriosPage() {
                 <KPICard label="Total de Chamados" value={resumo.total} icon="📬" color={M.pri} bg={M.priLight} />
                 <KPICard label="Com Previsão Recolhimento" value={resumo.sla_recolhimento?.com_previsao ?? "—"} icon="📦" color="#2563eb" bg="#dbeafe" />
                 <KPICard label="Recolhidos" value={resumo.sla_recolhimento?.recolhidos ?? "—"} icon="✅" color={M.ok} bg={M.okBg} />
-                <KPICard label="Atrasados no Recolhimento" value={resumo.sla_recolhimento?.atrasados ?? "—"} icon="⚠️" color={M.warn} bg={M.warnBg} />
-                <KPICard label="Média de Atraso" value={resumo.sla_recolhimento?.media_atraso_dias ? `${resumo.sla_recolhimento.media_atraso_dias} dias` : "0 dias"} icon="⏳" color={M.warn} bg={M.warnBg} />
+                <KPICard label="Atrasados no Recolhimento" sub="recolhidos após a previsão" value={resumo.sla_recolhimento?.atrasados ?? "—"} icon="⚠️" color={M.warn} bg={M.warnBg} />
+                <KPICard
+                  label="Em Atraso (não recolhido)"
+                  sub={Number(resumo.sla_recolhimento?.pendentes_atrasados) > 0
+                    ? `previsão vencida há ${formatDias(resumo.sla_recolhimento?.media_atraso_pendentes_dias)} em média`
+                    : "nenhuma previsão vencida em aberto"}
+                  value={resumo.sla_recolhimento?.pendentes_atrasados ?? "—"}
+                  icon="⏰"
+                  color={Number(resumo.sla_recolhimento?.pendentes_atrasados) > 0 ? M.err : M.ok}
+                  bg={Number(resumo.sla_recolhimento?.pendentes_atrasados) > 0 ? M.errBg : M.okBg}
+                />
+                <KPICard
+                  label="Média de Atraso (recolhidos)"
+                  sub={`${formatDias(resumo.sla_recolhimento?.media_atraso_atrasados_dias)} entre os atrasados`}
+                  value={formatDias(resumo.sla_recolhimento?.media_atraso_dias)}
+                  icon="⏳" color={M.warn} bg={M.warnBg}
+                />
                 <KPICard label="Custo de Desvio (Frete + Despesas)" value={resumo.sla_recolhimento?.desvio_reais ? `R$ ${Number(resumo.sla_recolhimento.desvio_reais).toLocaleString('pt-BR', {minimumFractionDigits: 2})}` : "R$ 0,00"} icon="💸" color={resumo.sla_recolhimento?.desvio_reais > 0 ? M.err : M.ok} bg={resumo.sla_recolhimento?.desvio_reais > 0 ? M.errBg : M.okBg} />
                 <KPICard label="Atendidos" value={resumo.encerramentos?.atendidos ?? "—"} icon="✅" color={M.ok} bg={M.okBg} />
                 <KPICard label="Indeferidos" value={resumo.encerramentos?.indeferidos ?? "—"} icon="🚫" color={M.err} bg={M.errBg} />
@@ -329,7 +334,7 @@ export default function RelatoriosPage() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 20, marginBottom: 20 }}>
                 <Section title="Chamados por Status">
                   <MiniBarChart
-                    data={resumo.por_status.map(d => ({ ...d, label: STATUS_LABELS[d.status] || d.status }))}
+                    data={resumo.por_status.map(d => ({ ...d, label: statusLabel(d.status) }))}
                     labelKey="label"
                     valueKey="qtd"
                     colors={resumo.por_status.map(d => STATUS_COLORS[d.status]?.bg ? STATUS_COLORS[d.status].color : M.chart1)}
@@ -338,7 +343,7 @@ export default function RelatoriosPage() {
 
                 <Section title="Chamados por Tipo de Solicitação">
                   <MiniBarChart 
-                    data={resumo.por_tipo.map(d => ({ ...d, label: TIPO_LABELS[d.tipo_solicitacao] || d.tipo_solicitacao }))} 
+                    data={resumo.por_tipo.map(d => ({ ...d, label: tipoLabel(d.tipo_solicitacao) }))}
                     labelKey="label" 
                     valueKey="qtd" 
                   />
@@ -362,7 +367,7 @@ export default function RelatoriosPage() {
                       {resumo.por_vendedor_motivo?.map((d, i) => (
                         <tr key={i} style={{ borderBottom: `1px solid ${M.brdN}`, background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
                           <td style={{ padding: 12, fontWeight: 700 }}>{d.vendedor || "Não identificado"}</td>
-                          <td style={{ padding: 12 }}>{TIPO_LABELS[d.tipo_solicitacao] || d.tipo_solicitacao}</td>
+                          <td style={{ padding: 12 }}>{tipoLabel(d.tipo_solicitacao)}</td>
                           <td style={{ padding: 12, textAlign: "right", fontWeight: 800, color: M.pri }}>{d.qtd}</td>
                         </tr>
                       ))}
@@ -399,7 +404,15 @@ export default function RelatoriosPage() {
               <select value={chamadosFilters.status} onChange={e => setChamadosFilters(f => ({ ...f, status: e.target.value }))}
                 style={{ padding: "8px 12px", border: `1px solid ${M.brdN}`, borderRadius: 8, fontSize: 13 }}>
                 <option value="">Todos</option>
-                {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                {STATUS_OPTIONS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: M.txM, marginBottom: 5 }}>TIPO</label>
+              <select value={chamadosFilters.tipo} onChange={e => setChamadosFilters(f => ({ ...f, tipo: e.target.value }))}
+                style={{ padding: "8px 12px", border: `1px solid ${M.brdN}`, borderRadius: 8, fontSize: 13 }}>
+                <option value="">Todos</option>
+                {TIPO_OPTIONS.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
               </select>
             </div>
             <div>
@@ -410,7 +423,8 @@ export default function RelatoriosPage() {
                 {users.filter(u => u.role === "vendedor").map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
             </div>
-            <button onClick={() => fetchChamados(chamadosFilters)}
+            {/* Filtrar sempre volta à 1ª página: o offset atual pode não existir no novo recorte. */}
+            <button onClick={() => fetchChamados(chamadosFilters, 0)}
               style={{ padding: "9px 20px", background: M.pri, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>Filtrar</button>
             <button onClick={() => handleExportCSV("chamados")} disabled={exportLoading}
               style={{ padding: "9px 16px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 13, opacity: exportLoading ? 0.6 : 1 }}>📊 Excel</button>
@@ -421,7 +435,9 @@ export default function RelatoriosPage() {
           ) : (
             <div style={{ background: M.card, border: `1px solid ${M.brdN}`, borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
               <div style={{ padding: "12px 20px", borderBottom: `1px solid ${M.brdN}`, fontSize: 13, color: M.txM, fontWeight: 600 }}>
-                {chamadosList.length} chamados encontrados
+                {chamadosTotal === 0
+                  ? "Nenhum chamado encontrado"
+                  : `Exibindo ${chamadosOffset + 1}–${chamadosOffset + chamadosList.length} de ${chamadosTotal} chamados`}
               </div>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -446,10 +462,10 @@ export default function RelatoriosPage() {
                           <td style={{ padding: "10px 14px", fontWeight: 600, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={c.razao_social}>{c.razao_social || "—"}</td>
                           <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>{c.nf_original || "—"}</td>
                           <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>{c.vendedor_nome || "—"}</td>
-                          <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>{c.tipo_solicitacao || "—"}</td>
+                          <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>{tipoLabel(c.tipo_solicitacao)}</td>
                           <td style={{ padding: "10px 14px" }}>
                             <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: sc.bg, color: sc.color, whiteSpace: "nowrap" }}>
-                              {STATUS_LABELS[c.status] || c.status}
+                              {statusLabel(c.status)}
                             </span>
                           </td>
                           <td style={{ padding: "10px 14px", whiteSpace: "nowrap", color: M.txM }}>
@@ -468,6 +484,26 @@ export default function RelatoriosPage() {
                   </tbody>
                 </table>
               </div>
+
+              {chamadosTotal > PAGE_SIZE && (
+                <div style={{ padding: "12px 20px", borderTop: `1px solid ${M.brdN}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 12, color: M.txM, fontWeight: 600 }}>
+                    Página {Math.floor(chamadosOffset / PAGE_SIZE) + 1} de {Math.ceil(chamadosTotal / PAGE_SIZE)}
+                  </span>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => fetchChamados(chamadosFilters, Math.max(chamadosOffset - PAGE_SIZE, 0))}
+                      disabled={chamadosOffset === 0}
+                      style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${M.brdN}`, background: M.card, color: M.tx, fontWeight: 700, fontSize: 12, cursor: chamadosOffset === 0 ? "not-allowed" : "pointer", opacity: chamadosOffset === 0 ? 0.45 : 1 }}
+                    >← Anterior</button>
+                    <button
+                      onClick={() => fetchChamados(chamadosFilters, chamadosOffset + PAGE_SIZE)}
+                      disabled={chamadosOffset + PAGE_SIZE >= chamadosTotal}
+                      style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${M.brdN}`, background: M.card, color: M.tx, fontWeight: 700, fontSize: 12, cursor: chamadosOffset + PAGE_SIZE >= chamadosTotal ? "not-allowed" : "pointer", opacity: chamadosOffset + PAGE_SIZE >= chamadosTotal ? 0.45 : 1 }}
+                    >Próxima →</button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>

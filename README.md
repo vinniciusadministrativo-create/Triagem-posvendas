@@ -509,8 +509,52 @@ Base `/api`. Exceto login e health, **todas exigem** `Authorization: Bearer <JWT
 | Método | Rota | Acesso | Descrição |
 |--------|------|--------|-----------|
 | GET | `/relatorios/resumo` | pos_vendas, admin | KPIs, SLA e encerramentos (atendidos/indeferidos) — respeita o filtro de período |
-| GET | `/relatorios/chamados?formato=csv` | pos_vendas, admin | Exporta chamados |
-| GET | `/relatorios/historico?formato=csv` | pos_vendas, admin | Exporta histórico |
+| GET | `/relatorios/chamados` | pos_vendas, admin | Lista paginada (`limit` ≤ 200, default 50; `offset`). Devolve `{ chamados, total, limit, offset }` — `total` é a contagem do filtro inteiro |
+| GET | `/relatorios/chamados?formato=csv` | pos_vendas, admin | Exporta chamados — **ignora a paginação** (base completa do filtro) |
+
+#### Relatórios — regras dos indicadores
+
+**Recorte de período.** Todos os indicadores do dashboard filtram por `chamados.created_at`
+(data de **abertura** do chamado) — não pela data do recolhimento. `from` é inclusivo e
+`to` é inclusivo no dia. Como `created_at` é `TIMESTAMPTZ`, os limites são convertidos
+explicitamente para o fuso da operação (`America/Sao_Paulo`) — comparar com literais de
+data usaria o TZ do servidor de banco (UTC em produção) e jogaria chamados do fim da
+tarde para o dia seguinte.
+
+**Conclusão do recolhimento.** Um recolhimento é considerado **concluído** quando
+`data_real_recolhimento` está preenchida. Essa é a única evidência de conclusão: o status
+do kanban pode ser movido sem que as datas sejam informadas, portanto `status = 'recolhido'`
+**não** é usado como critério.
+
+| Indicador (campo em `sla_recolhimento`) | Regra de cálculo | Entra no cálculo | Fica de fora |
+|---|---|---|---|
+| `com_previsao` | contagem | `data_previsao_recolhimento` preenchida | sem previsão |
+| `recolhidos` | contagem | `data_real_recolhimento` preenchida | não recolhidos |
+| `atrasados` | contagem | concluídos **com previsão** e `real > previsão` | em andamento, sem previsão, no prazo, antecipados |
+| `media_atraso_dias` | `AVG(GREATEST(real − previsão, 0))` | **todos** os concluídos com previsão — antecipado/na data conta **0 dia** | em andamento, sem previsão |
+| `media_atraso_atrasados_dias` | `AVG(real − previsão)` | somente os `atrasados` (denominador = atrasados) | qualquer registro no prazo |
+| `pendentes_atrasados` | contagem | **não** concluídos, com previsão anterior a hoje | concluídos, sem previsão, previsão futura |
+| `media_atraso_pendentes_dias` | `AVG(hoje − previsão)` | os mesmos de `pendentes_atrasados` | — |
+| `desvio_reais` | `SUM(valor_frete + despesas)` de `recolhimento_data` | todos os chamados do período (valores ausentes = 0) | — |
+
+**Top 10 Clientes.** Agrupa por **CNPJ**, não por razão social — a mesma empresa cadastrada
+com grafias diferentes contava como dois clientes e dividia o volume. Sem CNPJ, cai na razão
+social. O nome exibido é o da grafia mais recente.
+
+> ⚠️ Atraso **nunca é negativo**: recolhimento antecipado é clamped em 0 (`GREATEST`), então
+> uma coleta adiantada não "compensa" as atrasadas na média.
+>
+> ⚠️ `atrasados` e as médias só olham para registros **finalizados**. Recolhimento em
+> andamento com previsão vencida aparece em `pendentes_atrasados` (card "Em Atraso
+> (não recolhido)") e **não** contamina o SLA fechado.
+>
+> ⚠️ `pendentes_atrasados` usa o "hoje" do fuso da operação — é um valor
+> "de agora", não histórico: o mesmo período filtrado devolve números diferentes
+> conforme o dia da consulta.
+
+**Encerramentos.** `atendidos` / `indeferidos` contam `encerramento_data->>'resolucao'`.
+A "Taxa de Atendimento" é calculada no frontend como `atendidos / (atendidos + indeferidos)`
+— chamados não encerrados ficam fora do denominador.
 
 ### Infra / diagnóstico
 | Método | Rota | Descrição |

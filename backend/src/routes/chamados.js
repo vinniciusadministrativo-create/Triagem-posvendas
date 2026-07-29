@@ -33,6 +33,49 @@ const upload = multer({
   },
 });
 
+// Fuso da operação — os relatórios recortam o período por ele (ver routes/relatorios.js).
+const TZ_OPERACAO = "America/Sao_Paulo";
+
+// Etapas anteriores à coleta: nelas a data REAL de recolhimento não pode existir.
+const ETAPAS_PRE_COLETA = ["novo", "avaliacao", "avaliado", "espelho", "aguardando_nfd"];
+
+/** Data de hoje (AAAA-MM-DD) no fuso da operação. */
+function hojeISO() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: TZ_OPERACAO });
+}
+
+/**
+ * Valida e normaliza uma das datas de recolhimento vindas do corpo da requisição.
+ *
+ * Regras: formato `AAAA-MM-DD`, data existente no calendário e não anterior à
+ * abertura do chamado (nem previsão nem coleta acontecem antes do chamado existir).
+ *
+ * @param {*} valor Valor cru do body. `undefined` = campo não enviado; vazio = limpar.
+ * @param {string} campo Nome do campo para a mensagem de erro.
+ * @param {string|null} aberturaISO Data de abertura já em `AAAA-MM-DD` (fuso da operação).
+ * @returns {{skip?: true, value?: string|null, error?: string}}
+ */
+function normalizaDataRecolhimento(valor, campo, aberturaISO) {
+  if (valor === undefined) return { skip: true };
+  if (!valor) return { value: null };
+
+  const s = String(valor).slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    return { error: `${campo}: formato inválido (use AAAA-MM-DD).` };
+  }
+  // Round-trip pega datas inexistentes (ex.: 2026-02-30).
+  const d = new Date(`${s}T00:00:00Z`);
+  if (isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== s) {
+    return { error: `${campo}: data inexistente no calendário.` };
+  }
+
+  if (aberturaISO && s < aberturaISO) {
+    const br = aberturaISO.split("-").reverse().join("/");
+    return { error: `${campo}: não pode ser anterior à abertura do chamado (${br}).` };
+  }
+  return { value: s };
+}
+
 /**
  * Mapeia o mimetype de um arquivo para o `resource_type` do Cloudinary.
  *
@@ -346,16 +389,47 @@ router.get("/:id", authMiddleware(), async (req, res) => {
 router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"]), async (req, res) => {
   try {
     const { status, recolhimento_data, data_previsao_recolhimento, data_real_recolhimento, encerramento_data } = req.body;
-    console.log("STATUS UPDATE:", JSON.stringify({ status, recolhimento_data }));
     if (!status) return res.status(400).json({ error: "Status obrigatório" });
 
-    // Busca dados atuais para histórico e e-mail
+    // Busca dados atuais para histórico, e-mail e validação das datas.
+    // As datas vêm como TEXT já normalizado pelo Postgres: `created_at` é
+    // TIMESTAMPTZ e converter em JS usaria UTC, deslocando a data de abertura de
+    // chamados criados à noite; e o driver interpreta colunas DATE no fuso do
+    // processo. Formatar no banco elimina os dois deslocamentos.
     const oldRes = await pool.query(
-      "SELECT status, email_vendedor, nome_vendedor, razao_social, nf_data, nf_file_path FROM chamados WHERE id = $1",
-      [req.params.id]
+      `SELECT status, email_vendedor, nome_vendedor, razao_social, nf_data, nf_file_path,
+              (created_at AT TIME ZONE $2)::date::text AS abertura_data,
+              data_real_recolhimento::text             AS real_atual
+         FROM chamados WHERE id = $1`,
+      [req.params.id, TZ_OPERACAO]
     );
-    const oldRow = oldRes.rows[0] || {};
+    if (!oldRes.rows[0]) return res.status(404).json({ error: "Chamado não encontrado" });
+    const oldRow = oldRes.rows[0];
     const oldStatus = oldRow.status;
+
+    // ── Datas de recolhimento: validação de coerência ────────────────────────
+    // Essas duas datas alimentam TODOS os indicadores de SLA dos relatórios —
+    // um valor incoerente aqui contamina o dashboard inteiro. Os
+    // <input type="date"> da UI não barram nenhum dos casos abaixo, então a
+    // validação tem de ser aqui.
+    const prevN = normalizaDataRecolhimento(data_previsao_recolhimento, "Data de previsão de recolhimento", oldRow.abertura_data);
+    const realN = normalizaDataRecolhimento(data_real_recolhimento, "Data real de recolhimento", oldRow.abertura_data);
+    const erroData = prevN.error || realN.error;
+    if (erroData) return res.status(400).json({ error: erroData });
+
+    // Data real registra um fato consumado — não pode estar no futuro.
+    if (realN.value && realN.value > hojeISO()) {
+      return res.status(400).json({ error: "Data real de recolhimento não pode estar no futuro." });
+    }
+
+    // Data real só faz sentido a partir da etapa de coleta. Só bloqueia quando o
+    // valor está sendo introduzido/alterado — reabrir um chamado já recolhido
+    // (a UI reenvia a data atual em toda mudança de status) continua funcionando.
+    if (realN.value && realN.value !== oldRow.real_atual && ETAPAS_PRE_COLETA.includes(status)) {
+      return res.status(400).json({
+        error: `Data real de recolhimento não se aplica à etapa "${status}" — o recolhimento ainda não ocorreu.`,
+      });
+    }
 
     // ── Encerramento: resolução + descrição obrigatórias ao mover p/ "encerrado" ──
     // Validado no servidor (não só na UI), sanitizado e carimbado com autor/data.
@@ -426,14 +500,15 @@ router.patch("/:id/status", authMiddleware(["pos_vendas", "admin", "operacional"
       params.push(encToStore);
     }
 
-    if (data_previsao_recolhimento !== undefined) {
+    // Grava os valores já validados/normalizados (AAAA-MM-DD ou null).
+    if (!prevN.skip) {
       query += `, data_previsao_recolhimento = $${nextParamIndex++}`;
-      params.push(data_previsao_recolhimento || null);
+      params.push(prevN.value);
     }
 
-    if (data_real_recolhimento !== undefined) {
+    if (!realN.skip) {
       query += `, data_real_recolhimento = $${nextParamIndex++}`;
-      params.push(data_real_recolhimento || null);
+      params.push(realN.value);
     }
 
     query += ` WHERE id = $2 RETURNING *`;
