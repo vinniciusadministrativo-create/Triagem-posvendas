@@ -3,6 +3,10 @@ node_modules/
 .DS_Store
 uploads/
 
+# Bytecode Python (gerado ao rodar backend/scripts/*.py)
+__pycache__/
+*.py[cod]
+
 # Config local do Claude Code
 .claude/
 
