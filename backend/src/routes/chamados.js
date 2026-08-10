@@ -24,13 +24,42 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// Formatos aceitos nos anexos (NF, evidências, ressalva e chat do chamado).
+// HEIC/HEIF ficam de fora de propósito: o `sharp` empacotado não decodifica HEIF,
+// então a leitura de QR Code da NF falharia. A mensagem de erro orienta a troca.
+const ALLOWED_MIMES = [
+  "image/jpeg", "image/png", "image/webp", "image/gif",
+  "application/pdf",
+  "video/mp4", "video/quicktime", "video/x-msvideo",
+];
+const MAX_FILE_MB = 20;
+
+/**
+ * Filtro de upload que REJEITA COM ERRO os formatos não suportados.
+ *
+ * Antes respondia `cb(null, false)`, que descarta o arquivo em silêncio: o
+ * chamado era criado sem a NF (`nf_file_path = null`) e o vendedor recebia
+ * "sucesso". Fotos de iPhone (HEIC) caíam exatamente nesse buraco. Agora o
+ * erro sobe para o handler no fim deste router e vira 415 com mensagem clara.
+ */
+function fileFilter(req, file, cb) {
+  if (ALLOWED_MIMES.includes(file.mimetype)) return cb(null, true);
+
+  const tipo = file.mimetype || "tipo desconhecido";
+  const heic = /hei[cf]/i.test(tipo) || /\.hei[cf]$/i.test(file.originalname || "");
+  const err = new Error(
+    heic
+      ? `"${file.originalname}" está em HEIC, formato que o sistema não lê. No iPhone: Ajustes › Câmera › Formatos › "Mais Compatível", ou reenvie o arquivo como JPG/PDF.`
+      : `Formato não suportado em "${file.originalname}" (${tipo}). Envie PDF, JPG, PNG, WEBP, GIF ou vídeo MP4/MOV.`
+  );
+  err.code = "UNSUPPORTED_FILE_TYPE";
+  cb(err);
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowed = ["image/jpeg","image/png","image/webp","image/gif","application/pdf","video/mp4","video/quicktime","video/x-msvideo"];
-    cb(null, allowed.includes(file.mimetype));
-  },
+  limits: { fileSize: MAX_FILE_MB * 1024 * 1024 },
+  fileFilter,
 });
 
 // Fuso da operação — os relatórios recortam o período por ele (ver routes/relatorios.js).
@@ -649,17 +678,34 @@ router.patch("/:id/nf_data", authMiddleware(["pos_vendas", "admin"]), async (req
 router.patch("/:id/ressalva", authMiddleware(), upload.array("ressalva_arquivos", 3), async (req, res) => {
   try {
     const { ressalva_vendedor } = req.body;
-    let newFiles = [];
-    if (req.files && req.files.length > 0) {
-      newFiles = req.files.map(f => f.path);
-    }
-    
-    // Verifica proprietário
+
+    // Verifica proprietário ANTES de subir qualquer arquivo (evita gastar upload
+    // no Cloudinary para uma requisição que será rejeitada).
     const { rows: check } = await pool.query("SELECT vendedor_id FROM chamados WHERE id = $1", [req.params.id]);
     if (!check[0]) return res.status(404).json({ error: "Chamado não encontrado" });
-    
+
     if (req.user.role !== "admin" && check[0].vendedor_id !== req.user.id) {
       return res.status(403).json({ error: "Acesso negado" });
+    }
+
+    // O multer desta rota usa memoryStorage: o arquivo existe apenas em
+    // `f.buffer` e NÃO há `f.path`. Antes eram gravados `undefined` na coluna e
+    // o anexo se perdia silenciosamente — o upload precisa ser explícito.
+    let newFiles = [];
+    if (req.files && req.files.length > 0) {
+      try {
+        const uploads = await Promise.all(
+          req.files.map(f => uploadToCloudinary(
+            f.buffer,
+            { public_id: `ressalva_${Date.now()}_${Math.random().toString(36).slice(2)}` },
+            f.mimetype
+          ))
+        );
+        newFiles = uploads.map(u => u.secure_url);
+      } catch (uploadErr) {
+        console.error("Erro upload ressalva:", uploadErr?.message);
+        return res.status(500).json({ error: "Falha ao enviar os anexos da ressalva. Tente novamente." });
+      }
     }
 
     let query = `UPDATE chamados SET ressalva_vendedor = $1, updated_at = NOW() WHERE id = $2 RETURNING *`;
@@ -819,6 +865,30 @@ router.get("/:id/history", authMiddleware(["pos_vendas", "admin"]), async (req, 
     console.error("Erro ao buscar histórico:", e);
     res.status(500).json({ error: "Erro ao buscar histórico" });
   }
+});
+
+/**
+ * Handler de erros de upload deste router.
+ *
+ * Erros do multer (tamanho, contagem, campo inesperado) e do `fileFilter` são
+ * emitidos pelo middleware, ANTES do handler da rota — sem isto caíam no
+ * handler global e viravam um 500 "Erro interno do servidor", sem indicar ao
+ * usuário o que havia de errado com o arquivo.
+ */
+router.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(413).json({ error: `Arquivo maior que o limite de ${MAX_FILE_MB} MB. Reduza o tamanho e tente novamente.` });
+    }
+    if (err.code === "LIMIT_FILE_COUNT" || err.code === "LIMIT_UNEXPECTED_FILE") {
+      return res.status(400).json({ error: "Quantidade de arquivos acima do permitido para este envio." });
+    }
+    return res.status(400).json({ error: `Falha no envio do arquivo: ${err.message}` });
+  }
+  if (err?.code === "UNSUPPORTED_FILE_TYPE") {
+    return res.status(415).json({ error: err.message });
+  }
+  return next(err);
 });
 
 module.exports = router;
