@@ -25,6 +25,36 @@ const STAGES = [
   { id: "encerrado", label: "Encerrado", color: "#6b7280", icon: "✅" },
 ];
 
+// ── Regras de anexo — devem espelhar ALLOWED_MIMES/MAX_FILE_MB do backend
+// (backend/src/routes/chamados.js). Validar aqui evita que o arquivo suba e
+// seja recusado só no servidor; o backend continua sendo a validação de verdade.
+const MAX_ANEXO_MB = 20;
+const MAX_EVIDENCIAS = 3;
+const MIMES_NF = ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/gif"];
+const MIMES_EVIDENCIA = [...MIMES_NF, "video/mp4", "video/quicktime", "video/x-msvideo"];
+
+// Atributo `accept` do <input type="file">, derivado das listas acima.
+const ACCEPT_NF = MIMES_NF.join(",");
+const ACCEPT_EVIDENCIA = MIMES_EVIDENCIA.join(",");
+
+/**
+ * Valida um anexo antes do envio.
+ * @returns {string|null} Mensagem de erro, ou `null` se o arquivo é aceitável.
+ */
+function validarAnexo(file, mimesAceitos) {
+  const nome = file.name || "arquivo";
+  if (/\.hei[cf]$/i.test(nome) || /hei[cf]/i.test(file.type || "")) {
+    return `"${nome}" está em HEIC, formato que o sistema não lê. No iPhone: Ajustes › Câmera › Formatos › "Mais Compatível", ou reenvie como JPG/PDF.`;
+  }
+  if (!mimesAceitos.includes(file.type)) {
+    return `"${nome}" não é um formato aceito. Envie PDF, JPG, PNG, WEBP ou GIF${mimesAceitos === MIMES_EVIDENCIA ? ", ou vídeo MP4/MOV" : ""}.`;
+  }
+  if (file.size > MAX_ANEXO_MB * 1024 * 1024) {
+    return `"${nome}" tem ${(file.size / 1024 / 1024).toFixed(1)} MB e excede o limite de ${MAX_ANEXO_MB} MB.`;
+  }
+  return null;
+}
+
 const TIPOS = [
   { id: "preco_errado", label: "Preço Errado" },
   { id: "produto_avariado", label: "Produto Avariado" },
@@ -149,24 +179,38 @@ export default function VendedorPage({ defaultTab = "novo" }) {
   };
 
   const onFile = useCallback(async (e) => {
-    const file = e.target.files?.[0]; if (!file) return;
+    const input = e.target;
+    const file = input.files?.[0];
+    // Limpa o input sempre: sem isso, reenviar o MESMO arquivo após um erro não
+    // dispara o onChange e o usuário fica achando que o clique não funcionou.
+    input.value = "";
+    if (!file) return;
+
+    const erro = validarAnexo(file, MIMES_NF);
+    if (erro) { toast.error(erro); return; }
+
     setNfFile(file);
+    setFormErrors(p => ({ ...p, nfFile: undefined }));
     const reader = new FileReader();
     reader.onload = () => { setNfB64(reader.result.split(",")[1]); setNfMime(file.type); };
+    reader.onerror = () => toast.error("Não foi possível ler o arquivo. Tente novamente.");
     reader.readAsDataURL(file);
-  }, []);
+  }, [toast]);
 
   const onEvidenceFiles = useCallback(async (newFiles) => {
     const added = [];
     for (const file of Array.from(newFiles)) {
+      const erro = validarAnexo(file, MIMES_EVIDENCIA);
+      if (erro) { toast.error(erro); continue; }
       await new Promise(resolve => {
         const r = new FileReader();
         r.onload = () => { added.push({ file, b64: r.result.split(",")[1], mime: file.type }); resolve(); };
+        r.onerror = () => { toast.error(`Não foi possível ler "${file.name}".`); resolve(); };
         r.readAsDataURL(file);
       });
     }
-    setEvidenceFiles(p => [...p, ...added].slice(0, 3));
-  }, []);
+    if (added.length) setEvidenceFiles(p => [...p, ...added].slice(0, MAX_EVIDENCIAS));
+  }, [toast]);
 
   const submit = async () => {
     if (!validate()) return;
@@ -320,12 +364,20 @@ if (meusChamados.length === 0) return <p style={{ textAlign: "center", padding: 
       <div className="responsive-grid">
         <div className="responsive-grid-left">
           <div onClick={() => fRef.current.click()} style={{ padding: 20, border: `2px dashed ${nfFile ? M.ok : M.brdN}`, borderRadius: 12, textAlign: "center", cursor: "pointer", background: nfFile ? M.okS : M.bg }}>
-            <input ref={fRef} type="file" style={{ display: "none"}} onChange={onFile} />
+            <input ref={fRef} type="file" accept={ACCEPT_NF} style={{ display: "none"}} onChange={onFile} />
             {nfFile ? <p>✅ {nfFile.name}</p> : <p>📄 Anexar Nota Fiscal *</p>}
+            <p style={{ fontSize: 11, color: M.txD, margin: "6px 0 0" }}>PDF, JPG, PNG ou WEBP — até {MAX_ANEXO_MB} MB</p>
           </div>
           <div onClick={() => evRef.current.click()} style={{ padding: 20, border: `2px dashed ${evidenceFiles.length ? M.blue : M.brdN}`, borderRadius: 12, textAlign: "center", cursor: "pointer", background: evidenceFiles.length ? M.blueS : M.bg }}>
-            <input ref={evRef} type="file" multiple style={{ display: "none" }} onChange={e => onEvidenceFiles(e.target.files)} />
+            <input ref={evRef} type="file" accept={ACCEPT_EVIDENCIA} multiple style={{ display: "none" }} onChange={e => {
+              // Copia o FileList (que é vivo) ANTES de limpar o input, senão a
+              // leitura assíncrona lá dentro perderia os arquivos.
+              const arquivos = Array.from(e.target.files || []);
+              e.target.value = "";
+              onEvidenceFiles(arquivos);
+            }} />
             {evidenceFiles.length ? <p>📸 {evidenceFiles.length} fotos anexadas</p> : <p>📸 Fotos de Evidência</p>}
+            <p style={{ fontSize: 11, color: M.txD, margin: "6px 0 0" }}>Até {MAX_EVIDENCIAS} arquivos — fotos ou vídeo, {MAX_ANEXO_MB} MB cada</p>
           </div>
         </div>
         <VInput label="Código do Cliente" placeholder="Ex: 12345" value={form.codigo} onChange={v => upd("codigo", v)} pattern="numeric" maxLength={10} />

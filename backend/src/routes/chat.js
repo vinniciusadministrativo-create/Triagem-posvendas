@@ -174,6 +174,22 @@ router.post("/mensagens", authMiddleware(), upload.single("arquivo"), async (req
     return res.status(400).json({ error: "Mensagem ou arquivo são obrigatórios" });
 
   try {
+    // Só membros postam no grupo. Sem esta checagem, qualquer usuário autenticado
+    // conseguiria injetar mensagens em qualquer grupo apenas informando o
+    // `grupo_id` — as demais rotas de grupo (histórico, membros) já validam.
+    let grupoId = null;
+    if (req.body.grupo_id) {
+      grupoId = parseInt(req.body.grupo_id, 10);
+      if (!Number.isInteger(grupoId)) {
+        return res.status(400).json({ error: "grupo_id inválido" });
+      }
+      const { rows: mb } = await pool.query(
+        "SELECT 1 FROM chat_grupo_membros WHERE grupo_id = $1 AND user_id = $2",
+        [grupoId, me]
+      );
+      if (!mb[0]) return res.status(403).json({ error: "Você não é membro deste grupo" });
+    }
+
     let anexo_url = null, anexo_nome = null, anexo_tipo = null, tipoFinal = tipo;
 
     if (req.file) {
@@ -191,7 +207,7 @@ router.post("/mensagens", authMiddleware(), upload.single("arquivo"), async (req
     `, [
       me,
       destinatario_id || null,
-      req.body.grupo_id || null,
+      grupoId,
       (conteudo || "").trim(),
       tipoFinal,
       anexo_url, anexo_nome, anexo_tipo,
